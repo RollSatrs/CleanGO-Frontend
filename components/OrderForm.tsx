@@ -32,7 +32,6 @@ type PriceQuote = {
   currency: string;
 };
 
-
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -94,6 +93,9 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
           `${API_URL}/pricing/quote?${params.toString()}`,
           {
             signal: controller.signal,
+            headers: {
+              "ngrok-skip-browser-warning": "true",
+            },
           },
         );
 
@@ -161,6 +163,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify({
           address: address.trim(),
@@ -251,14 +254,11 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
           <div>
             <p className="text-gray-500">Создан</p>
             <p className="font-medium">
-              {new Date(
-                createdOrder.createdAt,
-              ).toLocaleString("ru-RU")}
+              {new Date(createdOrder.createdAt).toLocaleString("ru-RU")}
             </p>
           </div>
         </div>
 
-        {/* Цена, которую сохранил Backend */}
         <div className="rounded-xl border border-teal-200 bg-white p-5">
           <p className="text-sm text-gray-500">
             Стоимость заказа
@@ -297,7 +297,6 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Адрес уборки */}
       <div className="space-y-2">
         <Label htmlFor="address">Адрес уборки</Label>
 
@@ -310,7 +309,6 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         />
       </div>
 
-      {/* Площадь помещения */}
       <div className="space-y-2">
         <Label htmlFor="area">Площадь помещения (м²)</Label>
 
@@ -327,7 +325,6 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         />
       </div>
 
-      {/* Умный калькулятор стоимости */}
       <div className="space-y-3 rounded-xl border border-teal-200 bg-teal-50 p-5">
         <div>
           <p className="text-sm font-medium text-gray-600">
@@ -362,12 +359,8 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
             <div className="border-t border-teal-200 pt-3 text-sm text-gray-600">
               <div className="flex justify-between gap-3">
                 <span>Стоимость за 1 м²</span>
-
                 <span>
-                  {priceQuote.pricePerSquareMeter.toLocaleString(
-                    "ru-RU",
-                  )}{" "}
-                  ₸
+                  {priceQuote.pricePerSquareMeter.toLocaleString("ru-RU")} ₸
                 </span>
               </div>
 
@@ -378,12 +371,8 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
 
               <div className="mt-2 flex justify-between gap-3">
                 <span>Минимальная стоимость</span>
-
                 <span>
-                  {priceQuote.minimumPrice.toLocaleString(
-                    "ru-RU",
-                  )}{" "}
-                  ₸
+                  {priceQuote.minimumPrice.toLocaleString("ru-RU")} ₸
                 </span>
               </div>
             </div>
@@ -391,7 +380,6 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         )}
       </div>
 
-      {/* Ошибки */}
       {error && (
         <div
           role="alert"
@@ -401,7 +389,6 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         </div>
       )}
 
-      {/* Отправка заказа */}
       <Button
         type="submit"
         disabled={
