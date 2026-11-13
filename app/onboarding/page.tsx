@@ -1,0 +1,283 @@
+
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+} from "motion/react";
+
+import {
+  ArrowLeft,
+  ArrowRight,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+
+const slides = [
+  {
+    title: "Чистый дом\nбез забот",
+    description:
+      "Закажите уборку, а мы подберём проверенного клинера",
+  },
+  {
+    title: "Быстро,\nудобно, безопасно",
+    description:
+      "Прозрачная стоимость, надёжные исполнители и контроль качества",
+  },
+];
+
+export default function OnboardingPage() {
+  const router = useRouter();
+  const reduceMotion = useReducedMotion();
+
+  const [step, setStep] = useState(0);
+
+  const current = slides[step];
+
+  const handleBack = () => {
+    if (step > 0) {
+      setStep((previous) => previous - 1);
+    } else {
+      router.push("/welcome");
+    }
+  };
+
+  const handleNext = () => {
+    if (step < slides.length - 1) {
+      setStep((previous) => previous + 1);
+    } else {
+      router.push("/");
+    }
+  };
+
+  const appear = (delay = 0) => ({
+    initial: {
+      opacity: 0,
+      y: reduceMotion ? 0 : 12,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+    },
+    transition: {
+      duration: reduceMotion ? 0 : 0.45,
+      delay: reduceMotion ? 0 : delay,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  });
+
+  return (
+    <main className="min-h-[100dvh] bg-[#F1FBFC] font-sans">
+      <section
+        className="
+          cleango-screen
+          mx-auto flex w-full
+          max-w-[520px] flex-col
+          overflow-hidden
+          bg-gradient-to-b
+          from-white via-[#F9FCFD] to-[#F1FBFC]
+          px-5 text-[#101B2C]
+        "
+      >
+        {/* Верхняя навигация */}
+        <motion.header
+          {...appear(0)}
+          className="
+            flex shrink-0 items-center justify-between
+            pt-[max(20px,env(safe-area-inset-top))]
+          "
+        >
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Назад"
+            className="
+              flex h-11 w-11 items-center
+              justify-start bg-transparent
+              text-[#101B2C]
+              transition-opacity
+              active:opacity-60
+            "
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="
+              text-sm font-medium
+              text-[#8392A2]
+            "
+          >
+            Пропустить
+          </button>
+        </motion.header>
+
+        {/* Центральная часть */}
+        <div className="flex min-h-0 flex-1 flex-col justify-center">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={step}
+              initial={{
+                opacity: 0,
+                x: reduceMotion ? 0 : 14,
+              }}
+              animate={{
+                opacity: 1,
+                x: 0,
+              }}
+              exit={{
+                opacity: 0,
+                x: reduceMotion ? 0 : -14,
+              }}
+              transition={{
+                duration: reduceMotion ? 0 : 0.3,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="flex w-full flex-col"
+            >
+              {/* Иллюстрация */}
+              <div
+                className="
+                  relative flex
+                  h-[clamp(190px,30dvh,300px)]
+                  w-full shrink-0
+                  items-center justify-center
+                "
+              >
+                {step === 0 ? (
+                  <Image
+                    src="/images/cleango/living-room.png"
+                    alt="Уютное кресло и комнатное растение"
+                    width={1024}
+                    height={1024}
+                    priority
+                    sizes="(max-width: 520px) 90vw, 350px"
+                    className="
+                      h-auto max-h-full
+                      w-auto max-w-full
+                      object-contain
+                    "
+                  />
+                ) : (
+                  <div
+                    className="
+                      relative flex
+                      h-[230px] w-[230px]
+                      items-center justify-center
+                      rounded-[70px]
+                      bg-gradient-to-br
+                      from-[#E5F9F6]
+                      to-[#B7EEE8]
+                    "
+                  >
+                    <ShieldCheck
+                      className="
+                        h-28 w-28
+                        text-[#16B6A8]
+                      "
+                      strokeWidth={1.2}
+                    />
+
+                    <Sparkles
+                      className="
+                        absolute right-7 top-7
+                        h-9 w-9
+                        text-[#0CAEA0]
+                      "
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Индикаторы */}
+              <div className="mt-2 flex justify-center gap-2">
+                {slides.map((_, index) => (
+                  <span
+                    key={index}
+                    className={`
+                      h-2 w-2 rounded-full
+                      transition-colors duration-300
+                      ${
+                        index === step
+                          ? "bg-[#12B6A6]"
+                          : "bg-[#D6E4E7]"
+                      }
+                    `}
+                  />
+                ))}
+              </div>
+
+              {/* Текст */}
+              <div className="mt-7">
+                <h1
+                  className="
+                    whitespace-pre-line
+                    text-[clamp(28px,8vw,36px)]
+                    font-bold
+                    leading-[1.12]
+                    tracking-[-0.055em]
+                  "
+                >
+                  {current.title}
+                </h1>
+
+                <p
+                  className="
+                    mt-4 max-w-[320px]
+                    text-[16px] leading-6
+                    text-[#738294]
+                  "
+                >
+                  {current.description}
+                </p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Нижняя кнопка */}
+        <motion.div
+          {...appear(0.12)}
+          className="
+            cleango-safe-bottom
+            shrink-0
+          "
+        >
+          <motion.button
+            type="button"
+            onClick={handleNext}
+            whileTap={
+              reduceMotion
+                ? undefined
+                : { scale: 0.98 }
+            }
+            className="
+              flex h-14 w-full
+              items-center justify-center
+              gap-3 rounded-2xl
+              bg-[#B9F2EA] px-6
+              text-[16px] font-semibold
+              text-[#087F77]
+              shadow-[0_8px_24px_rgba(18,182,166,0.12)]
+              transition-colors duration-200
+              hover:bg-[#A5EAE1]
+            "
+          >
+            {step === slides.length - 1
+              ? "Начать уборку"
+              : "Продолжить"}
+
+            <ArrowRight className="h-5 w-5" />
+          </motion.button>
+        </motion.div>
+      </section>
+    </main>
+  );
+}
