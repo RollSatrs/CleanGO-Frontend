@@ -1,6 +1,7 @@
 
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -27,11 +28,23 @@ export default function WelcomePage() {
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_48%_25%,#F0FFFA_0%,#D6FAF2_35%,#A4ECE1_70%,#57D4C7_100%)]"
       />
 
-      {/* Мягкое освещение */}
+      {/* Облако из PNG */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-32 left-1/2 h-[450px] w-[450px] -translate-x-1/2 rounded-full bg-white/30 blur-[90px]"
-      />
+        className="pointer-events-none absolute inset-x-0 bottom-[9%] z-10 flex justify-center"
+      >
+        <div className="relative w-[115%] max-w-[650px] shrink-0">
+          <Image
+            src="/images/cleango/clouds.png"
+            alt=""
+            width={1600}
+            height={1000}
+            priority
+            sizes="(max-width: 520px) 115vw, 650px"
+            className="h-auto w-full object-contain"
+          />
+        </div>
+      </div>
 
       {/* Основной контент */}
       <div className="relative z-20 mx-auto flex min-h-[100dvh] w-full max-w-[520px] flex-col px-6">
@@ -45,7 +58,9 @@ export default function WelcomePage() {
             opacity: 1,
             y: 0,
           }}
-          transition={{ duration: 0.65 }}
+          transition={{
+            duration: reduceMotion ? 0 : 0.65,
+          }}
           className="flex flex-col items-center pt-[clamp(65px,13dvh,135px)] text-center"
         >
           <CleanGoLogo
@@ -67,7 +82,7 @@ export default function WelcomePage() {
 
         <div className="flex-1" />
 
-        {/* Кнопки */}
+        {/* Кнопки поверх облака */}
         <motion.div
           initial={{
             opacity: 0,
@@ -78,8 +93,8 @@ export default function WelcomePage() {
             y: 0,
           }}
           transition={{
-            duration: 0.6,
-            delay: 0.2,
+            duration: reduceMotion ? 0 : 0.6,
+            delay: reduceMotion ? 0 : 0.2,
           }}
           className="relative z-30 pb-[max(42px,calc(env(safe-area-inset-bottom)+28px))]"
         >
@@ -100,30 +115,6 @@ export default function WelcomePage() {
             У меня уже есть аккаунт
           </button>
         </motion.div>
-      </div>
-
-      {/* Объёмные облака */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-[12%] z-10 h-[45%]"
-      >
-        {/* Центральное облако */}
-        <div
-          className="absolute bottom-[5%] left-[28%] h-[95%] w-[55%] rounded-[50%] bg-[radial-gradient(ellipse_at_28%_23%,#FFFFFF_0%,#E7FFFA_24%,#B1F2E9_57%,#44CFC1_100%)] shadow-[inset_-22px_-25px_45px_rgba(0,156,148,0.12),-15px_-10px_45px_rgba(255,255,255,0.45)]"
-        />
-
-        {/* Левое облако */}
-        <div
-          className="absolute bottom-[-5%] left-[-18%] h-[75%] w-[76%] rounded-[50%] bg-[radial-gradient(ellipse_at_30%_22%,#FFFFFF_0%,#E9FFFB_28%,#B2F0E8_63%,#49CEC2_100%)] shadow-[inset_-20px_-25px_40px_rgba(0,155,149,0.12)]"
-        />
-
-        {/* Правое облако */}
-        <div
-          className="absolute bottom-[-8%] right-[-23%] h-[84%] w-[77%] rounded-[50%] bg-[radial-gradient(ellipse_at_30%_20%,#FFFFFF_0%,#D9FAF3_31%,#91E7DB_64%,#26BDAF_100%)] shadow-[inset_-25px_-30px_45px_rgba(0,132,125,0.13)]"
-        />
-
-        {/* Нижняя часть облаков */}
-        <div className="absolute inset-x-0 bottom-[-35%] h-[52%] bg-gradient-to-b from-[#6EDDD1] to-[#45CBBF]" />
       </div>
     </main>
   );
