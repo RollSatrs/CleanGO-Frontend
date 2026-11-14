@@ -3,6 +3,7 @@
 
 import {
   useEffect,
+  useState,
   type ReactNode,
 } from "react";
 
@@ -22,6 +23,8 @@ type Props = {
 export default function TelegramProvider({
   children,
 }: Props) {
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -29,45 +32,43 @@ export default function TelegramProvider({
       try {
         const insideTelegram = await isTMA();
 
-        if (!insideTelegram || cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
-        // Инициализация Telegram SDK
-        init();
+        if (insideTelegram) {
+          // Инициализируем SDK до AuthProvider.
+          init();
 
-        // Подключение Mini App
-        if (miniApp.mount.isAvailable()) {
-          miniApp.mount();
-        }
-
-        // Подключение viewport
-        if (viewport.mount.isAvailable()) {
-          await viewport.mount();
-
-          if (cancelled) {
-            return;
+          if (miniApp.mount.isAvailable()) {
+            miniApp.mount();
           }
 
-          // Расширяем Mini App
-          if (viewport.expand.isAvailable()) {
-            viewport.expand();
+          if (viewport.mount.isAvailable()) {
+            await viewport.mount();
+
+            if (cancelled) return;
+
+            if (viewport.expand.isAvailable()) {
+              viewport.expand();
+            }
+
+            if (viewport.bindCssVars.isAvailable()) {
+              viewport.bindCssVars();
+            }
           }
 
-          // Подключаем CSS-переменные Telegram
-          if (viewport.bindCssVars.isAvailable()) {
-            viewport.bindCssVars();
-          }
+          document.documentElement.classList.add(
+            "telegram-mini-app",
+          );
         }
-
-        document.documentElement.classList.add(
-          "telegram-mini-app",
-        );
       } catch (error) {
         console.error(
           "Telegram initialization error:",
           error,
         );
+      } finally {
+        if (!cancelled) {
+          setReady(true);
+        }
       }
     }
 
@@ -81,6 +82,20 @@ export default function TelegramProvider({
       );
     };
   }, []);
+
+  if (!ready) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-[#EFF8FC]">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#CBEAF4] border-t-[#0BADE0]" />
+
+          <p className="mt-4 text-sm font-medium text-[#7891A3]">
+            Запускаем CleanGo...
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <AuthProvider>
