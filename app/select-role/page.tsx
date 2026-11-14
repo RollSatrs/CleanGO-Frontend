@@ -19,6 +19,25 @@ type RoleSelectionProps = {
   loading?: boolean;
 };
 
+const roles = [
+  {
+    id: "client" as const,
+    title: "Я клиент",
+    description:
+      "Хочу заказать уборку для дома или офиса",
+    image: "/images/cleango/client-role.png",
+    alt: "3D-иконка домика",
+  },
+  {
+    id: "cleaner" as const,
+    title: "Я клинер",
+    description:
+      "Хочу выполнять заказы и зарабатывать",
+    image: "/images/cleango/cleaner-role.png",
+    alt: "3D-иконка средств для уборки",
+  },
+];
+
 export default function RoleSelection({
   onContinue,
   loading = false,
@@ -34,25 +53,6 @@ export default function RoleSelection({
     await onContinue(selectedRole);
   };
 
-  const roles = [
-    {
-      id: "client" as const,
-      title: "Я клиент",
-      description:
-        "Хочу заказать уборку для дома или офиса",
-      image: "/images/cleango/client-role.png",
-      alt: "3D-иконка домика",
-    },
-    {
-      id: "cleaner" as const,
-      title: "Я клинер",
-      description:
-        "Хочу выполнять заказы и зарабатывать",
-      image: "/images/cleango/cleaner-role.png",
-      alt: "3D-иконка средств для уборки",
-    },
-  ];
-
   return (
     <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[#F8FCFF] px-6 pb-8 pt-6 text-[#102334]">
       {/* Фон */}
@@ -60,15 +60,18 @@ export default function RoleSelection({
 
       <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-cyan-100/60 blur-3xl" />
 
-      {/* Назад */}
+      {/* Стрелка назад */}
       <div className="relative z-10">
         <button
           type="button"
           onClick={() => router.push("/onboarding")}
           aria-label="Назад"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#102334] shadow-sm transition-transform active:scale-95"
+          className="flex h-9 w-9 items-center justify-start text-[#102334] transition-opacity active:opacity-60"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft
+            className="h-[18px] w-[18px]"
+            strokeWidth={2}
+          />
         </button>
       </div>
 
@@ -96,7 +99,7 @@ export default function RoleSelection({
         </p>
       </div>
 
-      {/* Карточки ролей */}
+      {/* Карточки выбора роли */}
       <div className="relative z-10 mt-9 flex flex-col gap-4">
         {roles.map((role) => {
           const selected = selectedRole === role.id;
@@ -114,7 +117,7 @@ export default function RoleSelection({
                   : "border-[#E9F1F6] hover:border-teal-200"
               }`}
             >
-              {/* 3D PNG */}
+              {/* 3D PNG-иконка */}
               <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-[20px] bg-[#E9F9F6]">
                 <Image
                   src={role.image}
@@ -126,7 +129,7 @@ export default function RoleSelection({
                 />
               </div>
 
-              {/* Текст */}
+              {/* Информация о роли */}
               <div className="min-w-0 flex-1">
                 <h2 className="text-[18px] font-bold">
                   {role.title}
@@ -137,7 +140,7 @@ export default function RoleSelection({
                 </p>
               </div>
 
-              {/* Выбор */}
+              {/* Индикатор выбора */}
               <div
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
                   selected
@@ -157,7 +160,7 @@ export default function RoleSelection({
         })}
       </div>
 
-      {/* Продолжить */}
+      {/* Кнопка продолжения */}
       <div className="relative z-10 mt-auto pt-10">
         <button
           type="button"
