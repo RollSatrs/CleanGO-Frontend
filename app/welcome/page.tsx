@@ -1,160 +1,130 @@
 
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { ArrowRight, Sparkles } from "lucide-react";
+
+import CleanGoLogo from "@/components/branding/CleanGoLogo";
 
 export default function WelcomePage() {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
 
-  const appear = (delay = 0) => ({
-    initial: {
-      opacity: 1,
-      y: reduceMotion ? 0 : 10,
-    },
-    animate: {
-      opacity: 1,
-      y: 0,
-    },
-    transition: {
-      duration: reduceMotion ? 0 : 0.45,
-      delay: reduceMotion ? 0 : delay,
-      ease: [0.22, 1, 0.36, 1] as const,
-    },
-  });
-
-  // Начать знакомство с CleanGo
   const handleStart = () => {
     router.push("/onboarding");
   };
 
-  // Пока выбор роли не сохраняется на backend,
-  // направляем пользователя на экран выбора роли.
   const handleLogin = () => {
     router.replace("/select-role");
   };
 
   return (
-    <main className="min-h-dvh bg-[#24B7EB] font-sans">
-      <section
-        className="
-          cleango-screen
-          relative isolate mx-auto flex
-          w-full max-w-[520px] flex-col
-          overflow-hidden
-          bg-linear-to-br
-          from-[#079DE8] via-[#27B8F1] to-[#7BDCF5]
-          px-5 text-white
-        "
-      >
-        {/* Мягкий свет */}
-        <div
-          aria-hidden="true"
-          className="
-            pointer-events-none absolute inset-0
-            bg-[radial-gradient(ellipse_at_75%_15%,rgba(255,255,255,0.18),transparent_55%)]
-          "
-        />
+    <main className="relative isolate min-h-[100dvh] overflow-hidden bg-[#B8F3E9] font-sans text-[#083D40]">
+      {/* Мятный фон */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_48%_25%,#F0FFFA_0%,#D6FAF2_35%,#A4ECE1_70%,#57D4C7_100%)]"
+      />
 
-        {/* Логотип и описание */}
-        <div
-          className="
-            relative z-10 flex min-h-0
-            flex-1 flex-col items-center
-            justify-center pb-24 text-center
-          "
-        >
-          <motion.div {...appear(0.05)}>
-            <Sparkles
-              className="mx-auto mb-7 h-14 w-14"
-              strokeWidth={1.8}
-            />
+      {/* Мягкое освещение */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-32 left-1/2 h-[450px] w-[450px] -translate-x-1/2 rounded-full bg-white/30 blur-[90px]"
+      />
 
-            <h1 className="text-[54px] font-bold tracking-[-0.06em]">
-              CleanGo
-            </h1>
-
-            <p className="mt-5 text-[18px] leading-7 text-white/95">
-              Профессиональная
-              <br />
-              уборка вашего дома
-            </p>
-          </motion.div>
-        </div>
-
-        {/* Облака */}
-        <div
-          aria-hidden="true"
-          className="
-            pointer-events-none absolute
-            bottom-[4%] left-[56%] z-0
-            w-[160%] -translate-x-1/2
-          "
-        >
-          <Image
-            src="/images/cleango/clouds.png"
-            alt=""
-            width={1536}
-            height={1024}
-            priority
-            sizes="(max-width: 640px) 160vw, 650px"
-            className="h-auto w-full"
-          />
-        </div>
-
-        {/* Нижние кнопки */}
+      {/* Основной контент */}
+      <div className="relative z-20 mx-auto flex min-h-[100dvh] w-full max-w-[520px] flex-col px-6">
+        {/* Логотип */}
         <motion.div
-          {...appear(0.12)}
-          className="
-            relative z-20 mt-auto
-            shrink-0 space-y-4
-            pb-[max(56px,calc(env(safe-area-inset-bottom)+32px))]
-          "
+          initial={{
+            opacity: 0,
+            y: reduceMotion ? 0 : 20,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{ duration: 0.65 }}
+          className="flex flex-col items-center pt-[clamp(65px,13dvh,135px)] text-center"
         >
-          {/* Начать */}
+          <CleanGoLogo
+            size={118}
+            priority
+            className="justify-center"
+          />
+
+          <h1 className="mt-4 text-[clamp(43px,12vw,60px)] font-extrabold leading-none tracking-[-0.065em] text-[#07474A]">
+            Clean<span className="text-[#00AFA6]">Go</span>
+          </h1>
+
+          <p className="mt-7 max-w-[310px] text-[clamp(17px,4.7vw,21px)] font-medium leading-[1.45] text-[#315B60]">
+            Профессиональная уборка
+            <br />
+            вашего дома
+          </p>
+        </motion.div>
+
+        <div className="flex-1" />
+
+        {/* Кнопки */}
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: reduceMotion ? 0 : 18,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.6,
+            delay: 0.2,
+          }}
+          className="relative z-30 pb-[max(42px,calc(env(safe-area-inset-bottom)+28px))]"
+        >
           <button
             type="button"
             onClick={handleStart}
-            className="
-              relative z-30
-              flex h-[60px] w-full
-              cursor-pointer
-              items-center justify-center
-              rounded-full bg-white px-6
-              text-[17px] font-semibold
-              text-[#102033]
-              shadow-[0_12px_35px_rgba(0,55,95,0.16)]
-              transition-transform
-              active:scale-[0.98]
-              touch-manipulation
-            "
+            className="relative flex h-[68px] w-full items-center justify-center rounded-full bg-white px-7 text-[20px] font-bold text-[#073D40] shadow-[0_18px_45px_rgba(0,111,108,0.18)] transition-transform active:scale-[0.98]"
           >
-            <span className="flex-1 text-center">
-              Начать
-            </span>
-
-            <ArrowRight className="h-6 w-6" />
+            Начать
+            <ArrowRight className="absolute right-7 h-6 w-6" />
           </button>
 
-          {/* Уже есть аккаунт */}
           <button
             type="button"
             onClick={handleLogin}
-            className="
-              relative z-30
-              block w-full cursor-pointer
-              text-center text-sm font-medium
-              text-white/90
-              touch-manipulation
-            "
+            className="mt-7 block w-full text-center text-[15px] font-medium text-[#2B7775]"
           >
             У меня уже есть аккаунт
           </button>
         </motion.div>
-      </section>
+      </div>
+
+      {/* Объёмные облака */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-[12%] z-10 h-[45%]"
+      >
+        {/* Центральное облако */}
+        <div
+          className="absolute bottom-[5%] left-[28%] h-[95%] w-[55%] rounded-[50%] bg-[radial-gradient(ellipse_at_28%_23%,#FFFFFF_0%,#E7FFFA_24%,#B1F2E9_57%,#44CFC1_100%)] shadow-[inset_-22px_-25px_45px_rgba(0,156,148,0.12),-15px_-10px_45px_rgba(255,255,255,0.45)]"
+        />
+
+        {/* Левое облако */}
+        <div
+          className="absolute bottom-[-5%] left-[-18%] h-[75%] w-[76%] rounded-[50%] bg-[radial-gradient(ellipse_at_30%_22%,#FFFFFF_0%,#E9FFFB_28%,#B2F0E8_63%,#49CEC2_100%)] shadow-[inset_-20px_-25px_40px_rgba(0,155,149,0.12)]"
+        />
+
+        {/* Правое облако */}
+        <div
+          className="absolute bottom-[-8%] right-[-23%] h-[84%] w-[77%] rounded-[50%] bg-[radial-gradient(ellipse_at_30%_20%,#FFFFFF_0%,#D9FAF3_31%,#91E7DB_64%,#26BDAF_100%)] shadow-[inset_-25px_-30px_45px_rgba(0,132,125,0.13)]"
+        />
+
+        {/* Нижняя часть облаков */}
+        <div className="absolute inset-x-0 bottom-[-35%] h-[52%] bg-gradient-to-b from-[#6EDDD1] to-[#45CBBF]" />
+      </div>
     </main>
   );
 }
