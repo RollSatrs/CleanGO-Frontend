@@ -26,28 +26,26 @@ export default function WelcomePage() {
     },
   });
 
-  // Временная проверка кнопки
+  // Начать знакомство с CleanGo
   const handleStart = () => {
-    alert("Кнопка работает!");
-
     router.push("/onboarding");
   };
 
+  // Авторизация уже выполняется автоматически
+  // через Telegram при запуске приложения.
   const handleLogin = () => {
-    alert("Кнопка входа работает!");
-
-    router.push("/login");
+    router.replace("/");
   };
 
   return (
-    <main className="min-h-[100dvh] bg-[#24B7EB] font-sans">
+    <main className="min-h-dvh bg-[#24B7EB] font-sans">
       <section
         className="
           cleango-screen
           relative isolate mx-auto flex
           w-full max-w-[520px] flex-col
           overflow-hidden
-          bg-gradient-to-br
+          bg-linear-to-br
           from-[#079DE8] via-[#27B8F1] to-[#7BDCF5]
           px-5 text-white
         "
@@ -141,7 +139,7 @@ export default function WelcomePage() {
             <ArrowRight className="h-6 w-6" />
           </button>
 
-          {/* Вход */}
+          {/* Уже есть аккаунт */}
           <button
             type="button"
             onClick={handleLogin}
