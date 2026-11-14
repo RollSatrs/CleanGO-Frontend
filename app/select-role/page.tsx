@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import CleanGoLogo from "@/components/branding/CleanGoLogo";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 type Role = "client" | "cleaner";
 
@@ -36,16 +37,25 @@ const roles = [
 
 export default function RoleSelection() {
   const router = useRouter();
+  const { user, selectRole } = useAuth();
+  const [error, setError] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
 
   const [selectedRole, setSelectedRole] =
     useState<Role | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!selectedRole || loading) return;
+    setError(null);
     setLoading(true);
-    router.push(selectedRole === "client" ? "/" : "/cleaner");
+    try {
+      if (user?.role !== selectedRole) await selectRole(selectedRole);
+      router.replace(selectedRole === "client" ? "/" : "/cleaner");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось выбрать роль");
+      setLoading(false);
+    }
   };
 
   return (
@@ -164,6 +174,7 @@ export default function RoleSelection() {
         })}
       </div>
 
+      {error && <p role="alert" className="mt-4 text-center text-sm text-red-600">{error}</p>}
       {/* Кнопка продолжения */}
       <div className="relative z-10 mt-auto pt-10">
         <button
