@@ -83,36 +83,18 @@ export default function OnboardingPage() {
 
   return (
     <main className="min-h-[100dvh] bg-[#F1FBFC] font-sans">
-      <section
-        className="
-          cleango-screen
-          mx-auto flex w-full
-          max-w-[520px] flex-col
-          overflow-hidden
-          bg-gradient-to-b
-          from-white via-[#F9FCFD] to-[#F1FBFC]
-          px-5 text-[#101B2C]
-        "
-      >
+      <section className="cleango-screen mx-auto flex w-full max-w-[520px] flex-col overflow-hidden bg-gradient-to-b from-white via-[#F9FCFD] to-[#F1FBFC] px-5 text-[#101B2C]">
+
         {/* Верхняя навигация */}
         <motion.header
           {...appear(0)}
-          className="
-            flex shrink-0 items-center justify-between
-            pt-[max(20px,env(safe-area-inset-top))]
-          "
+          className="flex shrink-0 items-center justify-between pt-[max(20px,env(safe-area-inset-top))]"
         >
           <button
             type="button"
             onClick={handleBack}
             aria-label="Назад"
-            className="
-              flex h-11 w-11 items-center
-              justify-start bg-transparent
-              text-[#101B2C]
-              transition-opacity
-              active:opacity-60
-            "
+            className="flex h-11 w-11 items-center justify-start bg-transparent text-[#101B2C] transition-opacity active:opacity-60"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -120,12 +102,7 @@ export default function OnboardingPage() {
           <button
             type="button"
             onClick={handleSkip}
-            className="
-              text-sm font-medium
-              text-[#8392A2]
-              transition-opacity
-              active:opacity-60
-            "
+            className="text-sm font-medium text-[#8392A2] transition-opacity active:opacity-60"
           >
             Пропустить
           </button>
@@ -154,11 +131,11 @@ export default function OnboardingPage() {
               }}
               className="flex w-full flex-col"
             >
-              {/* Изображение */}
+              {/* Увеличенная иллюстрация */}
               <div
                 className="
                   relative flex
-                  h-[clamp(190px,30dvh,300px)]
+                  h-[clamp(260px,42dvh,420px)]
                   w-full shrink-0
                   items-center justify-center
                 "
@@ -169,10 +146,10 @@ export default function OnboardingPage() {
                   width={1024}
                   height={1024}
                   priority
-                  sizes="(max-width: 520px) 90vw, 350px"
+                  sizes="(max-width: 520px) 100vw, 480px"
                   className="
                     h-auto max-h-full
-                    w-auto max-w-full
+                    w-[115%] max-w-none
                     object-contain
                   "
                 />
@@ -198,25 +175,11 @@ export default function OnboardingPage() {
 
               {/* Заголовок и описание */}
               <div className="mt-7">
-                <h1
-                  className="
-                    whitespace-pre-line
-                    text-[clamp(28px,8vw,36px)]
-                    font-bold
-                    leading-[1.12]
-                    tracking-[-0.055em]
-                  "
-                >
+                <h1 className="whitespace-pre-line text-[clamp(28px,8vw,36px)] font-bold leading-[1.12] tracking-[-0.055em]">
                   {current.title}
                 </h1>
 
-                <p
-                  className="
-                    mt-4 max-w-[320px]
-                    text-[16px] leading-6
-                    text-[#738294]
-                  "
-                >
+                <p className="mt-4 max-w-[320px] text-[16px] leading-6 text-[#738294]">
                   {current.description}
                 </p>
               </div>
@@ -237,22 +200,9 @@ export default function OnboardingPage() {
                 ? undefined
                 : { scale: 0.98 }
             }
-            className="
-              flex h-14 w-full
-              items-center justify-center
-              gap-3 rounded-2xl
-              bg-[#B9F2EA] px-6
-              text-[16px] font-semibold
-              text-[#087F77]
-              shadow-[0_8px_24px_rgba(18,182,166,0.12)]
-              transition-colors duration-200
-              hover:bg-[#A5EAE1]
-            "
+            className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#B9F2EA] px-6 text-[16px] font-semibold text-[#087F77] shadow-[0_8px_24px_rgba(18,182,166,0.12)] transition-colors duration-200 hover:bg-[#A5EAE1]"
           >
-            {step === slides.length - 1
-              ? "Продолжить"
-              : "Продолжить"}
-
+            Продолжить
             <ArrowRight className="h-5 w-5" />
           </motion.button>
         </motion.div>
