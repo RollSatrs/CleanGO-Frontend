@@ -11,23 +11,29 @@ import {
   useReducedMotion,
 } from "motion/react";
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
-const slides = [
+type OnboardingSlide = {
+  title: string;
+  description: string;
+  image: string;
+  imageAlt: string;
+};
+
+const slides: OnboardingSlide[] = [
   {
     title: "Чистый дом\nбез забот",
     description:
       "Закажите уборку, а мы подберём проверенного клинера",
+    image: "/images/cleango/living-room.png",
+    imageAlt: "Уютное кресло и комнатное растение",
   },
   {
     title: "Быстро,\nудобно, безопасно",
     description:
       "Прозрачная стоимость, надёжные исполнители и контроль качества",
+    image: "/images/cleango/onboarding-cleaning-brush.png",
+    imageAlt: "3D-щётка для уборки CleanGo",
   },
 ];
 
@@ -39,21 +45,25 @@ export default function OnboardingPage() {
 
   const current = slides[step];
 
-  const handleBack = () => {
+  function handleBack() {
     if (step > 0) {
       setStep((previous) => previous - 1);
     } else {
       router.push("/welcome");
     }
-  };
+  }
 
-  const handleNext = () => {
+  function handleNext() {
     if (step < slides.length - 1) {
       setStep((previous) => previous + 1);
     } else {
       router.push("/");
     }
-  };
+  }
+
+  function handleSkip() {
+    router.push("/");
+  }
 
   const appear = (delay = 0) => ({
     initial: {
@@ -109,10 +119,12 @@ export default function OnboardingPage() {
 
           <button
             type="button"
-            onClick={() => router.push("/")}
+            onClick={handleSkip}
             className="
               text-sm font-medium
               text-[#8392A2]
+              transition-opacity
+              active:opacity-60
             "
           >
             Пропустить
@@ -142,7 +154,7 @@ export default function OnboardingPage() {
               }}
               className="flex w-full flex-col"
             >
-              {/* Иллюстрация */}
+              {/* Изображение */}
               <div
                 className="
                   relative flex
@@ -151,70 +163,40 @@ export default function OnboardingPage() {
                   items-center justify-center
                 "
               >
-                {step === 0 ? (
-                  <Image
-                    src="/images/cleango/living-room.png"
-                    alt="Уютное кресло и комнатное растение"
-                    width={1024}
-                    height={1024}
-                    priority
-                    sizes="(max-width: 520px) 90vw, 350px"
-                    className="
-                      h-auto max-h-full
-                      w-auto max-w-full
-                      object-contain
-                    "
-                  />
-                ) : (
-                  <div
-                    className="
-                      relative flex
-                      h-[230px] w-[230px]
-                      items-center justify-center
-                      rounded-[70px]
-                      bg-gradient-to-br
-                      from-[#E5F9F6]
-                      to-[#B7EEE8]
-                    "
-                  >
-                    <ShieldCheck
-                      className="
-                        h-28 w-28
-                        text-[#16B6A8]
-                      "
-                      strokeWidth={1.2}
-                    />
-
-                    <Sparkles
-                      className="
-                        absolute right-7 top-7
-                        h-9 w-9
-                        text-[#0CAEA0]
-                      "
-                    />
-                  </div>
-                )}
+                <Image
+                  src={current.image}
+                  alt={current.imageAlt}
+                  width={1024}
+                  height={1024}
+                  priority
+                  sizes="(max-width: 520px) 90vw, 350px"
+                  className="
+                    h-auto max-h-full
+                    w-auto max-w-full
+                    object-contain
+                  "
+                />
               </div>
 
-              {/* Индикаторы */}
+              {/* Индикаторы слайдов */}
               <div className="mt-2 flex justify-center gap-2">
                 {slides.map((_, index) => (
                   <span
                     key={index}
                     className={`
-                      h-2 w-2 rounded-full
-                      transition-colors duration-300
+                      h-2 rounded-full
+                      transition-all duration-300
                       ${
                         index === step
-                          ? "bg-[#12B6A6]"
-                          : "bg-[#D6E4E7]"
+                          ? "w-5 bg-[#12B6A6]"
+                          : "w-2 bg-[#D6E4E7]"
                       }
                     `}
                   />
                 ))}
               </div>
 
-              {/* Текст */}
+              {/* Заголовок и описание */}
               <div className="mt-7">
                 <h1
                   className="
@@ -245,10 +227,7 @@ export default function OnboardingPage() {
         {/* Нижняя кнопка */}
         <motion.div
           {...appear(0.12)}
-          className="
-            cleango-safe-bottom
-            shrink-0
-          "
+          className="cleango-safe-bottom shrink-0"
         >
           <motion.button
             type="button"
