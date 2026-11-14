@@ -1,6 +1,9 @@
 
 "use client";
 
+import { usePathname } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+
 import {
   useEffect,
   useState,
@@ -52,6 +55,8 @@ export default function TelegramProvider({
   children,
 }: Props) {
   const [ready, setReady] = useState(false);
+  const pathname = usePathname();
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     let cancelled = false;
@@ -154,7 +159,18 @@ export default function TelegramProvider({
 
   return (
     <AuthProvider>
-      {children}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={pathname}
+          initial={{ opacity: reduceMotion ? 1 : 0, x: reduceMotion ? 0 : 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: reduceMotion ? 1 : 0, x: reduceMotion ? 0 : -10 }}
+          transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
+          className="min-h-dvh w-full"
+        >
+          {children}
+        </motion.div>
+      </AnimatePresence>
     </AuthProvider>
   );
 }
