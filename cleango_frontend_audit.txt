@@ -1,0 +1,2028 @@
+
+========== app/page.tsx ==========
+
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "motion/react";
+import {
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Clock3,
+  Home,
+  Paintbrush,
+  ShieldCheck,
+  Sparkles,
+  SprayCan,
+} from "lucide-react";
+
+type CleaningType = "regular" | "general" | "renovation";
+
+type Service = {
+  id: CleaningType;
+  title: string;
+  description: string;
+  price: number;
+  icon: typeof Sparkles;
+  features: string[];
+};
+
+const services: Service[] = [
+  {
+    id: "regular",
+    title: "Поддерживающая уборка",
+    description: "Чистота и порядок на каждый день",
+    price: 8000,
+    icon: SprayCan,
+    features: [
+      "Влажная уборка",
+      "Удаление пыли",
+      "Кухня и санузел",
+    ],
+  },
+  {
+    id: "general",
+    title: "Генеральная уборка",
+    description: "Тщательная уборка вашего дома",
+    price: 15000,
+    icon: Sparkles,
+    features: [
+      "Глубокая уборка",
+      "Очистка поверхностей",
+      "Кухня и санузел",
+    ],
+  },
+  {
+    id: "renovation",
+    title: "Уборка после ремонта",
+    description: "Уберём пыль и следы ремонта",
+    price: 20000,
+    icon: Paintbrush,
+    features: [
+      "Строительная пыль",
+      "Очистка полов",
+      "Влажная уборка",
+    ],
+  },
+];
+
+export default function HomePage() {
+  const router = useRouter();
+  const reduceMotion = useReducedMotion();
+
+  const [selectedService, setSelectedService] =
+    useState<CleaningType | null>(null);
+
+  function handleOrder() {
+    if (!selectedService) {
+      document
+        .getElementById("services")
+        ?.scrollIntoView({
+          behavior: reduceMotion ? "auto" : "smooth",
+          block: "start",
+        });
+
+      return;
+    }
+
+    router.push(`/order?service=${selectedService}`);
+  }
+
+  const appear = (delay = 0) => ({
+    initial: {
+      opacity: 0,
+      y: reduceMotion ? 0 : 16,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+    },
+    transition: {
+      duration: reduceMotion ? 0 : 0.45,
+      delay: reduceMotion ? 0 : delay,
+    },
+  });
+
+  return (
+    <main className="min-h-[100dvh] bg-[#F3FAFC] font-sans text-[#102033]">
+      <div className="mx-auto min-h-[100dvh] w-full max-w-[520px] bg-white shadow-[0_0_45px_rgba(20,70,100,0.05)]">
+
+        {/* Шапка */}
+        <header className="flex items-center justify-between px-5 pb-4 pt-[max(24px,env(safe-area-inset-top))]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E2F8F5]">
+              <Sparkles className="h-6 w-6 text-[#0BAF9F]" />
+            </div>
+
+            <div>
+              <h1 className="text-xl font-extrabold tracking-[-0.05em]">
+                Clean<span className="text-[#0BAF9F]">Go</span>
+              </h1>
+              <p className="text-xs text-[#8293A4]">
+                Уборка без забот
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-full border border-[#E3EFF1] bg-[#F6FBFC] px-3 py-2 text-xs font-medium text-[#718494]">
+            Для вашего дома
+          </div>
+        </header>
+
+        {/* Приветственный блок */}
+        <motion.section
+          {...appear(0.05)}
+          className="px-5 pt-5"
+        >
+          <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-[#08A8E5] via-[#37C2EC] to-[#8AE4EE] p-6 text-white">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/15 blur-2xl"
+            />
+
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-20 right-0 h-48 w-48 rounded-full bg-[#C8FFF3]/35 blur-2xl"
+            />
+
+            <div className="relative z-10">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-2 text-xs font-medium backdrop-blur-sm">
+                <Sparkles className="h-4 w-4" />
+                Добро пожаловать в CleanGo
+              </div>
+
+              <h2 className="max-w-[300px] text-[32px] font-bold leading-[1.12] tracking-[-0.05em]">
+                Чистый дом —
+                <br />
+                счастливый день
+              </h2>
+
+              <p className="mt-4 max-w-[290px] text-sm leading-6 text-white/90">
+                Выбирайте подходящую уборку, а мы поможем
+                позаботиться о чистоте вашего дома.
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  document
+                    .getElementById("services")
+                    ?.scrollIntoView({
+                      behavior: reduceMotion ? "auto" : "smooth",
+                    })
+                }
+                className="mt-7 inline-flex h-12 items-center gap-3 rounded-2xl bg-white px-5 text-sm font-bold text-[#087DAA] shadow-[0_8px_25px_rgba(0,80,120,0.12)] transition-transform active:scale-[0.98]"
+              >
+                Выбрать уборку
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="pointer-events-none absolute bottom-7 right-5 opacity-20">
+              <Sparkles className="h-24 w-24" strokeWidth={1} />
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Преимущества */}
+        <motion.section
+          {...appear(0.12)}
+          className="grid grid-cols-3 gap-2 px-5 pt-6"
+        >
+          {[
+            {
+              icon: Clock3,
+              title: "Быстро",
+              description: "Удобный заказ",
+            },
+            {
+              icon: ShieldCheck,
+              title: "Надёжно",
+              description: "Контроль качества",
+            },
+            {
+              icon: Home,
+              title: "Комфортно",
+              description: "Уборка дома",
+            },
+          ].map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <div
+                key={item.title}
+                className="flex flex-col items-center rounded-2xl bg-[#F4FAFB] px-2 py-4 text-center"
+              >
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#E1F7F3]">
+                  <Icon className="h-5 w-5 text-[#0BAF9F]" />
+                </div>
+
+                <p className="text-xs font-bold text-[#102033]">
+                  {item.title}
+                </p>
+
+                <p className="mt-1 text-[10px] leading-4 text-[#8A9AA9]">
+                  {item.description}
+                </p>
+              </div>
+            );
+          })}
+        </motion.section>
+
+        {/* Услуги */}
+        <section
+          id="services"
+          className="scroll-mt-6 px-5 pb-8 pt-9"
+        >
+          <motion.div
+            {...appear(0.18)}
+            className="mb-5 flex items-end justify-between"
+          >
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#0BAF9F]">
+                Наши услуги
+              </p>
+
+              <h2 className="text-[25px] font-bold tracking-[-0.04em]">
+                Выберите уборку
+              </h2>
+
+              <p className="mt-2 text-sm text-[#8191A0]">
+                Подберём подходящий вариант для вас
+              </p>
+            </div>
+
+            <span className="rounded-full bg-[#EAF8F6] px-3 py-1.5 text-xs font-semibold text-[#0BAF9F]">
+              3 услуги
+            </span>
+          </motion.div>
+
+          <div className="space-y-3">
+            {services.map((service, index) => {
+              const Icon = service.icon;
+              const selected =
+                selectedService === service.id;
+
+              return (
+                <motion.button
+                  key={service.id}
+                  type="button"
+                  {...appear(0.22 + index * 0.06)}
+                  onClick={() =>
+                    setSelectedService(service.id)
+                  }
+                  aria-pressed={selected}
+                  className={`
+                    w-full rounded-[24px] border-2
+                    p-4 text-left
+                    transition-colors duration-200
+                    ${
+                      selected
+                        ? "border-[#19B9AA] bg-[#F0FCF9]"
+                        : "border-[#E9F0F2] bg-white"
+                    }
+                  `}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`
+                        flex h-14 w-14 shrink-0
+                        items-center justify-center
+                        rounded-2xl
+                        ${
+                          selected
+                            ? "bg-[#CFF4ED]"
+                            : "bg-[#EAF8F6]"
+                        }
+                      `}
+                    >
+                      <Icon className="h-7 w-7 text-[#0BAF9F]" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[15px] font-bold leading-5">
+                        {service.title}
+                      </h3>
+
+                      <p className="mt-1 text-xs leading-5 text-[#8393A2]">
+                        {service.description}
+                      </p>
+
+                      <p className="mt-3 text-sm font-bold text-[#0AAE9E]">
+                        от{" "}
+                        {service.price.toLocaleString("ru-RU")} ₸
+                      </p>
+                    </div>
+
+                    <div
+                      className={`
+                        flex h-6 w-6 shrink-0
+                        items-center justify-center
+                        rounded-full border-2
+                        ${
+                          selected
+                            ? "border-[#12B6A6] bg-[#12B6A6]"
+                            : "border-[#D9E5E8]"
+                        }
+                      `}
+                    >
+                      {selected && (
+                        <Check className="h-4 w-4 text-white" />
+                      )}
+                    </div>
+                  </div>
+
+                  {selected && (
+                    <div className="mt-4 border-t border-[#D6F0EB] pt-4">
+                      <p className="mb-3 text-xs font-semibold text-[#426C69]">
+                        Что входит в уборку:
+                      </p>
+
+                      <div className="flex flex-wrap gap-2">
+                        {service.features.map((feature) => (
+                          <span
+                            key={feature}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-[11px] font-medium text-[#427D75]"
+                          >
+                            <Check className="h-3 w-3 text-[#0BAF9F]" />
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+
+          <p className="mt-4 text-center text-xs leading-5 text-[#93A1AD]">
+            Итоговая стоимость рассчитывается по площади
+            помещения при оформлении заказа.
+          </p>
+        </section>
+
+        {/* Нижняя кнопка */}
+        <div className="sticky bottom-0 z-20 border-t border-[#EAF0F2] bg-white/95 px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 backdrop-blur-xl">
+          <button
+            type="button"
+            onClick={handleOrder}
+            className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#B9F2EA] px-6 text-[16px] font-bold text-[#087F77] shadow-[0_8px_24px_rgba(18,182,166,0.12)] transition-colors hover:bg-[#A5EAE1] active:scale-[0.99]"
+          >
+            {selectedService
+              ? "Продолжить оформление"
+              : "Выберите услугу"}
+
+            {selectedService ? (
+              <ArrowRight className="h-5 w-5" />
+            ) : (
+              <ChevronRight className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+========== app/welcome/page.tsx ==========
+
+"use client";
+
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "motion/react";
+import { ArrowRight, Sparkles } from "lucide-react";
+
+export default function WelcomePage() {
+  const router = useRouter();
+  const reduceMotion = useReducedMotion();
+
+  const appear = (delay = 0) => ({
+    initial: {
+      opacity: 1,
+      y: reduceMotion ? 0 : 10,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+    },
+    transition: {
+      duration: reduceMotion ? 0 : 0.45,
+      delay: reduceMotion ? 0 : delay,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  });
+
+  // Начать знакомство с CleanGo
+  const handleStart = () => {
+    router.push("/onboarding");
+  };
+
+  // Авторизация уже выполняется автоматически
+  // через Telegram при запуске приложения.
+  const handleLogin = () => {
+    router.replace("/");
+  };
+
+  return (
+    <main className="min-h-dvh bg-[#24B7EB] font-sans">
+      <section
+        className="
+          cleango-screen
+          relative isolate mx-auto flex
+          w-full max-w-[520px] flex-col
+          overflow-hidden
+          bg-linear-to-br
+          from-[#079DE8] via-[#27B8F1] to-[#7BDCF5]
+          px-5 text-white
+        "
+      >
+        {/* Мягкий свет */}
+        <div
+          aria-hidden="true"
+          className="
+            pointer-events-none absolute inset-0
+            bg-[radial-gradient(ellipse_at_75%_15%,rgba(255,255,255,0.18),transparent_55%)]
+          "
+        />
+
+        {/* Логотип и описание */}
+        <div
+          className="
+            relative z-10 flex min-h-0
+            flex-1 flex-col items-center
+            justify-center pb-24 text-center
+          "
+        >
+          <motion.div {...appear(0.05)}>
+            <Sparkles
+              className="mx-auto mb-7 h-14 w-14"
+              strokeWidth={1.8}
+            />
+
+            <h1 className="text-[54px] font-bold tracking-[-0.06em]">
+              CleanGo
+            </h1>
+
+            <p className="mt-5 text-[18px] leading-7 text-white/95">
+              Профессиональная
+              <br />
+              уборка вашего дома
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Облака */}
+        <div
+          aria-hidden="true"
+          className="
+            pointer-events-none absolute
+            bottom-[4%] left-[56%] z-0
+            w-[160%] -translate-x-1/2
+          "
+        >
+          <Image
+            src="/images/cleango/clouds.png"
+            alt=""
+            width={1536}
+            height={1024}
+            priority
+            sizes="(max-width: 640px) 160vw, 650px"
+            className="h-auto w-full"
+          />
+        </div>
+
+        {/* Нижние кнопки */}
+        <motion.div
+          {...appear(0.12)}
+          className="
+            relative z-20 mt-auto
+            shrink-0 space-y-4
+            pb-[max(56px,calc(env(safe-area-inset-bottom)+32px))]
+          "
+        >
+          {/* Начать */}
+          <button
+            type="button"
+            onClick={handleStart}
+            className="
+              relative z-30
+              flex h-[60px] w-full
+              cursor-pointer
+              items-center justify-center
+              rounded-full bg-white px-6
+              text-[17px] font-semibold
+              text-[#102033]
+              shadow-[0_12px_35px_rgba(0,55,95,0.16)]
+              transition-transform
+              active:scale-[0.98]
+              touch-manipulation
+            "
+          >
+            <span className="flex-1 text-center">
+              Начать
+            </span>
+
+            <ArrowRight className="h-6 w-6" />
+          </button>
+
+          {/* Уже есть аккаунт */}
+          <button
+            type="button"
+            onClick={handleLogin}
+            className="
+              relative z-30
+              block w-full cursor-pointer
+              text-center text-sm font-medium
+              text-white/90
+              touch-manipulation
+            "
+          >
+            У меня уже есть аккаунт
+          </button>
+        </motion.div>
+      </section>
+    </main>
+  );
+}
+
+========== app/onboarding/page.tsx ==========
+
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+} from "motion/react";
+
+import { ArrowLeft, ArrowRight } from "lucide-react";
+
+type OnboardingSlide = {
+  title: string;
+  description: string;
+  image: string;
+  imageAlt: string;
+};
+
+const slides: OnboardingSlide[] = [
+  {
+    title: "Чистый дом\nбез забот",
+    description:
+      "Закажите уборку, а мы подберём проверенного клинера",
+    image: "/images/cleango/living-room.png",
+    imageAlt: "Уютное кресло и комнатное растение",
+  },
+  {
+    title: "Быстро,\nудобно, безопасно",
+    description:
+      "Прозрачная стоимость, надёжные исполнители и контроль качества",
+    image: "/images/cleango/onboarding-cleaning-brush.png",
+    imageAlt: "3D-щётка для уборки CleanGo",
+  },
+];
+
+export default function OnboardingPage() {
+  const router = useRouter();
+  const reduceMotion = useReducedMotion();
+
+  const [step, setStep] = useState(0);
+
+  const current = slides[step];
+
+  function handleBack() {
+    if (step > 0) {
+      setStep((previous) => previous - 1);
+    } else {
+      router.push("/welcome");
+    }
+  }
+
+  function handleNext() {
+    if (step < slides.length - 1) {
+      setStep((previous) => previous + 1);
+    } else {
+      router.push("/");
+    }
+  }
+
+  function handleSkip() {
+    router.push("/");
+  }
+
+  const appear = (delay = 0) => ({
+    initial: {
+      opacity: 0,
+      y: reduceMotion ? 0 : 12,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+    },
+    transition: {
+      duration: reduceMotion ? 0 : 0.45,
+      delay: reduceMotion ? 0 : delay,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  });
+
+  return (
+    <main className="min-h-[100dvh] bg-[#F1FBFC] font-sans">
+      <section
+        className="
+          cleango-screen
+          mx-auto flex w-full
+          max-w-[520px] flex-col
+          overflow-hidden
+          bg-gradient-to-b
+          from-white via-[#F9FCFD] to-[#F1FBFC]
+          px-5 text-[#101B2C]
+        "
+      >
+        {/* Верхняя навигация */}
+        <motion.header
+          {...appear(0)}
+          className="
+            flex shrink-0 items-center justify-between
+            pt-[max(20px,env(safe-area-inset-top))]
+          "
+        >
+          <button
+            type="button"
+            onClick={handleBack}
+            aria-label="Назад"
+            className="
+              flex h-11 w-11 items-center
+              justify-start bg-transparent
+              text-[#101B2C]
+              transition-opacity
+              active:opacity-60
+            "
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="
+              text-sm font-medium
+              text-[#8392A2]
+              transition-opacity
+              active:opacity-60
+            "
+          >
+            Пропустить
+          </button>
+        </motion.header>
+
+        {/* Центральная часть */}
+        <div className="flex min-h-0 flex-1 flex-col justify-center">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={step}
+              initial={{
+                opacity: 0,
+                x: reduceMotion ? 0 : 14,
+              }}
+              animate={{
+                opacity: 1,
+                x: 0,
+              }}
+              exit={{
+                opacity: 0,
+                x: reduceMotion ? 0 : -14,
+              }}
+              transition={{
+                duration: reduceMotion ? 0 : 0.3,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+              className="flex w-full flex-col"
+            >
+              {/* Изображение */}
+              <div
+                className="
+                  relative flex
+                  h-[clamp(190px,30dvh,300px)]
+                  w-full shrink-0
+                  items-center justify-center
+                "
+              >
+                <Image
+                  src={current.image}
+                  alt={current.imageAlt}
+                  width={1024}
+                  height={1024}
+                  priority
+                  sizes="(max-width: 520px) 90vw, 350px"
+                  className="
+                    h-auto max-h-full
+                    w-auto max-w-full
+                    object-contain
+                  "
+                />
+              </div>
+
+              {/* Индикаторы слайдов */}
+              <div className="mt-2 flex justify-center gap-2">
+                {slides.map((_, index) => (
+                  <span
+                    key={index}
+                    className={`
+                      h-2 rounded-full
+                      transition-all duration-300
+                      ${
+                        index === step
+                          ? "w-5 bg-[#12B6A6]"
+                          : "w-2 bg-[#D6E4E7]"
+                      }
+                    `}
+                  />
+                ))}
+              </div>
+
+              {/* Заголовок и описание */}
+              <div className="mt-7">
+                <h1
+                  className="
+                    whitespace-pre-line
+                    text-[clamp(28px,8vw,36px)]
+                    font-bold
+                    leading-[1.12]
+                    tracking-[-0.055em]
+                  "
+                >
+                  {current.title}
+                </h1>
+
+                <p
+                  className="
+                    mt-4 max-w-[320px]
+                    text-[16px] leading-6
+                    text-[#738294]
+                  "
+                >
+                  {current.description}
+                </p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Нижняя кнопка */}
+        <motion.div
+          {...appear(0.12)}
+          className="cleango-safe-bottom shrink-0"
+        >
+          <motion.button
+            type="button"
+            onClick={handleNext}
+            whileTap={
+              reduceMotion
+                ? undefined
+                : { scale: 0.98 }
+            }
+            className="
+              flex h-14 w-full
+              items-center justify-center
+              gap-3 rounded-2xl
+              bg-[#B9F2EA] px-6
+              text-[16px] font-semibold
+              text-[#087F77]
+              shadow-[0_8px_24px_rgba(18,182,166,0.12)]
+              transition-colors duration-200
+              hover:bg-[#A5EAE1]
+            "
+          >
+            {step === slides.length - 1
+              ? "Начать уборку"
+              : "Продолжить"}
+
+            <ArrowRight className="h-5 w-5" />
+          </motion.button>
+        </motion.div>
+      </section>
+    </main>
+  );
+}
+
+========== app/login/page.tsx ==========
+
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  LockKeyhole,
+  Phone,
+  Send,
+  Sparkles,
+} from "lucide-react";
+
+type Mode = "login" | "register";
+type Step = "phone" | "code";
+
+type AuthResponse = {
+  accessToken: string;
+  user: {
+    id: string;
+  };
+};
+
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://localhost:3001"
+).replace(/\/$/, "");
+
+export default function LoginPage() {
+  const router = useRouter();
+
+  const [mode, setMode] = useState<Mode>("login");
+  const [step, setStep] = useState<Step>("phone");
+  const [phone, setPhone] = useState("+7");
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    const token = sessionStorage.getItem(
+      "cleango_access_token",
+    );
+
+    if (token) {
+      router.replace("/");
+    }
+  }, [router]);
+
+  async function requestCode() {
+    setError("");
+    setNotice("");
+
+    if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
+      setError(
+        "Введите номер в формате +77001234567",
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/auth/phone/send-code`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ phone }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Не удалось отправить SMS. Проверьте настройки SMS-сервиса.",
+        );
+      }
+
+      setStep("code");
+      setNotice("Код подтверждения отправлен");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Ошибка соединения",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function verifyCode() {
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/auth/phone/verify`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            phone,
+            code,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Неверный код или срок его действия истёк",
+        );
+      }
+
+      const result =
+        (await response.json()) as AuthResponse;
+
+      sessionStorage.setItem(
+        "cleango_access_token",
+        result.accessToken,
+      );
+
+      router.replace("/");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Ошибка подтверждения",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loginTelegram() {
+    setError("");
+    setLoading(true);
+
+    try {
+      const telegram = (
+        window as Window & {
+          Telegram?: {
+            WebApp?: {
+              initData?: string;
+            };
+          };
+        }
+      ).Telegram?.WebApp;
+
+      if (!telegram?.initData) {
+        throw new Error(
+          "Откройте CleanGo через Telegram-бота",
+        );
+      }
+
+      const response = await fetch(
+        `${API_URL}/auth/telegram`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            initData: telegram.initData,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Не удалось войти через Telegram",
+        );
+      }
+
+      const result =
+        (await response.json()) as AuthResponse;
+
+      sessionStorage.setItem(
+        "cleango_access_token",
+        result.accessToken,
+      );
+
+      router.replace("/");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Ошибка Telegram",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function changeMode(next: Mode) {
+    setMode(next);
+    setStep("phone");
+    setCode("");
+    setError("");
+    setNotice("");
+  }
+
+  return (
+    <main className="min-h-[100dvh] bg-[#EAF4F9] text-[#132236]">
+      <section className="relative mx-auto flex min-h-[100dvh] w-full max-w-[520px] flex-col overflow-hidden bg-[radial-gradient(ellipse_at_50%_10%,#FFFFFF_0%,#F4FAFE_43%,#E5F3FB_100%)] px-5 pb-[max(38px,env(safe-area-inset-bottom))] pt-[max(46px,env(safe-area-inset-top))] shadow-[0_0_55px_rgba(23,79,110,0.12)]">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-16 -right-12 h-48 w-48 rounded-full bg-[#89E7F3]/60 blur-2xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-24 left-10 h-40 w-40 rounded-full bg-white/90 blur-xl"
+        />
+
+        <div className="relative z-10 mx-auto flex w-full max-w-[370px] flex-1 flex-col">
+          <div className="mt-8 flex justify-center">
+            <div className="relative flex h-[58px] w-[58px] items-center justify-center">
+              <div className="absolute left-2 top-3 h-5 w-5 rotate-45 rounded-[3px] bg-[#20C7DC]" />
+              <div className="absolute right-2 top-2 h-5 w-5 rotate-45 rounded-[3px] bg-[#059EE9]" />
+              <div className="absolute bottom-2 left-[20px] h-5 w-5 rotate-45 rounded-[3px] bg-[#11BDD5]" />
+              <Sparkles className="relative z-10 h-4 w-4 text-white" />
+            </div>
+          </div>
+
+          <h1 className="mt-5 text-center text-[27px] font-extrabold leading-[1.12] tracking-[-0.055em]">
+            Добро пожаловать
+            <br />
+            в CleanGo
+          </h1>
+
+          <div className="mt-8 flex rounded-full bg-[#E3EFF7] p-1 shadow-[inset_0_2px_6px_rgba(76,125,155,0.05)]">
+            {(["login", "register"] as const).map(
+              (item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => changeMode(item)}
+                  className={`h-11 flex-1 rounded-full text-[14px] transition-all ${
+                    mode === item
+                      ? "bg-white font-bold text-[#172334] shadow-[0_5px_15px_rgba(50,92,125,0.10)]"
+                      : "font-medium text-[#547085]"
+                  }`}
+                >
+                  {item === "login"
+                    ? "Вход"
+                    : "Регистрация"}
+                </button>
+              ),
+            )}
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {step === "code" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("phone");
+                  setError("");
+                }}
+                className="flex items-center gap-2 text-sm text-[#64849A]"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Изменить номер
+              </button>
+            )}
+
+            <label className="flex h-[54px] items-center gap-3 rounded-[19px] bg-white/85 px-4 shadow-[0_7px_20px_rgba(61,110,144,0.07)]">
+              <Phone className="h-[19px] w-[19px] shrink-0 text-[#7898AD]" />
+              <input
+                type="tel"
+                autoComplete="tel"
+                value={phone}
+                disabled={step === "code"}
+                onChange={(event) =>
+                  setPhone(event.target.value)
+                }
+                placeholder="Номер телефона"
+                className="w-full bg-transparent text-[14px] text-[#25394C] outline-none placeholder:text-[#7B94A7] disabled:opacity-60"
+              />
+            </label>
+
+            {step === "code" && (
+              <label className="flex h-[54px] items-center gap-3 rounded-[19px] bg-white/85 px-4 shadow-[0_7px_20px_rgba(61,110,144,0.07)]">
+                <LockKeyhole className="h-[19px] w-[19px] text-[#7898AD]" />
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(event) =>
+                    setCode(
+                      event.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 10),
+                    )
+                  }
+                  placeholder="Код из SMS"
+                  className="w-full bg-transparent text-[14px] outline-none placeholder:text-[#7B94A7]"
+                />
+              </label>
+            )}
+
+            {step === "phone" ? (
+              <p className="text-right text-[12px] text-[#66849B]">
+                Вход по одноразовому SMS-коду
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={requestCode}
+                disabled={loading}
+                className="block w-full text-right text-[12px] text-[#5688A7]"
+              >
+                Отправить код повторно
+              </button>
+            )}
+
+            {notice && (
+              <p className="flex items-center gap-2 text-[12px] text-[#168B7C]">
+                <CheckCircle2 className="h-4 w-4" />
+                {notice}
+              </p>
+            )}
+
+            {error && (
+              <p role="alert" className="text-[12px] text-red-600">
+                {error}
+              </p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={
+              step === "phone"
+                ? requestCode
+                : verifyCode
+            }
+            className="mt-7 flex h-[56px] w-full items-center justify-center rounded-full bg-gradient-to-r from-[#05B5E8] to-[#079BE2] text-[17px] font-bold text-white shadow-[0_10px_25px_rgba(0,160,218,0.18)] transition-transform active:scale-[0.98] disabled:opacity-60"
+          >
+            {loading
+              ? "Подождите..."
+              : step === "phone"
+                ? "Получить код"
+                : "Войти"}
+          </button>
+
+          <div className="mt-7 flex items-center gap-3">
+            <div className="h-px flex-1 bg-[#D4E5EF]" />
+            <span className="text-[12px] text-[#6E879B]">
+              или войти через
+            </span>
+            <div className="h-px flex-1 bg-[#D4E5EF]" />
+          </div>
+
+          <div className="mt-5 flex justify-center">
+            <button
+              type="button"
+              onClick={loginTelegram}
+              disabled={loading}
+              aria-label="Войти через Telegram"
+              className="flex h-[58px] items-center gap-3 rounded-full bg-white px-6 text-[14px] font-semibold text-[#263E53] shadow-[0_7px_22px_rgba(52,107,145,0.10)] transition-transform active:scale-[0.97]"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E6F8FE]">
+                <Send className="h-5 w-5 fill-[#12A8E3] text-[#12A8E3]" />
+              </span>
+              Telegram
+            </button>
+          </div>
+
+          <p className="mt-auto pt-10 text-center text-[11px] leading-5 text-[#8AA0AF]">
+            Продолжая, вы подтверждаете согласие
+            <br />
+            с условиями использования CleanGo
+          </p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+========== app/select-role/page.tsx ==========
+
+"use client";
+
+import { useState } from "react";
+import RoleSelection from "../../components/auth/RoleSelection";
+
+type Role = "client" | "cleaner";
+
+export default function SelectRolePage() {
+  const [loading, setLoading] = useState(false);
+
+  const handleContinue = async (role: Role) => {
+    setLoading(true);
+
+    try {
+      console.log("Выбрана роль:", role);
+
+      if (role === "client") {
+        alert("Вы выбрали роль клиента");
+      } else {
+        alert("Вы выбрали роль клинера");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <RoleSelection
+      loading={loading}
+      onContinue={handleContinue}
+    />
+  );
+}
+
+========== AuthProvider ==========
+========== ./components/providers/AuthProvider.tsx ==========
+
+"use client";
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+
+import {
+  isTMA,
+  retrieveLaunchParams,
+} from "@telegram-apps/sdk-react";
+
+type AuthUser = {
+  id: string;
+  telegramId: string | null;
+  phone: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  role: string;
+};
+
+type AuthStatus =
+  | "loading"
+  | "authenticated"
+  | "outside-telegram"
+  | "error";
+
+type AuthContextValue = {
+  user: AuthUser | null;
+  token: string | null;
+  status: AuthStatus;
+  retry: () => void;
+};
+
+type CheckStatus =
+  | "waiting"
+  | "success"
+  | "failed";
+
+type Check = {
+  status: CheckStatus;
+  detail: string;
+};
+
+type Diagnostics = {
+  environment: Check;
+  webApp: Check;
+  urlData: Check;
+  sdkData: Check;
+  backend: Check;
+  authorization: Check;
+};
+
+type AuthResponse = {
+  accessToken: string;
+  user: AuthUser;
+};
+
+type TelegramWindow = Window & {
+  Telegram?: {
+    WebApp?: {
+      initData?: string;
+    };
+  };
+};
+
+const AuthContext =
+  createContext<AuthContextValue | null>(null);
+
+const TOKEN_KEY = "cleango_access_token";
+
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://localhost:3001"
+).replace(/\/$/, "");
+
+function initialDiagnostics(): Diagnostics {
+  const waiting = (): Check => ({
+    status: "waiting",
+    detail: "Ожидание проверки",
+  });
+
+  return {
+    environment: waiting(),
+    webApp: waiting(),
+    urlData: waiting(),
+    sdkData: waiting(),
+    backend: waiting(),
+    authorization: waiting(),
+  };
+}
+
+// ==========================================
+// TELEGRAM WEBAPP DATA
+// ==========================================
+
+function readWebAppData(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const telegramWindow =
+    window as TelegramWindow;
+
+  return (
+    telegramWindow.Telegram?.WebApp?.initData ??
+    ""
+  );
+}
+
+// ==========================================
+// TELEGRAM URL DATA
+// ==========================================
+
+function readUrlData(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const query = new URLSearchParams(
+    window.location.search,
+  );
+
+  const queryData = query.get("tgWebAppData");
+
+  if (queryData) {
+    return queryData;
+  }
+
+  const hash = window.location.hash.replace(
+    /^#/,
+    "",
+  );
+
+  const hashParams = new URLSearchParams(hash);
+
+  return hashParams.get("tgWebAppData") ?? "";
+}
+
+// ==========================================
+// TELEGRAM SDK DATA
+// ==========================================
+
+function readSdkData(): string {
+  try {
+    const params = retrieveLaunchParams();
+
+    return typeof params.initDataRaw === "string"
+      ? params.initDataRaw
+      : "";
+  } catch {
+    return "";
+  }
+}
+
+// ==========================================
+// SAFE FIELD DIAGNOSTICS
+// ==========================================
+
+function inspectInitData(data: string) {
+  if (!data) {
+    return {
+      fields: [] as string[],
+      hasHash: false,
+      hasUser: false,
+      hasAuthDate: false,
+      hasSignature: false,
+      duplicateKeys: [] as string[],
+    };
+  }
+
+  const params = new URLSearchParams(data);
+  const fields = [...params.keys()];
+
+  const counts = new Map<string, number>();
+
+  for (const key of fields) {
+    counts.set(
+      key,
+      (counts.get(key) ?? 0) + 1,
+    );
+  }
+
+  return {
+    fields,
+    hasHash: Boolean(params.get("hash")),
+    hasUser: Boolean(params.get("user")),
+    hasAuthDate: Boolean(
+      params.get("auth_date"),
+    ),
+    hasSignature: Boolean(
+      params.get("signature"),
+    ),
+    duplicateKeys: [
+      ...counts.entries(),
+    ]
+      .filter(([, count]) => count > 1)
+      .map(([key]) => key),
+  };
+}
+
+// ==========================================
+// STATUS INDICATOR
+// ==========================================
+
+function StatusIndicator({
+  status,
+}: {
+  status: CheckStatus;
+}) {
+  const styles: Record<CheckStatus, string> = {
+    waiting: "bg-slate-300",
+    success: "bg-emerald-500",
+    failed: "bg-red-500",
+  };
+
+  return (
+    <span
+      className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${styles[status]}`}
+    />
+  );
+}
+
+// ==========================================
+// DIAGNOSTIC SCREEN
+// ==========================================
+
+function DiagnosticScreen({
+  diagnostics,
+  retry,
+}: {
+  diagnostics: Diagnostics;
+  retry: () => void;
+}) {
+  const [clickCount, setClickCount] =
+    useState(0);
+
+  const items: {
+    title: string;
+    key: keyof Diagnostics;
+  }[] = [
+    {
+      title: "Telegram Mini App",
+      key: "environment",
+    },
+    {
+      title: "window.Telegram.WebApp",
+      key: "webApp",
+    },
+    {
+      title: "tgWebAppData (URL)",
+      key: "urlData",
+    },
+    {
+      title: "SDK initDataRaw",
+      key: "sdkData",
+    },
+    {
+      title: "Backend",
+      key: "backend",
+    },
+    {
+      title: "JWT",
+      key: "authorization",
+    },
+  ];
+
+  const report = items
+    .map(({ title, key }) => {
+      const item = diagnostics[key];
+
+      return `${title}: ${item.status} — ${item.detail}`;
+    })
+    .join("\n");
+
+  const handleRetry = () => {
+    setClickCount((value) => value + 1);
+    retry();
+  };
+
+  const copyReport = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        report,
+      );
+
+      window.alert("Отчёт скопирован");
+    } catch {
+      window.prompt(
+        "Скопируй этот отчёт:",
+        report,
+      );
+    }
+  };
+
+  return (
+    <main className="flex min-h-dvh items-center justify-center bg-[#EFF8FC] px-4 py-8">
+      <section className="w-full max-w-[430px] rounded-3xl bg-white p-6 shadow-xl">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-100 text-2xl">
+          🔍
+        </div>
+
+        <h1 className="mt-5 text-center text-2xl font-bold text-slate-800">
+          Диагностика CleanGo
+        </h1>
+
+        <p className="mt-2 text-center text-sm text-slate-500">
+          Проверяем данные Telegram и
+          авторизацию.
+        </p>
+
+        <div className="mt-6 rounded-2xl bg-slate-50 px-4 py-2">
+          {items.map(({ title, key }) => {
+            const item = diagnostics[key];
+
+            return (
+              <div
+                key={key}
+                className="flex gap-3 border-b border-slate-200 py-3 last:border-0"
+              >
+                <StatusIndicator
+                  status={item.status}
+                />
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-800">
+                    {title}
+                  </p>
+
+                  <p className="mt-1 break-words text-xs leading-5 text-slate-500">
+                    {item.detail}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 rounded-xl bg-sky-50 p-3 text-center">
+          <p className="text-sm font-medium text-sky-700">
+            Нажатий: {clickCount}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="mt-4 h-13 w-full cursor-pointer rounded-2xl bg-sky-500 font-semibold text-white active:bg-sky-600"
+        >
+          Повторить диагностику
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            void copyReport();
+          }}
+          className="mt-3 h-12 w-full cursor-pointer rounded-2xl border border-slate-200 font-medium text-slate-700"
+        >
+          Скопировать результат
+        </button>
+
+        <p className="mt-4 text-center text-xs text-slate-400">
+          Токены, подписи и значения
+          пользовательских данных в отчёт
+          не включаются.
+        </p>
+      </section>
+    </main>
+  );
+}
+
+// ==========================================
+// AUTH PROVIDER
+// ==========================================
+
+export function AuthProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [status, setStatus] =
+    useState<AuthStatus>("loading");
+
+  const [user, setUser] =
+    useState<AuthUser | null>(null);
+
+  const [token, setToken] =
+    useState<string | null>(null);
+
+  const [attempt, setAttempt] = useState(0);
+
+  const [diagnostics, setDiagnostics] =
+    useState<Diagnostics>(
+      initialDiagnostics,
+    );
+
+  const retry = useCallback(() => {
+    setAttempt((value) => value + 1);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const update = (
+      key: keyof Diagnostics,
+      checkStatus: CheckStatus,
+      detail: string,
+    ) => {
+      if (cancelled) {
+        return;
+      }
+
+      setDiagnostics((previous) => ({
+        ...previous,
+        [key]: {
+          status: checkStatus,
+          detail,
+        },
+      }));
+    };
+
+    async function authenticate() {
+      setStatus("loading");
+      setDiagnostics(
+        initialDiagnostics(),
+      );
+
+      try {
+        // ==================================
+        // 1. TELEGRAM ENVIRONMENT
+        // ==================================
+
+        const insideTelegram =
+          await isTMA();
+
+        if (cancelled) {
+          return;
+        }
+
+        update(
+          "environment",
+          insideTelegram
+            ? "success"
+            : "failed",
+          insideTelegram
+            ? "Telegram обнаружен"
+            : "Приложение открыто вне Telegram",
+        );
+
+        if (!insideTelegram) {
+          setStatus("outside-telegram");
+          return;
+        }
+
+        // ==================================
+        // 2. WEBAPP
+        // ==================================
+
+        const telegramWindow =
+          window as TelegramWindow;
+
+        const webAppExists = Boolean(
+          telegramWindow.Telegram?.WebApp,
+        );
+
+        const webAppData =
+          readWebAppData();
+
+        update(
+          "webApp",
+          webAppData
+            ? "success"
+            : "failed",
+          !webAppExists
+            ? "Объект WebApp отсутствует"
+            : webAppData
+              ? "WebApp доступен, initData получены"
+              : "WebApp доступен, но initData пустые",
+        );
+
+        // ==================================
+        // 3. URL DATA
+        // ==================================
+
+        const urlData = readUrlData();
+
+        const inspected =
+          inspectInitData(urlData);
+
+        const fieldsText =
+          inspected.fields.length > 0
+            ? inspected.fields.join(", ")
+            : "нет полей";
+
+        const validationText = [
+          `hash: ${inspected.hasHash ? "есть" : "нет"}`,
+          `user: ${inspected.hasUser ? "есть" : "нет"}`,
+          `auth_date: ${inspected.hasAuthDate ? "есть" : "нет"}`,
+          `signature: ${inspected.hasSignature ? "есть" : "нет"}`,
+        ].join("; ");
+
+        const duplicateText =
+          inspected.duplicateKeys.length > 0
+            ? `; повторяющиеся поля: ${inspected.duplicateKeys.join(", ")}`
+            : "";
+
+        update(
+          "urlData",
+          urlData
+            ? "success"
+            : "failed",
+          urlData
+            ? `tgWebAppData обнаружен. Поля: ${fieldsText}. Проверка: ${validationText}${duplicateText}`
+            : "tgWebAppData не найден",
+        );
+
+        // ==================================
+        // 4. SDK DATA
+        // ==================================
+
+        const sdkData = readSdkData();
+
+        update(
+          "sdkData",
+          sdkData
+            ? "success"
+            : "failed",
+          sdkData
+            ? "SDK получил initDataRaw"
+            : "SDK не получил initDataRaw",
+        );
+
+        // ==================================
+        // 5. CHOOSE INIT DATA
+        // ==================================
+
+        const initData =
+          webAppData ||
+          sdkData ||
+          urlData;
+
+        if (!initData) {
+          update(
+            "authorization",
+            "failed",
+            "Данные авторизации Telegram отсутствуют",
+          );
+
+          setStatus("error");
+          return;
+        }
+
+        // ==================================
+        // 6. EXISTING SESSION
+        // ==================================
+
+        const existingToken =
+          sessionStorage.getItem(
+            TOKEN_KEY,
+          );
+
+        if (existingToken) {
+          try {
+            const response = await fetch(
+              `${API_URL}/auth/me`,
+              {
+                headers: {
+                  Authorization:
+                    `Bearer ${existingToken}`,
+                },
+                cache: "no-store",
+              },
+            );
+
+            if (response.ok) {
+              const currentUser =
+                (await response.json()) as AuthUser;
+
+              if (cancelled) {
+                return;
+              }
+
+              update(
+                "backend",
+                "success",
+                `HTTP ${response.status}`,
+              );
+
+              update(
+                "authorization",
+                "success",
+                "Сессия подтверждена",
+              );
+
+              setUser(currentUser);
+              setToken(existingToken);
+              setStatus(
+                "authenticated",
+              );
+
+              return;
+            }
+          } catch {
+            // Попробуем Telegram login.
+          }
+
+          sessionStorage.removeItem(
+            TOKEN_KEY,
+          );
+        }
+
+        // ==================================
+        // 7. TELEGRAM LOGIN
+        // ==================================
+
+        const response = await fetch(
+          `${API_URL}/auth/telegram`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              initData,
+            }),
+            cache: "no-store",
+          },
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        update(
+          "backend",
+          "success",
+          `HTTP ${response.status}`,
+        );
+
+        if (!response.ok) {
+          const errorBody =
+            await response
+              .json()
+              .catch(() => null);
+
+          const serverMessage =
+            errorBody &&
+            typeof errorBody.message ===
+              "string"
+              ? errorBody.message
+              : "Неизвестная ошибка";
+
+          update(
+            "authorization",
+            "failed",
+            `HTTP ${response.status}: ${serverMessage}`,
+          );
+
+          setStatus("error");
+          return;
+        }
+
+        // ==================================
+        // 8. JWT RESPONSE
+        // ==================================
+
+        const result =
+          (await response.json()) as AuthResponse;
+
+        if (
+          !result.accessToken ||
+          !result.user?.id
+        ) {
+          update(
+            "authorization",
+            "failed",
+            "Некорректный ответ сервера",
+          );
+
+          setStatus("error");
+          return;
+        }
+
+        sessionStorage.setItem(
+          TOKEN_KEY,
+          result.accessToken,
+        );
+
+        setUser(result.user);
+        setToken(
+          result.accessToken,
+        );
+
+        update(
+          "authorization",
+          "success",
+          "JWT получен",
+        );
+
+        setStatus("authenticated");
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error(
+          "CleanGo auth diagnostic error:",
+          error,
+        );
+
+        update(
+          "backend",
+          "failed",
+          "Ошибка выполнения запроса",
+        );
+
+        setStatus("error");
+      }
+    }
+
+    void authenticate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        status,
+        retry,
+      }}
+    >
+      {status === "authenticated" ? (
+        children
+      ) : status === "outside-telegram" ? (
+        <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-5">
+          <div className="rounded-3xl bg-white p-8 text-center shadow-lg">
+            <h1 className="text-xl font-bold">
+              Откройте CleanGo в Telegram
+            </h1>
+
+            <a
+              href="https://t.me/cleaninggoo_bot"
+              className="mt-5 inline-block rounded-xl bg-sky-500 px-6 py-3 font-semibold text-white"
+            >
+              Перейти к боту
+            </a>
+          </div>
+        </main>
+      ) : (
+        <DiagnosticScreen
+          diagnostics={diagnostics}
+          retry={retry}
+        />
+      )}
+    </AuthContext.Provider>
+  );
+}
+
+// ==========================================
+// USE AUTH
+// ==========================================
+
+export function useAuth() {
+  const context = useContext(
+    AuthContext,
+  );
+
+  if (!context) {
+    throw new Error(
+      "useAuth должен использоваться внутри AuthProvider",
+    );
+  }
+
+  return context;
+}

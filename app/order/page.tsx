@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import OrderForm from "@/components/OrderForm";
+import CleanGoLogo from "@/components/branding/CleanGoLogo";
 
 import {
   Card,
@@ -15,7 +16,10 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 
-type CleaningType = "regular" | "general" | "renovation";
+type CleaningType =
+  | "regular"
+  | "general"
+  | "renovation";
 
 type Service = {
   title: string;
@@ -73,13 +77,18 @@ function isCleaningType(
 
 function OrderContent() {
   const searchParams = useSearchParams();
-
   const serviceId = searchParams.get("service");
 
   if (!isCleaningType(serviceId)) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <CleanGoLogo
+            size={72}
+            showName
+            className="mb-6 justify-center"
+          />
+
           <h1 className="text-2xl font-bold text-slate-900">
             Услуга не выбрана
           </h1>
@@ -114,8 +123,14 @@ function OrderContent() {
           Вернуться к услугам
         </Link>
 
-        {/* Заголовок */}
+        {/* Логотип и заголовок */}
         <header className="space-y-3">
+          <CleanGoLogo
+            size={56}
+            showName
+            className="mb-5"
+          />
+
           <div className="inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
             CleanGo · Заказ уборки
           </div>

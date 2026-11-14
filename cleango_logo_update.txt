@@ -1,0 +1,475 @@
+
+========== components/branding/CleanGoLogo.tsx ==========
+
+"use client";
+
+import Image from "next/image";
+
+type CleanGoLogoProps = {
+  size?: number;
+  showName?: boolean;
+  showTagline?: boolean;
+  className?: string;
+};
+
+export default function CleanGoLogo({
+  size = 64,
+  showName = false,
+  showTagline = false,
+  className = "",
+}: CleanGoLogoProps) {
+  return (
+    <div
+      className={`inline-flex items-center gap-3 ${className}`}
+    >
+      <Image
+        src="/images/cleango/CleanGo-logo.png"
+        alt="Логотип CleanGo"
+        width={size}
+        height={size}
+        className="shrink-0 object-contain"
+        priority
+      />
+
+      {(showName || showTagline) && (
+        <div className="flex flex-col">
+          {showName && (
+            <span className="text-xl font-extrabold tracking-tight text-[#102033]">
+              Clean
+              <span className="text-[#12B6A6]">
+                Go
+              </span>
+            </span>
+          )}
+
+          {showTagline && (
+            <span className="text-xs text-[#8293A4]">
+              Уборка без забот
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+========== components/auth/RoleSelection.tsx ==========
+
+"use client";
+
+import { useState } from "react";
+import { ArrowRight, Check, House, Sparkles, SprayCan } from "lucide-react";
+
+type Role = "client" | "cleaner";
+
+type RoleSelectionProps = {
+  onContinue: (role: Role) => Promise<void> | void;
+  loading?: boolean;
+};
+
+export default function RoleSelection({
+  onContinue,
+  loading = false,
+}: RoleSelectionProps) {
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+
+  const handleContinue = async () => {
+    if (!selectedRole || loading) return;
+    await onContinue(selectedRole);
+  };
+
+  return (
+    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[#F8FCFF] px-6 pb-8 pt-12 text-[#102334]">
+      {/* Background decorations */}
+      <div className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-cyan-100/70 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-sky-200/60 blur-3xl" />
+
+      {/* Logo */}
+      <div className="relative z-10 flex flex-col items-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-gradient-to-br from-[#00BDEB] to-[#168EDB] shadow-lg shadow-sky-200">
+          <Sparkles className="h-9 w-9 text-white" strokeWidth={2.2} />
+        </div>
+
+        <span className="mt-3 text-[23px] font-bold tracking-tight">
+          Clean<span className="text-[#08A9E2]">Go</span>
+        </span>
+      </div>
+
+      {/* Heading */}
+      <div className="relative z-10 mt-12 text-center">
+        <h1 className="text-[30px] font-bold leading-[1.15] tracking-tight">
+          Добро пожаловать
+          <br />
+          в CleanGo!
+        </h1>
+
+        <p className="mx-auto mt-4 max-w-[280px] text-[15px] leading-6 text-slate-500">
+          Выберите, как вы хотите
+          пользоваться нашим сервисом
+        </p>
+      </div>
+
+      {/* Role cards */}
+      <div className="relative z-10 mt-10 flex flex-col gap-4">
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => setSelectedRole("client")}
+          className={`flex w-full items-center gap-4 rounded-[24px] border-2 bg-white p-5 text-left shadow-sm transition-all duration-200 ${
+            selectedRole === "client"
+              ? "border-[#09ADE5] shadow-lg shadow-sky-100"
+              : "border-[#E9F1F6] hover:border-sky-200"
+          }`}
+        >
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] bg-[#E9F8FF]">
+            <House className="h-8 w-8 text-[#0BA9E1]" strokeWidth={1.8} />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[18px] font-bold">Я клиент</h2>
+            <p className="mt-1 text-[13px] leading-5 text-slate-500">
+              Хочу заказать уборку
+              для дома или офиса
+            </p>
+          </div>
+
+          <div
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
+              selectedRole === "client"
+                ? "border-[#09ADE5] bg-[#09ADE5]"
+                : "border-slate-200"
+            }`}
+          >
+            {selectedRole === "client" && (
+              <Check className="h-4 w-4 text-white" strokeWidth={3} />
+            )}
+          </div>
+        </button>
+
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => setSelectedRole("cleaner")}
+          className={`flex w-full items-center gap-4 rounded-[24px] border-2 bg-white p-5 text-left shadow-sm transition-all duration-200 ${
+            selectedRole === "cleaner"
+              ? "border-[#09ADE5] shadow-lg shadow-sky-100"
+              : "border-[#E9F1F6] hover:border-sky-200"
+          }`}
+        >
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] bg-[#E7FAF8]">
+            <SprayCan className="h-8 w-8 text-[#12B9B1]" strokeWidth={1.8} />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[18px] font-bold">Я клинер</h2>
+            <p className="mt-1 text-[13px] leading-5 text-slate-500">
+              Хочу выполнять заказы
+              и зарабатывать
+            </p>
+          </div>
+
+          <div
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
+              selectedRole === "cleaner"
+                ? "border-[#09ADE5] bg-[#09ADE5]"
+                : "border-slate-200"
+            }`}
+          >
+            {selectedRole === "cleaner" && (
+              <Check className="h-4 w-4 text-white" strokeWidth={3} />
+            )}
+          </div>
+        </button>
+      </div>
+
+      {/* Bottom button */}
+      <div className="relative z-10 mt-auto pt-10">
+        <button
+          type="button"
+          disabled={!selectedRole || loading}
+          onClick={handleContinue}
+          className="flex h-[58px] w-full items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#05B9ED] to-[#078FDE] text-[16px] font-semibold text-white shadow-lg shadow-sky-200 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          {loading ? "Подождите..." : "Продолжить"}
+          {!loading && <ArrowRight className="h-5 w-5" />}
+        </button>
+
+        <p className="mt-5 text-center text-[12px] text-slate-400">
+          Безопасный вход через Telegram
+        </p>
+      </div>
+    </main>
+  );
+}
+
+========== app/order/page.tsx ==========
+
+"use client";
+
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+
+import OrderForm from "@/components/OrderForm";
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+
+type CleaningType = "regular" | "general" | "renovation";
+
+type Service = {
+  title: string;
+  description: string;
+  features: string[];
+};
+
+const services: Record<CleaningType, Service> = {
+  regular: {
+    title: "Поддерживающая уборка",
+    description:
+      "Быстрая уборка для поддержания чистоты и порядка в вашем доме.",
+    features: [
+      "Удаление пыли с доступных поверхностей",
+      "Влажная уборка полов",
+      "Уборка кухни",
+      "Уборка санузла",
+    ],
+  },
+
+  general: {
+    title: "Генеральная уборка",
+    description:
+      "Тщательная уборка основных помещений вашего дома.",
+    features: [
+      "Удаление пыли и загрязнений",
+      "Тщательная уборка полов",
+      "Уборка кухни и санузла",
+      "Очистка доступных поверхностей",
+    ],
+  },
+
+  renovation: {
+    title: "Уборка после ремонта",
+    description:
+      "Уборка помещений после завершения ремонтных работ.",
+    features: [
+      "Удаление строительной пыли",
+      "Влажная уборка поверхностей",
+      "Очистка полов",
+      "Уборка кухни и санузла",
+    ],
+  },
+};
+
+function isCleaningType(
+  value: string | null,
+): value is CleaningType {
+  return (
+    value === "regular" ||
+    value === "general" ||
+    value === "renovation"
+  );
+}
+
+function OrderContent() {
+  const searchParams = useSearchParams();
+
+  const serviceId = searchParams.get("service");
+
+  if (!isCleaningType(serviceId)) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <h1 className="text-2xl font-bold text-slate-900">
+            Услуга не выбрана
+          </h1>
+
+          <p className="mt-3 text-sm text-slate-600">
+            Вернитесь на главную страницу и выберите
+            подходящий вид уборки.
+          </p>
+
+          <Link
+            href="/"
+            className="mt-6 inline-flex rounded-xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-teal-700"
+          >
+            Вернуться к услугам
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  const service = services[serviceId];
+
+  return (
+    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:py-12">
+      <div className="mx-auto w-full max-w-3xl space-y-7">
+        {/* Навигация */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition-colors hover:text-teal-700"
+        >
+          <span aria-hidden="true">←</span>
+          Вернуться к услугам
+        </Link>
+
+        {/* Заголовок */}
+        <header className="space-y-3">
+          <div className="inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
+            CleanGo · Заказ уборки
+          </div>
+
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Оформление уборки
+          </h1>
+
+          <p className="max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
+            Выберите параметры уборки, укажите адрес
+            и узнайте предварительную стоимость.
+          </p>
+        </header>
+
+        {/* Выбранная услуга */}
+        <Card className="gap-4 rounded-2xl border-slate-200 bg-white py-6 shadow-sm">
+          <CardHeader className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle className="text-xl font-bold text-slate-900">
+                {service.title}
+              </CardTitle>
+
+              <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
+                Выбрано
+              </span>
+            </div>
+
+            <CardDescription className="text-sm leading-6 text-slate-600">
+              {service.description}
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            <div className="border-t border-slate-100 pt-4">
+              <p className="mb-3 text-sm font-semibold text-slate-800">
+                Что входит в уборку
+              </p>
+
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {service.features.map((feature) => (
+                  <li
+                    key={feature}
+                    className="flex items-start gap-2 text-sm text-slate-600"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="mt-0.5 font-bold text-teal-600"
+                    >
+                      ✓
+                    </span>
+
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-xl bg-slate-50 px-4 py-3">
+              <p className="text-sm text-slate-600">
+                Стоимость будет рассчитана автоматически
+                после ввода площади помещения.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Форма заказа */}
+        <Card className="gap-4 rounded-2xl border-slate-200 bg-white py-6 shadow-sm">
+          <CardHeader className="space-y-2">
+            <CardTitle className="text-xl font-bold text-slate-900">
+              Детали заказа
+            </CardTitle>
+
+            <CardDescription className="text-sm text-slate-600">
+              Заполните информацию, чтобы зарегистрировать
+              заявку на уборку.
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <OrderForm cleaningType={serviceId} />
+          </CardContent>
+        </Card>
+
+        {/* Информация */}
+        <p className="text-center text-xs leading-5 text-slate-500">
+          Стоимость рассчитывается сервером CleanGo
+          по текущим тестовым тарифам.
+          После оформления она сохраняется вместе с заказом.
+        </p>
+      </div>
+    </main>
+  );
+}
+
+export default function OrderPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-slate-50">
+          <p className="text-sm text-slate-600">
+            Загрузка страницы...
+          </p>
+        </main>
+      }
+    >
+      <OrderContent />
+    </Suspense>
+  );
+}
+
+========== app/layout.tsx ==========
+
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+
+import TelegramProvider from "@/components/providers/TelegramProvider";
+
+import "./globals.css";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin", "cyrillic"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin", "cyrillic"],
+});
+
+export const metadata: Metadata = {
+  title: "CleanGo — уборка вашего дома",
+  description:
+    "CleanGo — удобный сервис заказа профессиональной уборки.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html
+      lang="ru"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="flex min-h-full flex-col">
+        <TelegramProvider>{children}</TelegramProvider>
+      </body>
+    </html>
+  );
+}

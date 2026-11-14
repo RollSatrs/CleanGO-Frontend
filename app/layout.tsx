@@ -18,8 +18,24 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "CleanGo — уборка вашего дома",
+
   description:
     "CleanGo — удобный сервис заказа профессиональной уборки.",
+
+  icons: {
+    icon: [
+      {
+        url: "/images/cleango/CleanGo-logo.png",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/images/cleango/CleanGo-logo.png",
+        type: "image/png",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -33,7 +49,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <TelegramProvider>{children}</TelegramProvider>
+        <TelegramProvider>
+          {children}
+        </TelegramProvider>
       </body>
     </html>
   );
