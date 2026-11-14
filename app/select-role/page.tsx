@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -43,6 +44,7 @@ export default function RoleSelection({
   loading = false,
 }: RoleSelectionProps) {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
 
   const [selectedRole, setSelectedRole] =
     useState<Role | null>(null);
@@ -86,7 +88,12 @@ export default function RoleSelection({
       </div>
 
       {/* Приветствие */}
-      <div className="relative z-10 mt-8 text-center">
+      <motion.div
+        initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reduceMotion ? 0 : 0.35 }}
+        className="relative z-10 mt-8 text-center"
+      >
         <h1 className="text-[30px] font-bold leading-[1.15] tracking-tight">
           Добро пожаловать
           <br />
@@ -97,21 +104,25 @@ export default function RoleSelection({
           Выберите, как вы хотите
           пользоваться нашим сервисом
         </p>
-      </div>
+      </motion.div>
 
       {/* Карточки выбора роли */}
       <div className="relative z-10 mt-9 flex flex-col gap-4">
-        {roles.map((role) => {
+        {roles.map((role, index) => {
           const selected = selectedRole === role.id;
 
           return (
-            <button
+            <motion.button
               key={role.id}
+              initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileTap={reduceMotion ? undefined : { scale: 0.985 }}
+              transition={{ duration: reduceMotion ? 0 : 0.32, delay: reduceMotion ? 0 : 0.08 + index * 0.07 }}
               type="button"
               disabled={loading}
               onClick={() => setSelectedRole(role.id)}
               aria-pressed={selected}
-              className={`flex w-full items-center gap-3 rounded-[24px] border-2 bg-white p-3 text-left shadow-sm transition-all duration-200 ${
+              className={`flex w-full items-center gap-3 rounded-[24px] border-2 bg-white p-3 text-left shadow-sm transition-colors duration-200 ${
                 selected
                   ? "border-[#12B6A6] shadow-lg shadow-teal-100"
                   : "border-[#E9F1F6] hover:border-teal-200"
@@ -155,7 +166,7 @@ export default function RoleSelection({
                   />
                 )}
               </div>
-            </button>
+            </motion.button>
           );
         })}
       </div>
