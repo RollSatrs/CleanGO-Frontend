@@ -20,6 +20,34 @@ type Props = {
   children: ReactNode;
 };
 
+const TELEGRAM_INIT_TIMEOUT = 5000;
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  milliseconds: number,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(
+        new Error(
+          `Telegram SDK timeout after ${milliseconds}ms`,
+        ),
+      );
+    }, milliseconds);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timeout);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      },
+    );
+  });
+}
+
 export default function TelegramProvider({
   children,
 }: Props) {
@@ -30,12 +58,21 @@ export default function TelegramProvider({
 
     async function setupTelegram() {
       try {
-        const insideTelegram = await isTMA();
+        console.time("CleanGo Telegram initialization");
+
+        const insideTelegram = await withTimeout(
+          Promise.resolve(isTMA()),
+          TELEGRAM_INIT_TIMEOUT,
+        );
 
         if (cancelled) return;
 
+        console.info(
+          "[CleanGo] Telegram detected:",
+          insideTelegram,
+        );
+
         if (insideTelegram) {
-          // Инициализируем SDK до AuthProvider.
           init();
 
           if (miniApp.mount.isAvailable()) {
@@ -43,15 +80,31 @@ export default function TelegramProvider({
           }
 
           if (viewport.mount.isAvailable()) {
-            await viewport.mount();
+            try {
+              await withTimeout(
+                Promise.resolve(viewport.mount()),
+                TELEGRAM_INIT_TIMEOUT,
+              );
+            } catch (error) {
+              console.warn(
+                "[CleanGo] Viewport initialization delayed:",
+                error,
+              );
+            }
 
             if (cancelled) return;
 
-            if (viewport.expand.isAvailable()) {
+            if (
+              viewport.isMounted() &&
+              viewport.expand.isAvailable()
+            ) {
               viewport.expand();
             }
 
-            if (viewport.bindCssVars.isAvailable()) {
+            if (
+              viewport.isMounted() &&
+              viewport.bindCssVars.isAvailable()
+            ) {
               viewport.bindCssVars();
             }
           }
@@ -62,10 +115,12 @@ export default function TelegramProvider({
         }
       } catch (error) {
         console.error(
-          "Telegram initialization error:",
+          "[CleanGo] Telegram initialization error:",
           error,
         );
       } finally {
+        console.timeEnd("CleanGo Telegram initialization");
+
         if (!cancelled) {
           setReady(true);
         }
