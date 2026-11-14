@@ -57,12 +57,12 @@ export default function OnboardingPage() {
     if (step < slides.length - 1) {
       setStep((previous) => previous + 1);
     } else {
-      router.push("/");
+      router.push("/select-role");
     }
   }
 
   function handleSkip() {
-    router.push("/");
+    router.push("/select-role");
   }
 
   const appear = (delay = 0) => ({
@@ -250,7 +250,7 @@ export default function OnboardingPage() {
             "
           >
             {step === slides.length - 1
-              ? "Начать уборку"
+              ? "Продолжить"
               : "Продолжить"}
 
             <ArrowRight className="h-5 w-5" />

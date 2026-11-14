@@ -31,10 +31,10 @@ export default function WelcomePage() {
     router.push("/onboarding");
   };
 
-  // Авторизация уже выполняется автоматически
-  // через Telegram при запуске приложения.
+  // Пока выбор роли не сохраняется на backend,
+  // направляем пользователя на экран выбора роли.
   const handleLogin = () => {
-    router.replace("/");
+    router.replace("/select-role");
   };
 
   return (
