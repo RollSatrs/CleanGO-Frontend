@@ -2,11 +2,12 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   ArrowRight,
   Check,
-  House,
-  SprayCan,
 } from "lucide-react";
 
 import CleanGoLogo from "@/components/branding/CleanGoLogo";
@@ -22,6 +23,8 @@ export default function RoleSelection({
   onContinue,
   loading = false,
 }: RoleSelectionProps) {
+  const router = useRouter();
+
   const [selectedRole, setSelectedRole] =
     useState<Role | null>(null);
 
@@ -31,15 +34,46 @@ export default function RoleSelection({
     await onContinue(selectedRole);
   };
 
+  const roles = [
+    {
+      id: "client" as const,
+      title: "Я клиент",
+      description:
+        "Хочу заказать уборку для дома или офиса",
+      image: "/images/cleango/client-role.png",
+      alt: "3D-иконка домика",
+    },
+    {
+      id: "cleaner" as const,
+      title: "Я клинер",
+      description:
+        "Хочу выполнять заказы и зарабатывать",
+      image: "/images/cleango/cleaner-role.png",
+      alt: "3D-иконка средств для уборки",
+    },
+  ];
+
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[#F8FCFF] px-6 pb-8 pt-12 text-[#102334]">
+    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[#F8FCFF] px-6 pb-8 pt-6 text-[#102334]">
       {/* Фон */}
       <div className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-teal-100/60 blur-3xl" />
 
       <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-cyan-100/60 blur-3xl" />
 
+      {/* Назад */}
+      <div className="relative z-10">
+        <button
+          type="button"
+          onClick={() => router.push("/onboarding")}
+          aria-label="Назад"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#102334] shadow-sm transition-transform active:scale-95"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+      </div>
+
       {/* Логотип */}
-      <div className="relative z-10 flex flex-col items-center">
+      <div className="relative z-10 mt-1 flex flex-col items-center">
         <CleanGoLogo
           size={88}
           showName
@@ -49,7 +83,7 @@ export default function RoleSelection({
       </div>
 
       {/* Приветствие */}
-      <div className="relative z-10 mt-10 text-center">
+      <div className="relative z-10 mt-8 text-center">
         <h1 className="text-[30px] font-bold leading-[1.15] tracking-tight">
           Добро пожаловать
           <br />
@@ -62,97 +96,65 @@ export default function RoleSelection({
         </p>
       </div>
 
-      {/* Выбор роли */}
-      <div className="relative z-10 mt-10 flex flex-col gap-4">
-        {/* Клиент */}
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => setSelectedRole("client")}
-          className={`flex w-full items-center gap-4 rounded-[24px] border-2 bg-white p-5 text-left shadow-sm transition-all duration-200 ${
-            selectedRole === "client"
-              ? "border-[#12B6A6] shadow-lg shadow-teal-100"
-              : "border-[#E9F1F6] hover:border-teal-200"
-          }`}
-        >
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] bg-[#E9F9F6]">
-            <House
-              className="h-8 w-8 text-[#12B6A6]"
-              strokeWidth={1.8}
-            />
-          </div>
+      {/* Карточки ролей */}
+      <div className="relative z-10 mt-9 flex flex-col gap-4">
+        {roles.map((role) => {
+          const selected = selectedRole === role.id;
 
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[18px] font-bold">
-              Я клиент
-            </h2>
+          return (
+            <button
+              key={role.id}
+              type="button"
+              disabled={loading}
+              onClick={() => setSelectedRole(role.id)}
+              aria-pressed={selected}
+              className={`flex w-full items-center gap-3 rounded-[24px] border-2 bg-white p-3 text-left shadow-sm transition-all duration-200 ${
+                selected
+                  ? "border-[#12B6A6] shadow-lg shadow-teal-100"
+                  : "border-[#E9F1F6] hover:border-teal-200"
+              }`}
+            >
+              {/* 3D PNG */}
+              <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-[20px] bg-[#E9F9F6]">
+                <Image
+                  src={role.image}
+                  alt={role.alt}
+                  width={160}
+                  height={160}
+                  sizes="88px"
+                  className="h-[94%] w-[94%] object-contain"
+                />
+              </div>
 
-            <p className="mt-1 text-[13px] leading-5 text-slate-500">
-              Хочу заказать уборку
-              для дома или офиса
-            </p>
-          </div>
+              {/* Текст */}
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[18px] font-bold">
+                  {role.title}
+                </h2>
 
-          <div
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
-              selectedRole === "client"
-                ? "border-[#12B6A6] bg-[#12B6A6]"
-                : "border-slate-200"
-            }`}
-          >
-            {selectedRole === "client" && (
-              <Check
-                className="h-4 w-4 text-white"
-                strokeWidth={3}
-              />
-            )}
-          </div>
-        </button>
+                <p className="mt-1 text-[13px] leading-5 text-slate-500">
+                  {role.description}
+                </p>
+              </div>
 
-        {/* Клинер */}
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => setSelectedRole("cleaner")}
-          className={`flex w-full items-center gap-4 rounded-[24px] border-2 bg-white p-5 text-left shadow-sm transition-all duration-200 ${
-            selectedRole === "cleaner"
-              ? "border-[#12B6A6] shadow-lg shadow-teal-100"
-              : "border-[#E9F1F6] hover:border-teal-200"
-          }`}
-        >
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] bg-[#E7FAF8]">
-            <SprayCan
-              className="h-8 w-8 text-[#12B6A6]"
-              strokeWidth={1.8}
-            />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[18px] font-bold">
-              Я клинер
-            </h2>
-
-            <p className="mt-1 text-[13px] leading-5 text-slate-500">
-              Хочу выполнять заказы
-              и зарабатывать
-            </p>
-          </div>
-
-          <div
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
-              selectedRole === "cleaner"
-                ? "border-[#12B6A6] bg-[#12B6A6]"
-                : "border-slate-200"
-            }`}
-          >
-            {selectedRole === "cleaner" && (
-              <Check
-                className="h-4 w-4 text-white"
-                strokeWidth={3}
-              />
-            )}
-          </div>
-        </button>
+              {/* Выбор */}
+              <div
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${
+                  selected
+                    ? "border-[#12B6A6] bg-[#12B6A6]"
+                    : "border-slate-200"
+                }`}
+              >
+                {selected && (
+                  <Check
+                    className="h-4 w-4 text-white"
+                    strokeWidth={3}
+                  />
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Продолжить */}
