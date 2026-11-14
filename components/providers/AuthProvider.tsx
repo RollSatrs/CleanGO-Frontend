@@ -95,19 +95,32 @@ function initialDiagnostics(): Diagnostics {
   };
 }
 
-// Проверяем WebApp API без вывода initData.
+// ==========================================
+// TELEGRAM WEBAPP DATA
+// ==========================================
+
 function readWebAppData(): string {
-  if (typeof window === "undefined") return "";
+  if (typeof window === "undefined") {
+    return "";
+  }
 
-  const telegramWindow = window as TelegramWindow;
+  const telegramWindow =
+    window as TelegramWindow;
 
-  return telegramWindow.Telegram?.WebApp?.initData ?? "";
+  return (
+    telegramWindow.Telegram?.WebApp?.initData ??
+    ""
+  );
 }
 
-// Проверяем launch parameters.
-// Telegram может передавать их в hash или query.
+// ==========================================
+// TELEGRAM URL DATA
+// ==========================================
+
 function readUrlData(): string {
-  if (typeof window === "undefined") return "";
+  if (typeof window === "undefined") {
+    return "";
+  }
 
   const query = new URLSearchParams(
     window.location.search,
@@ -115,16 +128,24 @@ function readUrlData(): string {
 
   const queryData = query.get("tgWebAppData");
 
-  if (queryData) return queryData;
+  if (queryData) {
+    return queryData;
+  }
 
-  const hash = window.location.hash.replace(/^#/, "");
+  const hash = window.location.hash.replace(
+    /^#/,
+    "",
+  );
 
   const hashParams = new URLSearchParams(hash);
 
   return hashParams.get("tgWebAppData") ?? "";
 }
 
-// Проверяем Telegram SDK.
+// ==========================================
+// TELEGRAM SDK DATA
+// ==========================================
+
 function readSdkData(): string {
   try {
     const params = retrieveLaunchParams();
@@ -136,6 +157,56 @@ function readSdkData(): string {
     return "";
   }
 }
+
+// ==========================================
+// SAFE FIELD DIAGNOSTICS
+// ==========================================
+
+function inspectInitData(data: string) {
+  if (!data) {
+    return {
+      fields: [] as string[],
+      hasHash: false,
+      hasUser: false,
+      hasAuthDate: false,
+      hasSignature: false,
+      duplicateKeys: [] as string[],
+    };
+  }
+
+  const params = new URLSearchParams(data);
+  const fields = [...params.keys()];
+
+  const counts = new Map<string, number>();
+
+  for (const key of fields) {
+    counts.set(
+      key,
+      (counts.get(key) ?? 0) + 1,
+    );
+  }
+
+  return {
+    fields,
+    hasHash: Boolean(params.get("hash")),
+    hasUser: Boolean(params.get("user")),
+    hasAuthDate: Boolean(
+      params.get("auth_date"),
+    ),
+    hasSignature: Boolean(
+      params.get("signature"),
+    ),
+    duplicateKeys: [
+      ...counts.entries(),
+    ]
+      .filter(([, count]) => count > 1)
+      .map(([key]) => key),
+  };
+}
+
+// ==========================================
+// STATUS INDICATOR
+// ==========================================
 
 function StatusIndicator({
   status,
@@ -155,6 +226,10 @@ function StatusIndicator({
   );
 }
 
+// ==========================================
+// DIAGNOSTIC SCREEN
+// ==========================================
+
 function DiagnosticScreen({
   diagnostics,
   retry,
@@ -162,7 +237,8 @@ function DiagnosticScreen({
   diagnostics: Diagnostics;
   retry: () => void;
 }) {
-  const [clickCount, setClickCount] = useState(0);
+  const [clickCount, setClickCount] =
+    useState(0);
 
   const items: {
     title: string;
@@ -207,6 +283,21 @@ function DiagnosticScreen({
     retry();
   };
 
+  const copyReport = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        report,
+      );
+
+      window.alert("Отчёт скопирован");
+    } catch {
+      window.prompt(
+        "Скопируй этот отчёт:",
+        report,
+      );
+    }
+  };
+
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[#EFF8FC] px-4 py-8">
       <section className="w-full max-w-[430px] rounded-3xl bg-white p-6 shadow-xl">
@@ -219,7 +310,8 @@ function DiagnosticScreen({
         </h1>
 
         <p className="mt-2 text-center text-sm text-slate-500">
-          Проверяем получение данных Telegram.
+          Проверяем данные Telegram и
+          авторизацию.
         </p>
 
         <div className="mt-6 rounded-2xl bg-slate-50 px-4 py-2">
@@ -231,7 +323,9 @@ function DiagnosticScreen({
                 key={key}
                 className="flex gap-3 border-b border-slate-200 py-3 last:border-0"
               >
-                <StatusIndicator status={item.status} />
+                <StatusIndicator
+                  status={item.status}
+                />
 
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-slate-800">
@@ -264,17 +358,7 @@ function DiagnosticScreen({
         <button
           type="button"
           onClick={() => {
-            void (async () => {
-              try {
-                await navigator.clipboard.writeText(report);
-                window.alert("Отчёт скопирован");
-              } catch {
-                window.prompt(
-                  "Скопируй этот отчёт:",
-                  report,
-                );
-              }
-            })();
+            void copyReport();
           }}
           className="mt-3 h-12 w-full cursor-pointer rounded-2xl border border-slate-200 font-medium text-slate-700"
         >
@@ -282,13 +366,18 @@ function DiagnosticScreen({
         </button>
 
         <p className="mt-4 text-center text-xs text-slate-400">
-          Токены и данные пользователя
-          в отчёт не включаются.
+          Токены, подписи и значения
+          пользовательских данных в отчёт
+          не включаются.
         </p>
       </section>
     </main>
   );
 }
+
+// ==========================================
+// AUTH PROVIDER
+// ==========================================
 
 export function AuthProvider({
   children,
@@ -307,7 +396,9 @@ export function AuthProvider({
   const [attempt, setAttempt] = useState(0);
 
   const [diagnostics, setDiagnostics] =
-    useState<Diagnostics>(initialDiagnostics);
+    useState<Diagnostics>(
+      initialDiagnostics,
+    );
 
   const retry = useCallback(() => {
     setAttempt((value) => value + 1);
@@ -321,7 +412,9 @@ export function AuthProvider({
       checkStatus: CheckStatus,
       detail: string,
     ) => {
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
 
       setDiagnostics((previous) => ({
         ...previous,
@@ -334,17 +427,27 @@ export function AuthProvider({
 
     async function authenticate() {
       setStatus("loading");
-      setDiagnostics(initialDiagnostics());
+      setDiagnostics(
+        initialDiagnostics(),
+      );
 
       try {
-        // 1. Проверка Telegram
-        const insideTelegram = await isTMA();
+        // ==================================
+        // 1. TELEGRAM ENVIRONMENT
+        // ==================================
 
-        if (cancelled) return;
+        const insideTelegram =
+          await isTMA();
+
+        if (cancelled) {
+          return;
+        }
 
         update(
           "environment",
-          insideTelegram ? "success" : "failed",
+          insideTelegram
+            ? "success"
+            : "failed",
           insideTelegram
             ? "Telegram обнаружен"
             : "Приложение открыто вне Telegram",
@@ -355,18 +458,25 @@ export function AuthProvider({
           return;
         }
 
-        // 2. Проверка Telegram WebApp
+        // ==================================
+        // 2. WEBAPP
+        // ==================================
+
         const telegramWindow =
           window as TelegramWindow;
 
-        const webAppExists =
-          Boolean(telegramWindow.Telegram?.WebApp);
+        const webAppExists = Boolean(
+          telegramWindow.Telegram?.WebApp,
+        );
 
-        const webAppData = readWebAppData();
+        const webAppData =
+          readWebAppData();
 
         update(
           "webApp",
-          webAppData ? "success" : "failed",
+          webAppData
+            ? "success"
+            : "failed",
           !webAppExists
             ? "Объект WebApp отсутствует"
             : webAppData
@@ -374,40 +484,86 @@ export function AuthProvider({
               : "WebApp доступен, но initData пустые",
         );
 
-        // 3. Проверка URL
+        // ==================================
+        // 3. URL DATA
+        // ==================================
+
         const urlData = readUrlData();
+
+        const inspected =
+          inspectInitData(urlData);
+
+        const fieldsText =
+          inspected.fields.length > 0
+            ? inspected.fields.join(", ")
+            : "нет полей";
+
+        const validationText = [
+          `hash: ${inspected.hasHash ? "есть" : "нет"}`,
+          `user: ${inspected.hasUser ? "есть" : "нет"}`,
+          `auth_date: ${inspected.hasAuthDate ? "есть" : "нет"}`,
+          `signature: ${inspected.hasSignature ? "есть" : "нет"}`,
+        ].join("; ");
+
+        const duplicateText =
+          inspected.duplicateKeys.length > 0
+            ? `; повторяющиеся поля: ${inspected.duplicateKeys.join(", ")}`
+            : "";
 
         update(
           "urlData",
-          urlData ? "success" : "failed",
           urlData
-            ? "tgWebAppData обнаружен"
+            ? "success"
+            : "failed",
+          urlData
+            ? `tgWebAppData обнаружен. Поля: ${fieldsText}. Проверка: ${validationText}${duplicateText}`
             : "tgWebAppData не найден",
         );
 
-        // 4. Проверка SDK
+        // ==================================
+        // 4. SDK DATA
+        // ==================================
+
         const sdkData = readSdkData();
 
         update(
           "sdkData",
-          sdkData ? "success" : "failed",
+          sdkData
+            ? "success"
+            : "failed",
           sdkData
             ? "SDK получил initDataRaw"
             : "SDK не получил initDataRaw",
         );
 
-        // Используем первый доступный источник.
+        // ==================================
+        // 5. CHOOSE INIT DATA
+        // ==================================
+
         const initData =
-          webAppData || sdkData || urlData;
+          webAppData ||
+          sdkData ||
+          urlData;
 
         if (!initData) {
+          update(
+            "authorization",
+            "failed",
+            "Данные авторизации Telegram отсутствуют",
+          );
+
           setStatus("error");
           return;
         }
 
-        // 5. Проверка существующей сессии
+        // ==================================
+        // 6. EXISTING SESSION
+        // ==================================
+
         const existingToken =
-          sessionStorage.getItem(TOKEN_KEY);
+          sessionStorage.getItem(
+            TOKEN_KEY,
+          );
 
         if (existingToken) {
           try {
@@ -426,7 +582,9 @@ export function AuthProvider({
               const currentUser =
                 (await response.json()) as AuthUser;
 
-              if (cancelled) return;
+              if (cancelled) {
+                return;
+              }
 
               update(
                 "backend",
@@ -442,30 +600,43 @@ export function AuthProvider({
 
               setUser(currentUser);
               setToken(existingToken);
-              setStatus("authenticated");
+              setStatus(
+                "authenticated",
+              );
+
               return;
             }
           } catch {
-            // Попробуем авторизацию через Telegram.
+            // Попробуем Telegram login.
           }
 
-          sessionStorage.removeItem(TOKEN_KEY);
+          sessionStorage.removeItem(
+            TOKEN_KEY,
+          );
         }
 
-        // 6. Авторизация Telegram
+        // ==================================
+        // 7. TELEGRAM LOGIN
+        // ==================================
+
         const response = await fetch(
           `${API_URL}/auth/telegram`,
           {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
+              "Content-Type":
+                "application/json",
             },
-            body: JSON.stringify({ initData }),
+            body: JSON.stringify({
+              initData,
+            }),
             cache: "no-store",
           },
         );
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         update(
           "backend",
@@ -474,13 +645,15 @@ export function AuthProvider({
         );
 
         if (!response.ok) {
-          const errorBody = await response
-            .json()
-            .catch(() => null);
+          const errorBody =
+            await response
+              .json()
+              .catch(() => null);
 
           const serverMessage =
             errorBody &&
-            typeof errorBody.message === "string"
+            typeof errorBody.message ===
+              "string"
               ? errorBody.message
               : "Неизвестная ошибка";
 
@@ -493,6 +666,10 @@ export function AuthProvider({
           setStatus("error");
           return;
         }
+
+        // ==================================
+        // 8. JWT RESPONSE
+        // ==================================
 
         const result =
           (await response.json()) as AuthResponse;
@@ -517,7 +694,9 @@ export function AuthProvider({
         );
 
         setUser(result.user);
-        setToken(result.accessToken);
+        setToken(
+          result.accessToken,
+        );
 
         update(
           "authorization",
@@ -527,7 +706,9 @@ export function AuthProvider({
 
         setStatus("authenticated");
       } catch (error) {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         console.error(
           "CleanGo auth diagnostic error:",
@@ -587,8 +768,14 @@ export function AuthProvider({
   );
 }
 
+// ==========================================
+// USE AUTH
+// ==========================================
+
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context = useContext(
+    AuthContext,
+  );
 
   if (!context) {
     throw new Error(
