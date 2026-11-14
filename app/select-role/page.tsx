@@ -15,11 +15,6 @@ import CleanGoLogo from "@/components/branding/CleanGoLogo";
 
 type Role = "client" | "cleaner";
 
-type RoleSelectionProps = {
-  onContinue: (role: Role) => Promise<void> | void;
-  loading?: boolean;
-};
-
 const roles = [
   {
     id: "client" as const,
@@ -39,20 +34,18 @@ const roles = [
   },
 ];
 
-export default function RoleSelection({
-  onContinue,
-  loading = false,
-}: RoleSelectionProps) {
+export default function RoleSelection() {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
 
   const [selectedRole, setSelectedRole] =
     useState<Role | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     if (!selectedRole || loading) return;
-
-    await onContinue(selectedRole);
+    setLoading(true);
+    router.push(selectedRole === "client" ? "/" : "/cleaner");
   };
 
   return (
