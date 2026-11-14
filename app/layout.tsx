@@ -1,13 +1,13 @@
 
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Manrope, Geist_Mono } from "next/font/google";
 
 import TelegramProvider from "@/components/providers/TelegramProvider";
 
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const geistSans = Manrope({
+  variable: "--font-cleango-sans",
   subsets: ["latin", "cyrillic"],
 });
 
