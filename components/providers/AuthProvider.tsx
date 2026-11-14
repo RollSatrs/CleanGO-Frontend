@@ -315,11 +315,16 @@ export function AuthProvider({
 
         const initData = getTelegramInitData();
 
+        console.info("[CleanGo Auth] Telegram environment:", {
+          insideTelegram,
+          hasInitData: initData.length > 0,
+          apiUrl: API_URL,
+        });
+
         if (!initData) {
-          throw new Error(
-            "Telegram initData отсутствует",
-          );
+          throw new Error("Telegram initData отсутствует");
         }
+
 
         // 4. Отправляем initData на backend.
         // Backend проверяет подпись Telegram.
