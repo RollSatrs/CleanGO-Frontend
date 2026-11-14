@@ -16,22 +16,13 @@ import {
 } from "@telegram-apps/sdk-react";
 
 import {
-  AlertCircle,
   CheckCircle2,
-  ExternalLink,
   LoaderCircle,
   RefreshCw,
-  Send,
-  ShieldCheck,
-  Sparkles,
   XCircle,
 } from "lucide-react";
 
-// ==========================================
-// TYPES
-// ==========================================
-
-export type AuthUser = {
+type AuthUser = {
   id: string;
   telegramId: string | null;
   phone: string | null;
@@ -80,10 +71,6 @@ type AuthContextValue = {
   retry: () => void;
 };
 
-// ==========================================
-// CONFIG
-// ==========================================
-
 const AuthContext =
   createContext<AuthContextValue | null>(null);
 
@@ -93,9 +80,6 @@ const API_URL = (
   process.env.NEXT_PUBLIC_API_URL ??
   "http://localhost:3001"
 ).replace(/\/$/, "");
-
-const BOT_URL =
-  "https://t.me/cleaninggoo_bot";
 
 const INITIAL_DIAGNOSTICS: Diagnostics = {
   telegram: {
@@ -116,12 +100,7 @@ const INITIAL_DIAGNOSTICS: Diagnostics = {
   },
 };
 
-// ==========================================
-// TELEGRAM INIT DATA
-// ==========================================
-
 function getTelegramInitData(): string {
-  // Сначала пробуем Telegram WebApp API.
   if (typeof window !== "undefined") {
     const telegramWindow = window as Window & {
       Telegram?: {
@@ -142,7 +121,6 @@ function getTelegramInitData(): string {
     }
   }
 
-  // Затем пробуем Telegram SDK.
   try {
     const params = retrieveLaunchParams();
 
@@ -153,15 +131,11 @@ function getTelegramInitData(): string {
       return params.initDataRaw;
     }
   } catch {
-    // SDK не смог получить launch parameters.
+    // Telegram launch parameters недоступны.
   }
 
   return "";
 }
-
-// ==========================================
-// STATUS ICON
-// ==========================================
 
 function StatusIcon({
   status,
@@ -191,10 +165,6 @@ function StatusIcon({
   );
 }
 
-// ==========================================
-// DIAGNOSTIC ROW
-// ==========================================
-
 function DiagnosticRow({
   title,
   item,
@@ -203,27 +173,21 @@ function DiagnosticRow({
   item: DiagnosticItem;
 }) {
   return (
-    <div className="flex items-start gap-3 border-b border-[#EAF1F4] py-3 last:border-b-0">
-      <div className="mt-0.5 shrink-0">
-        <StatusIcon status={item.status} />
-      </div>
+    <div className="flex items-start gap-3 border-b border-slate-100 py-3 last:border-b-0">
+      <StatusIcon status={item.status} />
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-[#183046]">
+        <p className="text-sm font-semibold text-slate-800">
           {title}
         </p>
 
-        <p className="mt-1 break-words text-xs leading-5 text-[#7891A3]">
+        <p className="mt-1 break-words text-xs text-slate-500">
           {item.detail}
         </p>
       </div>
     </div>
   );
 }
-
-// ==========================================
-// DIAGNOSTIC SCREEN
-// ==========================================
 
 function DiagnosticScreen({
   diagnostics,
@@ -234,39 +198,32 @@ function DiagnosticScreen({
   retry: () => void;
   loading: boolean;
 }) {
-  const report = [
-    `Telegram: ${diagnostics.telegram.status} — ${diagnostics.telegram.detail}`,
-    `initData: ${diagnostics.initData.status} — ${diagnostics.initData.detail}`,
-    `Backend: ${diagnostics.backend.status} — ${diagnostics.backend.detail}`,
-    `Authorization: ${diagnostics.authorization.status} — ${diagnostics.authorization.detail}`,
-  ].join("\n");
+  const [clickCount, setClickCount] = useState(0);
 
-  const copyReport = async () => {
-    try {
-      await navigator.clipboard.writeText(report);
-    } catch {
-      // В некоторых Telegram WebView
-      // Clipboard API может быть недоступен.
-    }
-  };
+  function handleRetry() {
+    setClickCount((value) => value + 1);
+
+    window.alert("Кнопка нажимается!");
+
+    retry();
+  }
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[#EFF8FC] px-4 py-8">
-      <section className="w-full max-w-[420px] rounded-4xl bg-white p-6 shadow-[0_16px_50px_rgba(30,94,128,0.08)]">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E2F7FA]">
-          <ShieldCheck className="h-8 w-8 text-[#0AAFC0]" />
+      <section className="w-full max-w-[420px] rounded-3xl bg-white p-6 shadow-xl">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-100">
+          <RefreshCw className="h-8 w-8 text-sky-500" />
         </div>
 
-        <h1 className="mt-5 text-center text-2xl font-extrabold tracking-tight text-[#173047]">
+        <h1 className="mt-5 text-center text-2xl font-bold text-slate-800">
           Диагностика CleanGo
         </h1>
 
-        <p className="mt-2 text-center text-sm leading-6 text-[#8195A5]">
-          Проверяем подключение и
-          авторизацию через Telegram.
+        <p className="mt-2 text-center text-sm text-slate-500">
+          Проверяем Telegram и авторизацию.
         </p>
 
-        <div className="mt-6 rounded-2xl bg-[#F7FAFC] px-4 py-2">
+        <div className="mt-6 rounded-2xl bg-slate-50 px-4 py-2">
           <DiagnosticRow
             title="Telegram Mini App"
             item={diagnostics.telegram}
@@ -288,81 +245,33 @@ function DiagnosticScreen({
           />
         </div>
 
-        <button
-          type="button"
-          onClick={retry}
-          disabled={loading}
-          className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-[#0BADE0] font-semibold text-white disabled:opacity-60"
-        >
-          {loading ? (
-            <LoaderCircle className="h-5 w-5 animate-spin" />
-          ) : (
-            <RefreshCw className="h-5 w-5" />
-          )}
+        <div className="mt-5 rounded-xl bg-sky-50 p-4 text-center">
+          <p className="text-sm font-semibold text-sky-700">
+            Проверка нажатий
+          </p>
 
-          {loading
-            ? "Проверяем..."
-            : "Повторить проверку"}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => void copyReport()}
-          className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl border border-[#DFEBF0] text-sm font-semibold text-[#557487]"
-        >
-          Скопировать результат
-        </button>
-
-        <p className="mt-5 text-center text-xs leading-5 text-[#97A9B6]">
-          Диагностика не показывает
-          токены и персональные данные.
-        </p>
-      </section>
-    </main>
-  );
-}
-
-// ==========================================
-// OUTSIDE TELEGRAM
-// ==========================================
-
-function OutsideTelegramScreen() {
-  return (
-    <main className="flex min-h-dvh items-center justify-center bg-[#EAF4FA] px-5">
-      <section className="w-full max-w-[420px] rounded-4xl bg-white px-7 py-12 text-center shadow-[0_20px_60px_rgba(30,94,128,0.08)]">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[26px] bg-[#E4F8FC]">
-          <Send className="h-9 w-9 text-[#0BAFDC]" />
+          <p className="mt-1 text-sm text-sky-600">
+            Количество нажатий: {clickCount}
+          </p>
         </div>
 
-        <h1 className="mt-7 text-[26px] font-extrabold leading-tight tracking-[-0.04em] text-[#15273A]">
-          Откройте CleanGo
-          <br />
-          в Telegram
-        </h1>
-
-        <p className="mt-4 text-sm leading-6 text-[#7892A5]">
-          CleanGo работает внутри Telegram.
-          Откройте нашего бота, чтобы
-          заказать уборку.
-        </p>
-
-        <a
-          href={BOT_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-8 flex h-14 w-full items-center justify-center gap-3 rounded-full bg-linear-to-r from-[#08B8E7] to-[#079CE0] font-bold text-white"
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="mt-5 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-sky-500 font-semibold text-white active:bg-sky-600"
         >
-          Открыть Telegram
-          <ExternalLink className="h-4 w-4" />
-        </a>
+          <RefreshCw className="h-5 w-5" />
+          Повторить проверку
+        </button>
+
+        <p className="mt-4 text-center text-xs text-slate-400">
+          Нажми кнопку и проверь,
+          появляется ли сообщение.
+        </p>
       </section>
     </main>
   );
 }
-
-// ==========================================
-// AUTH PROVIDER
-// ==========================================
 
 export function AuthProvider({
   children,
@@ -390,23 +299,6 @@ export function AuthProvider({
     setAttempt((value) => value + 1);
   }, []);
 
-  const updateDiagnostic = useCallback(
-    (
-      key: DiagnosticKey,
-      diagnosticStatus: CheckStatus,
-      detail: string,
-    ) => {
-      setDiagnostics((previous) => ({
-        ...previous,
-        [key]: {
-          status: diagnosticStatus,
-          detail,
-        },
-      }));
-    },
-    [],
-  );
-
   useEffect(() => {
     let cancelled = false;
 
@@ -415,21 +307,24 @@ export function AuthProvider({
       checkStatus: CheckStatus,
       detail: string,
     ) => {
-      if (!cancelled) {
-        updateDiagnostic(
-          key,
-          checkStatus,
+      if (cancelled) return;
+
+      setDiagnostics((previous) => ({
+        ...previous,
+        [key]: {
+          status: checkStatus,
           detail,
-        );
-      }
+        },
+      }));
     };
 
     async function authenticate() {
       setStatus("loading");
+
       setDiagnostics({
         telegram: {
           status: "checking",
-          detail: "Определяем окружение...",
+          detail: "Проверяем Telegram...",
         },
         initData: INITIAL_DIAGNOSTICS.initData,
         backend: INITIAL_DIAGNOSTICS.backend,
@@ -438,10 +333,6 @@ export function AuthProvider({
       });
 
       try {
-        // ==================================
-        // 1. TELEGRAM ENVIRONMENT
-        // ==================================
-
         const insideTelegram = await isTMA();
 
         if (cancelled) return;
@@ -450,7 +341,7 @@ export function AuthProvider({
           update(
             "telegram",
             "failed",
-            "Приложение открыто вне Telegram",
+            "Открыто вне Telegram",
           );
 
           setStatus("outside-telegram");
@@ -462,10 +353,6 @@ export function AuthProvider({
           "success",
           "Telegram Mini App обнаружен",
         );
-
-        // ==================================
-        // 2. INIT DATA
-        // ==================================
 
         update(
           "initData",
@@ -489,17 +376,13 @@ export function AuthProvider({
         update(
           "initData",
           "success",
-          "Данные Telegram получены",
+          "Данные получены",
         );
-
-        // ==================================
-        // 3. BACKEND CONNECTION
-        // ==================================
 
         update(
           "backend",
           "checking",
-          "Отправляем запрос на сервер...",
+          "Подключаемся к серверу...",
         );
 
         const existingToken =
@@ -533,7 +416,7 @@ export function AuthProvider({
               update(
                 "authorization",
                 "success",
-                "Существующая сессия подтверждена",
+                "Сессия подтверждена",
               );
 
               setUser(currentUser);
@@ -542,7 +425,7 @@ export function AuthProvider({
               return;
             }
           } catch {
-            // Попробуем Telegram login.
+            // Переходим к Telegram авторизации.
           }
 
           sessionStorage.removeItem(TOKEN_KEY);
@@ -567,24 +450,14 @@ export function AuthProvider({
         update(
           "backend",
           "success",
-          `Сервер ответил: HTTP ${response.status}`,
-        );
-
-        // ==================================
-        // 4. AUTHORIZATION
-        // ==================================
-
-        update(
-          "authorization",
-          "checking",
-          "Проверяем авторизацию...",
+          `HTTP ${response.status}`,
         );
 
         if (!response.ok) {
           update(
             "authorization",
             "failed",
-            `Ошибка авторизации: HTTP ${response.status}`,
+            `Ошибка HTTP ${response.status}`,
           );
 
           setStatus("error");
@@ -601,7 +474,7 @@ export function AuthProvider({
           update(
             "authorization",
             "failed",
-            "Backend вернул неполные данные",
+            "Некорректный ответ backend",
           );
 
           setStatus("error");
@@ -619,7 +492,7 @@ export function AuthProvider({
         update(
           "authorization",
           "success",
-          "JWT успешно получен",
+          "JWT получен",
         );
 
         setStatus("authenticated");
@@ -627,14 +500,14 @@ export function AuthProvider({
         if (cancelled) return;
 
         console.error(
-          "CleanGo auth diagnostic:",
+          "CleanGo authentication error:",
           error,
         );
 
         update(
           "backend",
           "failed",
-          "Ошибка соединения или выполнения запроса",
+          "Ошибка подключения",
         );
 
         setStatus("error");
@@ -646,7 +519,30 @@ export function AuthProvider({
     return () => {
       cancelled = true;
     };
-  }, [attempt, updateDiagnostic]);
+  }, [attempt]);
+
+  if (status === "outside-telegram") {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-5">
+        <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-lg">
+          <h1 className="text-2xl font-bold">
+            Откройте CleanGo в Telegram
+          </h1>
+
+          <p className="mt-3 text-sm text-slate-500">
+            Приложение доступно через Telegram-бота.
+          </p>
+
+          <a
+            href="https://t.me/cleaninggoo_bot"
+            className="mt-6 inline-flex rounded-xl bg-sky-500 px-6 py-3 font-semibold text-white"
+          >
+            Открыть Telegram
+          </a>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <AuthContext.Provider
@@ -665,10 +561,6 @@ export function AuthProvider({
         />
       )}
 
-      {status === "outside-telegram" && (
-        <OutsideTelegramScreen />
-      )}
-
       {status === "error" && (
         <DiagnosticScreen
           diagnostics={diagnostics}
@@ -682,10 +574,6 @@ export function AuthProvider({
     </AuthContext.Provider>
   );
 }
-
-// ==========================================
-// AUTH HOOK
-// ==========================================
 
 export function useAuth() {
   const context = useContext(AuthContext);
