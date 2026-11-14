@@ -20,3 +20,11 @@ html.telegram-mini-app .cleango-screen {
     env(safe-area-inset-bottom, 0px)
   );
 }
+
+/* Shared CleanGo typography and gentle interaction */
+:root { --font-sans: var(--font-cleango-sans), Arial, sans-serif; }
+html, body { font-family: var(--font-cleango-sans), Arial, sans-serif; }
+button, a { -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}
