@@ -15,13 +15,6 @@ import {
   retrieveLaunchParams,
 } from "@telegram-apps/sdk-react";
 
-import {
-  CheckCircle2,
-  LoaderCircle,
-  RefreshCw,
-  XCircle,
-} from "lucide-react";
-
 type AuthUser = {
   id: string;
   telegramId: string | null;
@@ -31,44 +24,49 @@ type AuthUser = {
   role: string;
 };
 
-type AuthResponse = {
-  accessToken: string;
-  user: AuthUser;
-};
-
 type AuthStatus =
   | "loading"
   | "authenticated"
   | "outside-telegram"
   | "error";
 
-type CheckStatus =
-  | "waiting"
-  | "checking"
-  | "success"
-  | "failed";
-
-type DiagnosticKey =
-  | "telegram"
-  | "initData"
-  | "backend"
-  | "authorization";
-
-type DiagnosticItem = {
-  status: CheckStatus;
-  detail: string;
-};
-
-type Diagnostics = Record<
-  DiagnosticKey,
-  DiagnosticItem
->;
-
 type AuthContextValue = {
   user: AuthUser | null;
   token: string | null;
   status: AuthStatus;
   retry: () => void;
+};
+
+type CheckStatus =
+  | "waiting"
+  | "success"
+  | "failed";
+
+type Check = {
+  status: CheckStatus;
+  detail: string;
+};
+
+type Diagnostics = {
+  environment: Check;
+  webApp: Check;
+  urlData: Check;
+  sdkData: Check;
+  backend: Check;
+  authorization: Check;
+};
+
+type AuthResponse = {
+  accessToken: string;
+  user: AuthUser;
+};
+
+type TelegramWindow = Window & {
+  Telegram?: {
+    WebApp?: {
+      initData?: string;
+    };
+  };
 };
 
 const AuthContext =
@@ -81,138 +79,139 @@ const API_URL = (
   "http://localhost:3001"
 ).replace(/\/$/, "");
 
-const INITIAL_DIAGNOSTICS: Diagnostics = {
-  telegram: {
+function initialDiagnostics(): Diagnostics {
+  const waiting = (): Check => ({
     status: "waiting",
     detail: "Ожидание проверки",
-  },
-  initData: {
-    status: "waiting",
-    detail: "Ожидание проверки",
-  },
-  backend: {
-    status: "waiting",
-    detail: "Ожидание проверки",
-  },
-  authorization: {
-    status: "waiting",
-    detail: "Ожидание проверки",
-  },
-};
+  });
 
-function getTelegramInitData(): string {
-  if (typeof window !== "undefined") {
-    const telegramWindow = window as Window & {
-      Telegram?: {
-        WebApp?: {
-          initData?: string;
-        };
-      };
-    };
+  return {
+    environment: waiting(),
+    webApp: waiting(),
+    urlData: waiting(),
+    sdkData: waiting(),
+    backend: waiting(),
+    authorization: waiting(),
+  };
+}
 
-    const raw =
-      telegramWindow.Telegram?.WebApp?.initData;
+// Проверяем WebApp API без вывода initData.
+function readWebAppData(): string {
+  if (typeof window === "undefined") return "";
 
-    if (
-      typeof raw === "string" &&
-      raw.length > 0
-    ) {
-      return raw;
-    }
-  }
+  const telegramWindow = window as TelegramWindow;
 
+  return telegramWindow.Telegram?.WebApp?.initData ?? "";
+}
+
+// Проверяем launch parameters.
+// Telegram может передавать их в hash или query.
+function readUrlData(): string {
+  if (typeof window === "undefined") return "";
+
+  const query = new URLSearchParams(
+    window.location.search,
+  );
+
+  const queryData = query.get("tgWebAppData");
+
+  if (queryData) return queryData;
+
+  const hash = window.location.hash.replace(/^#/, "");
+
+  const hashParams = new URLSearchParams(hash);
+
+  return hashParams.get("tgWebAppData") ?? "";
+}
+
+// Проверяем Telegram SDK.
+function readSdkData(): string {
   try {
     const params = retrieveLaunchParams();
 
-    if (
-      typeof params.initDataRaw === "string" &&
-      params.initDataRaw.length > 0
-    ) {
-      return params.initDataRaw;
-    }
+    return typeof params.initDataRaw === "string"
+      ? params.initDataRaw
+      : "";
   } catch {
-    // Telegram launch parameters недоступны.
+    return "";
   }
-
-  return "";
 }
 
-function StatusIcon({
+function StatusIndicator({
   status,
 }: {
   status: CheckStatus;
 }) {
-  if (status === "success") {
-    return (
-      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-    );
-  }
-
-  if (status === "failed") {
-    return (
-      <XCircle className="h-5 w-5 text-red-500" />
-    );
-  }
-
-  if (status === "checking") {
-    return (
-      <LoaderCircle className="h-5 w-5 animate-spin text-sky-500" />
-    );
-  }
+  const styles: Record<CheckStatus, string> = {
+    waiting: "bg-slate-300",
+    success: "bg-emerald-500",
+    failed: "bg-red-500",
+  };
 
   return (
-    <div className="h-5 w-5 rounded-full border-2 border-slate-200" />
-  );
-}
-
-function DiagnosticRow({
-  title,
-  item,
-}: {
-  title: string;
-  item: DiagnosticItem;
-}) {
-  return (
-    <div className="flex items-start gap-3 border-b border-slate-100 py-3 last:border-b-0">
-      <StatusIcon status={item.status} />
-
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-slate-800">
-          {title}
-        </p>
-
-        <p className="mt-1 break-words text-xs text-slate-500">
-          {item.detail}
-        </p>
-      </div>
-    </div>
+    <span
+      className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${styles[status]}`}
+    />
   );
 }
 
 function DiagnosticScreen({
   diagnostics,
   retry,
-  loading,
 }: {
   diagnostics: Diagnostics;
   retry: () => void;
-  loading: boolean;
 }) {
   const [clickCount, setClickCount] = useState(0);
 
-  function handleRetry() {
+  const items: {
+    title: string;
+    key: keyof Diagnostics;
+  }[] = [
+    {
+      title: "Telegram Mini App",
+      key: "environment",
+    },
+    {
+      title: "window.Telegram.WebApp",
+      key: "webApp",
+    },
+    {
+      title: "tgWebAppData (URL)",
+      key: "urlData",
+    },
+    {
+      title: "SDK initDataRaw",
+      key: "sdkData",
+    },
+    {
+      title: "Backend",
+      key: "backend",
+    },
+    {
+      title: "JWT",
+      key: "authorization",
+    },
+  ];
+
+  const report = items
+    .map(({ title, key }) => {
+      const item = diagnostics[key];
+
+      return `${title}: ${item.status} — ${item.detail}`;
+    })
+    .join("\n");
+
+  const handleRetry = () => {
     setClickCount((value) => value + 1);
-
-    window.alert("Кнопка нажимается!");
-
     retry();
-  }
+  };
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[#EFF8FC] px-4 py-8">
-      <section className="w-full max-w-[420px] rounded-3xl bg-white p-6 shadow-xl">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-100">
-          <RefreshCw className="h-8 w-8 text-sky-500" />
+      <section className="w-full max-w-[430px] rounded-3xl bg-white p-6 shadow-xl">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-100 text-2xl">
+          🔍
         </div>
 
         <h1 className="mt-5 text-center text-2xl font-bold text-slate-800">
@@ -220,53 +219,71 @@ function DiagnosticScreen({
         </h1>
 
         <p className="mt-2 text-center text-sm text-slate-500">
-          Проверяем Telegram и авторизацию.
+          Проверяем получение данных Telegram.
         </p>
 
         <div className="mt-6 rounded-2xl bg-slate-50 px-4 py-2">
-          <DiagnosticRow
-            title="Telegram Mini App"
-            item={diagnostics.telegram}
-          />
+          {items.map(({ title, key }) => {
+            const item = diagnostics[key];
 
-          <DiagnosticRow
-            title="Telegram initData"
-            item={diagnostics.initData}
-          />
+            return (
+              <div
+                key={key}
+                className="flex gap-3 border-b border-slate-200 py-3 last:border-0"
+              >
+                <StatusIndicator status={item.status} />
 
-          <DiagnosticRow
-            title="Подключение к backend"
-            item={diagnostics.backend}
-          />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-800">
+                    {title}
+                  </p>
 
-          <DiagnosticRow
-            title="Авторизация JWT"
-            item={diagnostics.authorization}
-          />
+                  <p className="mt-1 break-words text-xs leading-5 text-slate-500">
+                    {item.detail}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        <div className="mt-5 rounded-xl bg-sky-50 p-4 text-center">
-          <p className="text-sm font-semibold text-sky-700">
-            Проверка нажатий
-          </p>
-
-          <p className="mt-1 text-sm text-sky-600">
-            Количество нажатий: {clickCount}
+        <div className="mt-4 rounded-xl bg-sky-50 p-3 text-center">
+          <p className="text-sm font-medium text-sky-700">
+            Нажатий: {clickCount}
           </p>
         </div>
 
         <button
           type="button"
           onClick={handleRetry}
-          className="mt-5 flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-sky-500 font-semibold text-white active:bg-sky-600"
+          className="mt-4 h-13 w-full cursor-pointer rounded-2xl bg-sky-500 font-semibold text-white active:bg-sky-600"
         >
-          <RefreshCw className="h-5 w-5" />
-          Повторить проверку
+          Повторить диагностику
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            void (async () => {
+              try {
+                await navigator.clipboard.writeText(report);
+                window.alert("Отчёт скопирован");
+              } catch {
+                window.prompt(
+                  "Скопируй этот отчёт:",
+                  report,
+                );
+              }
+            })();
+          }}
+          className="mt-3 h-12 w-full cursor-pointer rounded-2xl border border-slate-200 font-medium text-slate-700"
+        >
+          Скопировать результат
         </button>
 
         <p className="mt-4 text-center text-xs text-slate-400">
-          Нажми кнопку и проверь,
-          появляется ли сообщение.
+          Токены и данные пользователя
+          в отчёт не включаются.
         </p>
       </section>
     </main>
@@ -290,12 +307,9 @@ export function AuthProvider({
   const [attempt, setAttempt] = useState(0);
 
   const [diagnostics, setDiagnostics] =
-    useState<Diagnostics>(
-      INITIAL_DIAGNOSTICS,
-    );
+    useState<Diagnostics>(initialDiagnostics);
 
   const retry = useCallback(() => {
-    setStatus("loading");
     setAttempt((value) => value + 1);
   }, []);
 
@@ -303,7 +317,7 @@ export function AuthProvider({
     let cancelled = false;
 
     const update = (
-      key: DiagnosticKey,
+      key: keyof Diagnostics,
       checkStatus: CheckStatus,
       detail: string,
     ) => {
@@ -320,77 +334,84 @@ export function AuthProvider({
 
     async function authenticate() {
       setStatus("loading");
-
-      setDiagnostics({
-        telegram: {
-          status: "checking",
-          detail: "Проверяем Telegram...",
-        },
-        initData: INITIAL_DIAGNOSTICS.initData,
-        backend: INITIAL_DIAGNOSTICS.backend,
-        authorization:
-          INITIAL_DIAGNOSTICS.authorization,
-      });
+      setDiagnostics(initialDiagnostics());
 
       try {
+        // 1. Проверка Telegram
         const insideTelegram = await isTMA();
 
         if (cancelled) return;
 
-        if (!insideTelegram) {
-          update(
-            "telegram",
-            "failed",
-            "Открыто вне Telegram",
-          );
+        update(
+          "environment",
+          insideTelegram ? "success" : "failed",
+          insideTelegram
+            ? "Telegram обнаружен"
+            : "Приложение открыто вне Telegram",
+        );
 
+        if (!insideTelegram) {
           setStatus("outside-telegram");
           return;
         }
 
-        update(
-          "telegram",
-          "success",
-          "Telegram Mini App обнаружен",
-        );
+        // 2. Проверка Telegram WebApp
+        const telegramWindow =
+          window as TelegramWindow;
+
+        const webAppExists =
+          Boolean(telegramWindow.Telegram?.WebApp);
+
+        const webAppData = readWebAppData();
 
         update(
-          "initData",
-          "checking",
-          "Получаем данные Telegram...",
+          "webApp",
+          webAppData ? "success" : "failed",
+          !webAppExists
+            ? "Объект WebApp отсутствует"
+            : webAppData
+              ? "WebApp доступен, initData получены"
+              : "WebApp доступен, но initData пустые",
         );
 
-        const initData = getTelegramInitData();
+        // 3. Проверка URL
+        const urlData = readUrlData();
+
+        update(
+          "urlData",
+          urlData ? "success" : "failed",
+          urlData
+            ? "tgWebAppData обнаружен"
+            : "tgWebAppData не найден",
+        );
+
+        // 4. Проверка SDK
+        const sdkData = readSdkData();
+
+        update(
+          "sdkData",
+          sdkData ? "success" : "failed",
+          sdkData
+            ? "SDK получил initDataRaw"
+            : "SDK не получил initDataRaw",
+        );
+
+        // Используем первый доступный источник.
+        const initData =
+          webAppData || sdkData || urlData;
 
         if (!initData) {
-          update(
-            "initData",
-            "failed",
-            "initData отсутствует",
-          );
-
           setStatus("error");
           return;
         }
 
-        update(
-          "initData",
-          "success",
-          "Данные получены",
-        );
-
-        update(
-          "backend",
-          "checking",
-          "Подключаемся к серверу...",
-        );
-
+        // 5. Проверка существующей сессии
         const existingToken =
           sessionStorage.getItem(TOKEN_KEY);
 
         if (existingToken) {
           try {
-            const meResponse = await fetch(
+            const response = await fetch(
               `${API_URL}/auth/me`,
               {
                 headers: {
@@ -401,16 +422,16 @@ export function AuthProvider({
               },
             );
 
-            if (meResponse.ok) {
+            if (response.ok) {
               const currentUser =
-                (await meResponse.json()) as AuthUser;
+                (await response.json()) as AuthUser;
 
               if (cancelled) return;
 
               update(
                 "backend",
                 "success",
-                "Сервер отвечает",
+                `HTTP ${response.status}`,
               );
 
               update(
@@ -425,12 +446,13 @@ export function AuthProvider({
               return;
             }
           } catch {
-            // Переходим к Telegram авторизации.
+            // Попробуем авторизацию через Telegram.
           }
 
           sessionStorage.removeItem(TOKEN_KEY);
         }
 
+        // 6. Авторизация Telegram
         const response = await fetch(
           `${API_URL}/auth/telegram`,
           {
@@ -438,9 +460,7 @@ export function AuthProvider({
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              initData,
-            }),
+            body: JSON.stringify({ initData }),
             cache: "no-store",
           },
         );
@@ -457,7 +477,7 @@ export function AuthProvider({
           update(
             "authorization",
             "failed",
-            `Ошибка HTTP ${response.status}`,
+            `Авторизация отклонена: HTTP ${response.status}`,
           );
 
           setStatus("error");
@@ -474,7 +494,7 @@ export function AuthProvider({
           update(
             "authorization",
             "failed",
-            "Некорректный ответ backend",
+            "Некорректный ответ сервера",
           );
 
           setStatus("error");
@@ -500,14 +520,14 @@ export function AuthProvider({
         if (cancelled) return;
 
         console.error(
-          "CleanGo authentication error:",
+          "CleanGo auth diagnostic error:",
           error,
         );
 
         update(
           "backend",
           "failed",
-          "Ошибка подключения",
+          "Ошибка выполнения запроса",
         );
 
         setStatus("error");
@@ -521,29 +541,6 @@ export function AuthProvider({
     };
   }, [attempt]);
 
-  if (status === "outside-telegram") {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-5">
-        <div className="w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-lg">
-          <h1 className="text-2xl font-bold">
-            Откройте CleanGo в Telegram
-          </h1>
-
-          <p className="mt-3 text-sm text-slate-500">
-            Приложение доступно через Telegram-бота.
-          </p>
-
-          <a
-            href="https://t.me/cleaninggoo_bot"
-            className="mt-6 inline-flex rounded-xl bg-sky-500 px-6 py-3 font-semibold text-white"
-          >
-            Открыть Telegram
-          </a>
-        </div>
-      </main>
-    );
-  }
-
   return (
     <AuthContext.Provider
       value={{
@@ -553,24 +550,29 @@ export function AuthProvider({
         retry,
       }}
     >
-      {status === "loading" && (
+      {status === "authenticated" ? (
+        children
+      ) : status === "outside-telegram" ? (
+        <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-5">
+          <div className="rounded-3xl bg-white p-8 text-center shadow-lg">
+            <h1 className="text-xl font-bold">
+              Откройте CleanGo в Telegram
+            </h1>
+
+            <a
+              href="https://t.me/cleaninggoo_bot"
+              className="mt-5 inline-block rounded-xl bg-sky-500 px-6 py-3 font-semibold text-white"
+            >
+              Перейти к боту
+            </a>
+          </div>
+        </main>
+      ) : (
         <DiagnosticScreen
           diagnostics={diagnostics}
           retry={retry}
-          loading
         />
       )}
-
-      {status === "error" && (
-        <DiagnosticScreen
-          diagnostics={diagnostics}
-          retry={retry}
-          loading={false}
-        />
-      )}
-
-      {status === "authenticated" &&
-        children}
     </AuthContext.Provider>
   );
 }
