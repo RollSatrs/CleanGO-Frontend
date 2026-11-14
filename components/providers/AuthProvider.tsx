@@ -22,6 +22,7 @@ type AuthUser = {
   firstName: string | null;
   lastName: string | null;
   role: string;
+  cleanerStatus?: string;
 };
 
 type AuthStatus =
@@ -35,6 +36,7 @@ type AuthContextValue = {
   token: string | null;
   status: AuthStatus;
   retry: () => void;
+  selectRole: (role: "client" | "cleaner") => Promise<AuthUser>;
 };
 
 type CheckStatus =
@@ -732,6 +734,20 @@ export function AuthProvider({
     };
   }, [attempt]);
 
+  const selectRole = useCallback(async (role: "client" | "cleaner"): Promise<AuthUser> => {
+    if (!token) throw new Error("Требуется авторизация");
+    const response = await fetch(`${API_URL}/auth/role`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ role }),
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error("Не удалось сохранить роль");
+    const updated = (await response.json()) as AuthUser;
+    setUser(updated);
+    return updated;
+  }, [token]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -739,6 +755,7 @@ export function AuthProvider({
         token,
         status,
         retry,
+        selectRole,
       }}
     >
       {status === "authenticated" ? (
