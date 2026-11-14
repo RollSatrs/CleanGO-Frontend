@@ -474,10 +474,20 @@ export function AuthProvider({
         );
 
         if (!response.ok) {
+          const errorBody = await response
+            .json()
+            .catch(() => null);
+
+          const serverMessage =
+            errorBody &&
+            typeof errorBody.message === "string"
+              ? errorBody.message
+              : "Неизвестная ошибка";
+
           update(
             "authorization",
             "failed",
-            `Авторизация отклонена: HTTP ${response.status}`,
+            `HTTP ${response.status}: ${serverMessage}`,
           );
 
           setStatus("error");
