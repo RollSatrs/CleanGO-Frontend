@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import BottomNav from "@/components/navigation/BottomNav";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import {
@@ -104,8 +105,8 @@ export default function HomePage() {
   });
 
   return (
-    <main className="min-h-[100dvh] bg-[#F3FAFC] font-sans text-[#102033]">
-      <div className="mx-auto min-h-[100dvh] w-full max-w-[520px] bg-white shadow-[0_0_45px_rgba(20,70,100,0.05)]">
+    <main className="min-h-[100dvh] bg-[#F8FCFB] font-sans text-[#102033]">
+      <div className="mx-auto min-h-[100dvh] w-full max-w-[520px] bg-white pb-24 shadow-[0_0_45px_rgba(20,70,100,0.05)]">
 
         {/* Шапка */}
         <header className="flex items-center justify-between px-5 pb-4 pt-[max(24px,env(safe-area-inset-top))]">
@@ -134,7 +135,7 @@ export default function HomePage() {
           {...appear(0.05)}
           className="px-5 pt-5"
         >
-          <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-[#08A8E5] via-[#37C2EC] to-[#8AE4EE] p-6 text-white">
+          <div className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-[#26B8A9] via-[#5ACFC0] to-[#A2E9DF] p-6 text-white">
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/15 blur-2xl"
@@ -171,7 +172,7 @@ export default function HomePage() {
                       behavior: reduceMotion ? "auto" : "smooth",
                     })
                 }
-                className="mt-7 inline-flex h-12 items-center gap-3 rounded-2xl bg-white px-5 text-sm font-bold text-[#087DAA] shadow-[0_8px_25px_rgba(0,80,120,0.12)] transition-transform active:scale-[0.98]"
+                className="mt-7 inline-flex h-12 items-center gap-3 rounded-2xl bg-white px-5 text-sm font-bold text-[#168C80] shadow-[0_8px_25px_rgba(0,80,120,0.12)] transition-transform active:scale-[0.98]"
               >
                 Выбрать уборку
                 <ArrowRight className="h-4 w-4" />
@@ -381,6 +382,7 @@ export default function HomePage() {
           </button>
         </div>
       </div>
+    <BottomNav role="client" />
     </main>
   );
 }
