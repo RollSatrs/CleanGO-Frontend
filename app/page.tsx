@@ -110,7 +110,7 @@ export default function HomePage() {
       <div className="mx-auto min-h-[100dvh] w-full max-w-[520px] bg-white pb-24 shadow-[0_0_45px_rgba(20,70,100,0.05)]">
 
         {/* Шапка */}
-        <header className="flex items-center justify-between px-5 pb-4 pt-[max(24px,env(safe-area-inset-top))]">
+        <header className="cleango-client-header flex items-center justify-between px-5 pb-4 pt-6">
           <div className="flex items-center gap-3">
             <CleanGoLogo size={44} showName showTagline priority />
           </div>
