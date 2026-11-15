@@ -152,15 +152,15 @@ function readUrlData(): string {
 // TELEGRAM SDK DATA
 // ==========================================
 
-function readSdkData(): string {
+function readSdkData(): { raw: string; launchParamsAvailable: boolean } {
   try {
     const params = retrieveLaunchParams();
-
-    return typeof params.initDataRaw === "string"
-      ? params.initDataRaw
-      : "";
+    return {
+      raw: typeof params.initDataRaw === "string" ? params.initDataRaw : "",
+      launchParamsAvailable: true,
+    };
   } catch {
-    return "";
+    return { raw: "", launchParamsAvailable: false };
   }
 }
 
@@ -530,16 +530,17 @@ export function AuthProvider({
         // 4. SDK DATA
         // ==================================
 
-        const sdkData = readSdkData();
+        const sdk = readSdkData();
+        const sdkData = sdk.raw;
 
         update(
           "sdkData",
-          sdkData
-            ? "success"
-            : "failed",
-          sdkData
-            ? "SDK получил initDataRaw"
-            : "SDK не получил initDataRaw",
+          sdk.launchParamsAvailable ? "success" : "failed",
+          sdk.launchParamsAvailable
+            ? sdkData
+              ? "SDK получил параметры запуска и initDataRaw"
+              : "SDK получил параметры запуска; исходные initData доступны через Telegram WebApp или URL"
+            : "SDK не смог прочитать параметры запуска",
         );
 
         // ==================================
@@ -818,6 +819,13 @@ export function AuthProvider({
             >
               Перейти к боту
             </a>
+          </div>
+        </main>
+      ) : status === "loading" ? (
+        <main className="flex min-h-dvh items-center justify-center bg-[#EFF8FC]">
+          <div className="text-center">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#CBEAF4] border-t-[#0BADE0]" />
+            <p className="mt-4 text-sm font-medium text-[#7891A3]">Запускаем CleanGo...</p>
           </div>
         </main>
       ) : (
