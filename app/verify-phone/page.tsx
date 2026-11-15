@@ -25,7 +25,6 @@ export default function VerifyPhonePage() {
   const [diagnostic, setDiagnostic] = useState("");
   const verifiedRef = useRef(false);
 
-  const destination = user?.role === "cleaner" ? "/cleaner" : "/";
   const goToApp = useCallback((role?: string) => {
     window.location.replace(role === "cleaner" ? "/cleaner" : "/");
   }, []);
