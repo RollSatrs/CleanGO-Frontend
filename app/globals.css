@@ -28,3 +28,21 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
+
+/* Safe areas from Telegram's native Mini App API.
+   Fullsize and compact keep their normal spacing; fullscreen respects
+   Telegram controls and Android/iOS system insets. */
+.cleango-page-safe-top {
+  padding-top: calc(2rem + var(--cleango-telegram-top, 0px));
+}
+.cleango-client-header {
+  padding-top: calc(1.5rem + var(--cleango-telegram-top, 0px));
+}
+.cleango-bottom-nav {
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px), var(--cleango-telegram-bottom, 0px));
+}
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
