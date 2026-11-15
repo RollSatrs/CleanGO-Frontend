@@ -64,9 +64,11 @@ function RoleRouteGuard({ children }: Props) {
     : pathname === "/verify-phone" && (role === "client" || role === "cleaner")
       ? role === "cleaner" ? "/cleaner" : "/"
       : role === "cleaner"
-        ? pathname === "/cleaner" ? null : "/cleaner"
+        ? (pathname === "/" || ["/welcome", "/onboarding", "/select-role", "/login"].includes(pathname) || pathname.startsWith("/client"))
+          ? "/cleaner"
+          : null
         : role === "client"
-          ? ["/welcome", "/onboarding", "/select-role", "/login", "/cleaner"].includes(pathname) ? "/" : null
+          ? (["/welcome", "/onboarding", "/select-role", "/login"].includes(pathname) || pathname.startsWith("/cleaner")) ? "/" : null
           : role === "unselected"
             ? ["/", "/cleaner", "/order", "/verify-phone"].includes(pathname) ? "/welcome" : null
             : null;
