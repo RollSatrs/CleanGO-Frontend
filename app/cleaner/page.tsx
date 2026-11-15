@@ -11,7 +11,7 @@ export default function CleanerPage() {
   return (
     <main className="min-h-dvh bg-[#F4FBFA] px-5 pb-[max(28px,env(safe-area-inset-bottom))] pt-[max(24px,env(safe-area-inset-top))] text-[#102334]">
       <div className="mx-auto w-full max-w-[520px]">
-        <button type="button" onClick={() => router.push("/select-role")} aria-label="Назад к выбору роли" className="flex h-10 w-10 items-center justify-start text-[#102334] active:opacity-60">
+        <button type="button" onClick={() => router.back()} aria-label="Назад" className="flex h-10 w-10 items-center justify-start text-[#102334] active:opacity-60">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <motion.div initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : 0.35 }} className="mt-9">
