@@ -96,6 +96,44 @@ export default function TelegramProvider({
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
 
+  // Telegram fullscreen uses a different content area than compact/fullsize.
+  // Read its actual insets instead of applying a fixed top margin.
+  useEffect(() => {
+    type Insets = { top?: number; bottom?: number };
+    type TelegramWebApp = {
+      isFullscreen?: boolean;
+      safeAreaInset?: Insets;
+      contentSafeAreaInset?: Insets;
+      onEvent?: (event: string, callback: () => void) => void;
+      offEvent?: (event: string, callback: () => void) => void;
+    };
+    const root = document.documentElement;
+    const getApp = () => (window as Window & { Telegram?: { WebApp?: TelegramWebApp } }).Telegram?.WebApp;
+    const update = () => {
+      const app = getApp();
+      const fullscreen = app?.isFullscreen === true;
+      const contentTop = Number(app?.contentSafeAreaInset?.top ?? 0);
+      const safeTop = Number(app?.safeAreaInset?.top ?? 0);
+      const safeBottom = Number(app?.safeAreaInset?.bottom ?? 0);
+      const contentBottom = Number(app?.contentSafeAreaInset?.bottom ?? 0);
+      root.style.setProperty("--cleango-telegram-top", `${fullscreen ? Math.max(0, contentTop, safeTop) : 0}px`);
+      root.style.setProperty("--cleango-telegram-bottom", `${fullscreen ? Math.max(0, contentBottom, safeBottom) : 0}px`);
+      root.classList.toggle("cleango-fullscreen", fullscreen);
+    };
+    const app = getApp();
+    const events = ["fullscreenChanged", "safeAreaChanged", "contentSafeAreaChanged", "viewportChanged"];
+    update();
+    events.forEach((event) => app?.onEvent?.(event, update));
+    window.addEventListener("resize", update);
+    return () => {
+      events.forEach((event) => app?.offEvent?.(event, update));
+      window.removeEventListener("resize", update);
+      root.classList.remove("cleango-fullscreen");
+      root.style.removeProperty("--cleango-telegram-top");
+      root.style.removeProperty("--cleango-telegram-bottom");
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
