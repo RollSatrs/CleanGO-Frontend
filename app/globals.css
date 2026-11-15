@@ -46,3 +46,12 @@ html, body {
   max-width: 100%;
   overflow-x: clip;
 }
+
+/* Additional breathing room beneath Telegram's floating fullscreen controls.
+   Scoped to fullscreen so Compact and Fullsize remain unchanged. */
+html.telegram-mini-app.cleango-fullscreen .cleango-client-header {
+  padding-top: calc(1.5rem + var(--cleango-telegram-top, 0px) + 36px);
+}
+html.telegram-mini-app.cleango-fullscreen .cleango-page-safe-top {
+  padding-top: calc(2rem + var(--cleango-telegram-top, 0px) + 36px);
+}
