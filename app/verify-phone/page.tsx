@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Phone, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -16,16 +15,15 @@ declare global {
 
 export default function VerifyPhonePage() {
   const { user, refreshUser } = useAuth();
-  const router = useRouter();
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState("");
   const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
     if (user?.phoneVerifiedAt) {
-      router.replace(user.role === "cleaner" ? "/cleaner" : "/");
+      window.location.replace(user.role === "cleaner" ? "/cleaner" : "/");
     }
-  }, [user?.phoneVerifiedAt, user?.role, router]);
+  }, [user?.phoneVerifiedAt, user?.role]);
 
   useEffect(() => {
     if (!waiting) return;
@@ -42,8 +40,8 @@ export default function VerifyPhonePage() {
         const updated = await refreshUser();
         if (cancelled) return;
         if (updated.phoneVerifiedAt) {
-          setWaiting(false);
-          router.replace(updated.role === "cleaner" ? "/cleaner" : "/");
+          // A full navigation rehydrates auth from the backend, as reopening the Mini App does.
+          window.location.replace(updated.role === "cleaner" ? "/cleaner" : "/");
         }
       } catch (cause) {
         lastError = cause instanceof Error ? cause.message : "Не удалось проверить статус";
@@ -75,7 +73,7 @@ export default function VerifyPhonePage() {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [waiting, refreshUser, router]);
+  }, [waiting, refreshUser]);
 
   function requestContact() {
     setError("");
