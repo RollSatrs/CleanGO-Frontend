@@ -1,7 +1,7 @@
 
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import {
@@ -17,7 +17,7 @@ import {
   miniApp,
 } from "@telegram-apps/sdk-react";
 
-import { AuthProvider } from "./AuthProvider";
+import { AuthProvider, useAuth } from "./AuthProvider";
 
 type Props = {
   children: ReactNode;
@@ -49,6 +49,40 @@ function withTimeout<T>(
       },
     );
   });
+}
+
+// Keep navigation in sync with the role returned by the backend.
+function RoleRouteGuard({ children }: Props) {
+  const { user } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+  const role = user?.role;
+
+  const target =
+    role === "cleaner"
+      ? pathname === "/cleaner" ? null : "/cleaner"
+      : role === "client"
+        ? ["/welcome", "/onboarding", "/select-role", "/login", "/cleaner"].includes(pathname)
+          ? "/" : null
+        : role === "unselected"
+          ? ["/", "/cleaner", "/order"].includes(pathname)
+            ? "/welcome" : null
+          : null;
+
+  useEffect(() => {
+    if (target) router.replace(target);
+  }, [router, target]);
+
+  // Do not flash an unauthorized or already-completed onboarding screen.
+  if (target) {
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-[#EFF8FC]">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#CBEAF4] border-t-[#0BADE0]" />
+      </main>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 export default function TelegramProvider({
@@ -159,6 +193,7 @@ export default function TelegramProvider({
 
   return (
     <AuthProvider>
+      <RoleRouteGuard>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={pathname}
@@ -171,6 +206,7 @@ export default function TelegramProvider({
           {children}
         </motion.div>
       </AnimatePresence>
+      </RoleRouteGuard>
     </AuthProvider>
   );
 }
