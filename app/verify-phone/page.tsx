@@ -18,6 +18,7 @@ export default function VerifyPhonePage() {
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState("");
   const [requesting, setRequesting] = useState(false);
+  const [diagnostic, setDiagnostic] = useState("Ожидание проверки");
 
   useEffect(() => {
     if (user?.phoneVerifiedAt) {
@@ -38,6 +39,7 @@ export default function VerifyPhonePage() {
       checking = true;
       try {
         const updated = await refreshUser();
+        setDiagnostic(`API: OK · номер: ${updated.phoneVerifiedAt ? "подтверждён" : "не подтверждён"} · роль: ${updated.role}`);
         if (cancelled) return;
         if (updated.phoneVerifiedAt) {
           // A full navigation rehydrates auth from the backend, as reopening the Mini App does.
@@ -45,6 +47,7 @@ export default function VerifyPhonePage() {
         }
       } catch (cause) {
         lastError = cause instanceof Error ? cause.message : "Не удалось проверить статус";
+        if (!cancelled) setDiagnostic(`Ошибка API: ${lastError}`);
       } finally {
         checking = false;
       }
@@ -108,6 +111,7 @@ export default function VerifyPhonePage() {
         {waiting && <p role="status" className="mt-6 rounded-2xl bg-[#E5F8F3] p-4 text-sm text-[#087F77]">
           Ожидаем подтверждение от Telegram... Обычно это занимает несколько секунд.
         </p>}
+        {waiting && <p className="mt-3 break-words text-xs text-slate-500" role="status">Диагностика: {diagnostic}</p>}
         {error && <p role="alert" className="mt-5 text-sm text-red-600">{error}</p>}
         <button type="button" disabled={requesting || waiting} onClick={requestContact}
           className="mt-7 flex h-14 w-full items-center justify-center rounded-full bg-[#0AAE9E] px-4 font-semibold text-white disabled:opacity-50">
