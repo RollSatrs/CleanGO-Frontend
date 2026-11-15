@@ -6,7 +6,7 @@ import { ArrowRight, ClipboardList, ShieldCheck, Sparkles, Wallet } from "lucide
 
 export default function CleanerPage() {
   const { user } = useAuth();
-  return <main className="min-h-dvh bg-[#F8FCFB] px-5 pb-28 pt-8 text-[#152535]">
+  return <main className="min-h-dvh bg-[#F8FCFB] px-5 pb-28 pt-8 cleango-app-top text-[#152535]">
     <div className="mx-auto max-w-[520px]">
       <header className="flex items-center justify-between">
         <div><p className="text-[20px] font-extrabold tracking-tight">Clean<span className="text-[#20B4A4]">Go</span></p><p className="mt-1 text-[11px] text-[#8397A0]">Кабинет исполнителя</p></div>
