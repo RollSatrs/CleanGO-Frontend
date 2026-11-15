@@ -19,6 +19,7 @@ type AuthUser = {
   id: string;
   telegramId: string | null;
   phone: string | null;
+  phoneVerifiedAt: string | null;
   firstName: string | null;
   lastName: string | null;
   role: string;
@@ -37,6 +38,8 @@ type AuthContextValue = {
   status: AuthStatus;
   retry: () => void;
   selectRole: (role: "client" | "cleaner") => Promise<AuthUser>;
+  sendPhoneCode: (phone: string) => Promise<void>;
+  verifyPhoneCode: (phone: string, code: string) => Promise<AuthUser>;
 };
 
 type CheckStatus =
@@ -748,6 +751,33 @@ export function AuthProvider({
     return updated;
   }, [token]);
 
+  const sendPhoneCode = useCallback(async (phone: string) => {
+    if (!token) throw new Error("Требуется авторизация");
+    const response = await fetch(`${API_URL}/auth/phone/send-code`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ phone }), cache: "no-store",
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(typeof body?.message === "string" ? body.message : "Не удалось отправить SMS");
+    }
+  }, [token]);
+
+  const verifyPhoneCode = useCallback(async (phone: string, code: string): Promise<AuthUser> => {
+    if (!token) throw new Error("Требуется авторизация");
+    const response = await fetch(`${API_URL}/auth/phone/verify`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ phone, code }), cache: "no-store",
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(typeof body?.message === "string" ? body.message : "Неверный код");
+    }
+    const updated = (await response.json()) as AuthUser;
+    setUser(updated);
+    return updated;
+  }, [token]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -756,6 +786,8 @@ export function AuthProvider({
         status,
         retry,
         selectRole,
+        sendPhoneCode,
+        verifyPhoneCode,
       }}
     >
       {status === "authenticated" ? (
