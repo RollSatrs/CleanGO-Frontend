@@ -1,5 +1,6 @@
 
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Manrope, Geist_Mono } from "next/font/google";
 
 import TelegramProvider from "@/components/providers/TelegramProvider";
@@ -49,6 +50,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
         <TelegramProvider>
           {children}
         </TelegramProvider>
