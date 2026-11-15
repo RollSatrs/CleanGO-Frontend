@@ -754,7 +754,7 @@ export function AuthProvider({
 
   const refreshUser = useCallback(async (): Promise<AuthUser> => {
     if (!token) throw new Error("Требуется авторизация");
-    const response = await fetch(`${API_URL}/auth/me`, {
+    const response = await fetch("/api/auth/me", {
       headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
     });
     if (!response.ok) throw new Error("Не удалось обновить профиль");
