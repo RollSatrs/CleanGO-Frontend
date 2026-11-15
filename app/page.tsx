@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import BottomNav from "@/components/navigation/BottomNav";
+import CleanGoLogo from "@/components/branding/CleanGoLogo";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import {
@@ -111,18 +112,7 @@ export default function HomePage() {
         {/* Шапка */}
         <header className="flex items-center justify-between px-5 pb-4 pt-[max(24px,env(safe-area-inset-top))]">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E2F8F5]">
-              <Sparkles className="h-6 w-6 text-[#0BAF9F]" />
-            </div>
-
-            <div>
-              <h1 className="text-xl font-extrabold tracking-[-0.05em]">
-                Clean<span className="text-[#0BAF9F]">Go</span>
-              </h1>
-              <p className="text-xs text-[#8293A4]">
-                Уборка без забот
-              </p>
-            </div>
+            <CleanGoLogo size={44} showName showTagline priority />
           </div>
 
           <div className="rounded-full border border-[#E3EFF1] bg-[#F6FBFC] px-3 py-2 text-xs font-medium text-[#718494]">
