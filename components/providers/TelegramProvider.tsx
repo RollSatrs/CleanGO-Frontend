@@ -58,16 +58,18 @@ function RoleRouteGuard({ children }: Props) {
   const router = useRouter();
   const role = user?.role;
 
-  const target =
-    role === "cleaner"
-      ? pathname === "/cleaner" ? null : "/cleaner"
-      : role === "client"
-        ? ["/welcome", "/onboarding", "/select-role", "/login", "/cleaner"].includes(pathname)
-          ? "/" : null
-        : role === "unselected"
-          ? ["/", "/cleaner", "/order"].includes(pathname)
-            ? "/welcome" : null
-          : null;
+  const needsPhone = (role === "client" || role === "cleaner") && !user?.phoneVerifiedAt;
+  const target = needsPhone
+    ? pathname === "/verify-phone" ? null : "/verify-phone"
+    : pathname === "/verify-phone" && (role === "client" || role === "cleaner")
+      ? role === "cleaner" ? "/cleaner" : "/"
+      : role === "cleaner"
+        ? pathname === "/cleaner" ? null : "/cleaner"
+        : role === "client"
+          ? ["/welcome", "/onboarding", "/select-role", "/login", "/cleaner"].includes(pathname) ? "/" : null
+          : role === "unselected"
+            ? ["/", "/cleaner", "/order", "/verify-phone"].includes(pathname) ? "/welcome" : null
+            : null;
 
   useEffect(() => {
     if (target) router.replace(target);
