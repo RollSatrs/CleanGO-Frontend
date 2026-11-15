@@ -37,6 +37,7 @@ type AuthContextValue = {
   token: string | null;
   status: AuthStatus;
   retry: () => void;
+  refreshUser: () => Promise<AuthUser>;
   selectRole: (role: "client" | "cleaner") => Promise<AuthUser>;
   sendPhoneCode: (phone: string) => Promise<void>;
   verifyPhoneCode: (phone: string, code: string) => Promise<AuthUser>;
@@ -751,6 +752,17 @@ export function AuthProvider({
     return updated;
   }, [token]);
 
+  const refreshUser = useCallback(async (): Promise<AuthUser> => {
+    if (!token) throw new Error("Требуется авторизация");
+    const response = await fetch(`${API_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+    });
+    if (!response.ok) throw new Error("Не удалось обновить профиль");
+    const updated = (await response.json()) as AuthUser;
+    setUser(updated);
+    return updated;
+  }, [token]);
+
   const sendPhoneCode = useCallback(async (phone: string) => {
     if (!token) throw new Error("Требуется авторизация");
     const response = await fetch(`${API_URL}/auth/phone/send-code`, {
@@ -785,6 +797,7 @@ export function AuthProvider({
         token,
         status,
         retry,
+        refreshUser,
         selectRole,
         sendPhoneCode,
         verifyPhoneCode,
