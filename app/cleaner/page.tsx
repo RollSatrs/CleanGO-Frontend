@@ -1,39 +1,29 @@
 "use client";
-
-import { useRouter } from "next/navigation";
-import { motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, ClipboardList, ShieldCheck, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/components/providers/AuthProvider";
+import BottomNav from "@/components/navigation/BottomNav";
+import { ArrowRight, ClipboardList, ShieldCheck, Sparkles, Wallet } from "lucide-react";
 
 export default function CleanerPage() {
-  const router = useRouter();
-  const reduceMotion = useReducedMotion();
-
-  return (
-    <main className="min-h-dvh bg-[#F4FBFA] px-5 pb-[max(28px,env(safe-area-inset-bottom))] pt-[max(24px,env(safe-area-inset-top))] text-[#102334]">
-      <div className="mx-auto w-full max-w-[520px]">
-        <button type="button" onClick={() => router.back()} aria-label="Назад" className="flex h-10 w-10 items-center justify-start text-[#102334] active:opacity-60">
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <motion.div initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : 0.35 }} className="mt-9">
-          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-[22px] bg-[#D9F8F1]">
-            <Sparkles className="h-8 w-8 text-[#0AAE9E]" />
-          </div>
-          <p className="text-sm font-semibold text-[#0AAE9E]">CleanGo для исполнителей</p>
-          <h1 className="mt-3 text-[30px] font-bold leading-tight tracking-tight">Работайте клинером с CleanGo</h1>
-          <p className="mt-4 text-[15px] leading-7 text-slate-500">Здесь появятся анкета исполнителя, проверка профиля и доступные заказы клиентов.</p>
-        </motion.div>
-        <div className="mt-9 space-y-3">
-          <div className="flex items-start gap-4 rounded-[24px] bg-white p-5 shadow-sm">
-            <ShieldCheck className="mt-0.5 h-6 w-6 shrink-0 text-[#0AAE9E]" />
-            <div><h2 className="font-semibold">Проверка профиля</h2><p className="mt-1 text-sm leading-6 text-slate-500">Перед доступом к заказам клинер проходит регистрацию и проверку.</p></div>
-          </div>
-          <div className="flex items-start gap-4 rounded-[24px] bg-white p-5 shadow-sm">
-            <ClipboardList className="mt-0.5 h-6 w-6 shrink-0 text-[#0AAE9E]" />
-            <div><h2 className="font-semibold">Доступные заказы</h2><p className="mt-1 text-sm leading-6 text-slate-500">Лента заказов откроется после подключения серверной логики и проверки исполнителя.</p></div>
-          </div>
-        </div>
-        <p className="mt-8 text-center text-xs leading-5 text-slate-400">Это первый экран кабинета клинера. Регистрация и заказы пока не активны.</p>
+  const { user } = useAuth();
+  return <main className="min-h-dvh bg-[#F8FCFB] px-5 pb-28 pt-8 text-[#152535]">
+    <div className="mx-auto max-w-[520px]">
+      <header className="flex items-center justify-between">
+        <div><p className="text-[20px] font-extrabold tracking-tight">Clean<span className="text-[#20B4A4]">Go</span></p><p className="mt-1 text-[11px] text-[#8397A0]">Кабинет исполнителя</p></div>
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#E4F8F3]"><Sparkles className="h-5 w-5 text-[#20B4A4]"/></div>
+      </header>
+      <div className="mt-9"><p className="text-sm text-[#82939C]">Здравствуйте{user?.firstName ? `, ${user.firstName}` : ""}!</p><h1 className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight">Ваш рабочий день<br/>начинается здесь</h1></div>
+      <section className="relative mt-7 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#DDF9F3] to-[#F2FCF9] p-6">
+        <div className="absolute -right-9 -top-10 h-40 w-40 rounded-full border-[24px] border-white/50" aria-hidden="true"/>
+        <div className="relative"><div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/80"><ClipboardList className="h-5 w-5 text-[#1CB5A5]"/></div><h2 className="mt-5 max-w-[240px] text-xl font-extrabold tracking-tight">Новые заявки на уборку</h2><p className="mt-2 max-w-[260px] text-sm leading-6 text-[#66847E]">Просматривайте доступные заказы в одном месте.</p><Link href="/cleaner/jobs" className="mt-5 inline-flex h-11 items-center gap-2 rounded-2xl bg-[#26B7A8] px-4 text-sm font-semibold text-white">Посмотреть заявки <ArrowRight className="h-4 w-4"/></Link></div>
+      </section>
+      <h2 className="mt-9 text-lg font-extrabold">Рабочее пространство</h2>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <Link href="/cleaner/jobs" className="rounded-[22px] border border-[#E8F1EF] bg-white p-5"><ClipboardList className="h-6 w-6 text-[#20B4A4]"/><p className="mt-5 text-sm font-bold">Заказы</p><p className="mt-1 text-xs leading-5 text-[#8A9AA2]">Новые заявки</p></Link>
+        <Link href="/cleaner/earnings" className="rounded-[22px] border border-[#E8F1EF] bg-white p-5"><Wallet className="h-6 w-6 text-[#20B4A4]"/><p className="mt-5 text-sm font-bold">Доходы</p><p className="mt-1 text-xs leading-5 text-[#8A9AA2]">История заработка</p></Link>
       </div>
-    </main>
-  );
+      <div className="mt-5 flex items-center gap-3 rounded-[20px] bg-[#EDF9F6] p-4"><ShieldCheck className="h-5 w-5 shrink-0 text-[#20B4A4]"/><p className="text-xs leading-5 text-[#67857E]">Доступность заказов зависит от подключения серверной логики и проверки профиля.</p></div>
+    </div>
+    <BottomNav role="cleaner"/>
+  </main>;
 }
