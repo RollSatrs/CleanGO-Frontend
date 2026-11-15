@@ -22,25 +22,59 @@ export default function VerifyPhonePage() {
   const [requesting, setRequesting] = useState(false);
 
   useEffect(() => {
+    if (user?.phoneVerifiedAt) {
+      router.replace(user.role === "cleaner" ? "/cleaner" : "/");
+    }
+  }, [user?.phoneVerifiedAt, user?.role, router]);
+
+  useEffect(() => {
     if (!waiting) return;
+
     let cancelled = false;
+    let checking = false;
     let attempts = 0;
-    const interval = setInterval(() => {
-      if (++attempts > 45) {
-        clearInterval(interval);
-        if (!cancelled) {
+    let lastError = "";
+
+    async function checkVerification() {
+      if (cancelled || checking) return;
+      checking = true;
+      try {
+        const updated = await refreshUser();
+        if (cancelled) return;
+        if (updated.phoneVerifiedAt) {
           setWaiting(false);
-          setError("Подтверждение не получено. Попробуйте ещё раз.");
+          router.replace(updated.role === "cleaner" ? "/cleaner" : "/");
         }
+      } catch (cause) {
+        lastError = cause instanceof Error ? cause.message : "Не удалось проверить статус";
+      } finally {
+        checking = false;
+      }
+    }
+
+    // Check immediately: the webhook can finish before polling begins.
+    void checkVerification();
+    const interval = setInterval(() => {
+      if (cancelled) return;
+      attempts += 1;
+      if (attempts >= 45) {
+        clearInterval(interval);
+        setWaiting(false);
+        setError(lastError || "Подтверждение не получено. Попробуйте ещё раз.");
         return;
       }
-      void refreshUser().then(updated => {
-        if (cancelled || !updated.phoneVerifiedAt) return;
-        clearInterval(interval);
-        router.replace(updated.role === "cleaner" ? "/cleaner" : "/");
-      }).catch(() => {});
+      void checkVerification();
     }, 2000);
-    return () => { cancelled = true; clearInterval(interval); };
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void checkVerification();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [waiting, refreshUser, router]);
 
   function requestContact() {
