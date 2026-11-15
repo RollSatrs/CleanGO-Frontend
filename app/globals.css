@@ -28,9 +28,3 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
-
-/* Telegram can overlay its close/minimize controls over the web viewport.
-   Reserve room for that chrome, including fullscreen and compact launches. */
-html.telegram-mini-app .cleango-app-top {
-  padding-top: max(104px, calc(var(--tg-content-safe-area-inset-top, 0px) + 72px)) !important;
-}
