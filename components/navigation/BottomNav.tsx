@@ -19,7 +19,7 @@ export default function BottomNav({ role }: { role: "client" | "cleaner" }) {
         { href: "/cleaner/profile", label: "Профиль", icon: UserRound },
       ];
   return (
-    <nav aria-label="Основная навигация" className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[520px] border-t border-[#E7F2F0] bg-white/95 px-4 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl">
+    <nav aria-label="Основная навигация" className="cleango-bottom-nav fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[520px] border-t border-[#E7F2F0] bg-white/95 px-4 pt-2 backdrop-blur-xl">
       <div className="flex items-center justify-around gap-1">
         {links.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
