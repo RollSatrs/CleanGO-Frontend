@@ -4,6 +4,7 @@ import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import Link from "next/link";
 import { Bell, LoaderCircle } from "lucide-react";
 import CleanGoLogo from "@/components/branding/CleanGoLogo";
+import BottomNav from "@/components/navigation/BottomNav";
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
 const buttonStyles: Record<ButtonVariant, string> = {
@@ -48,4 +49,21 @@ export function LoadingState({ label = "Загружаем...", rows = 2 }: { la
       <div className="mt-3 h-3 w-4/5 rounded-full bg-[#F0F7F5]" />
     </div>)}
   </div>;
+}
+
+export function AppPageShell({ role, eyebrow, title, description, children }: { role: "client" | "cleaner"; eyebrow: string; title: string; description?: string; children: ReactNode }) {
+  return <main className="min-h-dvh bg-[#F8FCFB] pb-28 text-[#152535]">
+    <div className="mx-auto w-full max-w-[520px]">
+      <AppHeader role={role} className="cleango-client-header min-h-[84px] px-5 pb-4 pt-6" />
+      <div className="px-5">
+        <div className="mt-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#23B3A5]">{eyebrow}</p>
+          <h1 className="mt-2 text-[28px] font-extrabold tracking-tight">{title}</h1>
+          {description && <p className="mt-2 text-sm leading-6 text-[#80919A]">{description}</p>}
+        </div>
+        <div className="mt-7">{children}</div>
+      </div>
+    </div>
+    <BottomNav role={role} />
+  </main>;
 }
