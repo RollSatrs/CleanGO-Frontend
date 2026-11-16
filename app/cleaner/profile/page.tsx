@@ -1,6 +1,21 @@
 "use client";
-import Link from "next/link";
+import { ShieldCheck, UserRound } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import BottomNav from "@/components/navigation/BottomNav";
-import { ArrowRight, ClipboardList, ShieldCheck, UserRound, Wallet, Search, Sparkles } from "lucide-react";
-export default function CleanerProfile(){const {user}=useAuth();return <main className="cleango-page-safe-top min-h-dvh bg-[#F8FCFB] px-5 pb-28 pt-8 text-[#152535]"><div className="mx-auto max-w-[520px]"><p className="text-xs font-semibold uppercase tracking-widest text-[#23B3A5]">Для исполнителя</p><h1 className="mt-2 text-[28px] font-extrabold tracking-tight">Профиль клинера</h1><div className="mt-7 rounded-[26px] border border-[#E6F1EF] bg-white p-6"><div className="flex items-center gap-3"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E7F8F4]"><UserRound className="h-6 w-6 text-[#20B4A4]"/></div><div><p className="font-bold">{[user?.firstName,user?.lastName].filter(Boolean).join(" ")||"Исполнитель"}</p><p className="text-xs text-[#8B9AA4]">CleanGo · Клинер</p></div></div><div className="mt-6 border-t border-[#EAF2F0] pt-5"><p className="text-xs text-[#8B9AA4]">Телефон</p><p className="mt-1 text-sm font-semibold">{user?.phone||"Не подключён"}</p><p className="mt-2 text-xs text-[#20A797]">{user?.phoneVerifiedAt?"Подтверждён через Telegram":"Ожидает подтверждения"}</p></div></div></div><BottomNav role="cleaner"/></main>}
+import { AppCard, AppPageShell } from "@/components/ui/clean-go";
+
+export default function CleanerProfile() {
+  const { user } = useAuth();
+  return <AppPageShell role="cleaner" eyebrow="Для исполнителя" title="Профиль клинера">
+    <AppCard>
+      <div className="flex items-center gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E7F8F4]"><UserRound className="h-6 w-6 text-[#20B4A4]" aria-hidden="true" /></div>
+        <div className="min-w-0"><p className="break-words font-bold">{[user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Исполнитель"}</p><p className="mt-1 text-xs text-[#8B9AA4]">CleanGo · Клинер</p></div>
+      </div>
+      <div className="mt-6 border-t border-[#EAF2F0] pt-5">
+        <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#20B4A4]" aria-hidden="true" /><h2 className="text-xs font-semibold text-[#8B9AA4]">Телефон</h2></div>
+        <p className="mt-2 break-words text-sm font-semibold">{user?.phone || "Не подключён"}</p>
+        <p className="mt-2 text-xs text-[#20A797]">{user?.phoneVerifiedAt ? "Подтверждён через Telegram" : "Ожидает подтверждения"}</p>
+      </div>
+    </AppCard>
+  </AppPageShell>;
+}
