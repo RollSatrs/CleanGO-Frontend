@@ -2,16 +2,15 @@
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import BottomNav from "@/components/navigation/BottomNav";
-import CleanGoLogo from "@/components/branding/CleanGoLogo";
-import { ArrowRight, ClipboardList, ShieldCheck, Sparkles, Wallet } from "lucide-react";
+import { ArrowRight, Bell, ClipboardList, ShieldCheck, Wallet } from "lucide-react";
 
 export default function CleanerPage() {
   const { user } = useAuth();
   return <main className="cleango-page-safe-top min-h-dvh bg-[#F8FCFB] px-5 pb-28 pt-8 text-[#152535]">
     <div className="mx-auto max-w-[520px]">
       <header className="flex items-center justify-between">
-        <div><CleanGoLogo size={42} showName priority /><p className="mt-1 text-[11px] text-[#8397A0]">Кабинет исполнителя</p></div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#E4F8F3]"><Sparkles className="h-5 w-5 text-[#20B4A4]"/></div>
+        <div><p className="text-[13px] font-semibold text-[#20AFA1]">CleanGo</p><p className="mt-1 text-[11px] text-[#8397A0]">Кабинет исполнителя</p></div>
+        <span role="img" aria-label="Уведомления — скоро" title="Уведомления скоро появятся" className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#E4F1EE] bg-white"><Bell className="h-5 w-5 text-[#20B4A4]"/></span>
       </header>
       <div className="mt-9"><p className="text-sm text-[#82939C]">Здравствуйте{user?.firstName ? `, ${user.firstName}` : ""}!</p><h1 className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight">Ваш рабочий день<br/>начинается здесь</h1></div>
       <section className="relative mt-7 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#DDF9F3] to-[#F2FCF9] p-6">
