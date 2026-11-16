@@ -1,6 +1,13 @@
 "use client";
-import Link from "next/link";
-import { useAuth } from "@/components/providers/AuthProvider";
-import BottomNav from "@/components/navigation/BottomNav";
-import { ArrowRight, ClipboardList, ShieldCheck, UserRound, Wallet, Search, Sparkles } from "lucide-react";
-export default function CleanerJobs(){return <main className="cleango-page-safe-top min-h-dvh bg-[#F8FCFB] px-5 pb-28 pt-8 text-[#152535]"><div className="mx-auto max-w-[520px]"><p className="text-xs font-semibold uppercase tracking-widest text-[#23B3A5]">Для исполнителя</p><h1 className="mt-2 text-[28px] font-extrabold tracking-tight">Доступные заявки</h1><p className="mt-2 text-sm leading-6 text-[#80919A]">Заказы клиентов появятся здесь после подключения ленты заявок.</p><div className="mt-9 rounded-[26px] border border-[#E6F1EF] bg-white p-8 text-center"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-[#E7F8F4]"><Search className="h-7 w-7 text-[#20B4A4]"/></div><h2 className="mt-5 font-bold">Пока нет доступных заявок</h2><p className="mt-2 text-sm leading-6 text-[#80919A]">Мы не показываем вымышленные заказы. Лента будет работать с реальными данными backend.</p></div></div><BottomNav role="cleaner"/></main>}
+import { Search } from "lucide-react";
+import { AppCard, AppPageShell } from "@/components/ui/clean-go";
+
+export default function CleanerJobs() {
+  return <AppPageShell role="cleaner" eyebrow="Для исполнителя" title="Доступные заявки" description="Заказы клиентов появятся здесь после подключения ленты заявок.">
+    <AppCard className="py-8 text-center">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[22px] bg-[#E7F8F4]"><Search className="h-7 w-7 text-[#20B4A4]" aria-hidden="true" /></div>
+      <h2 className="mt-5 text-lg font-bold">Пока нет доступных заявок</h2>
+      <p className="mt-2 text-sm leading-6 text-[#80919A]">Мы не показываем вымышленные заказы. Лента будет работать с реальными данными backend.</p>
+    </AppCard>
+  </AppPageShell>;
+}
