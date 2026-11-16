@@ -1,6 +1,14 @@
 "use client";
-import Link from "next/link";
-import { useAuth } from "@/components/providers/AuthProvider";
-import BottomNav from "@/components/navigation/BottomNav";
-import { ArrowRight, ClipboardList, ShieldCheck, UserRound, Wallet, Search, Sparkles } from "lucide-react";
-export default function CleanerEarnings(){return <main className="cleango-page-safe-top min-h-dvh bg-[#F8FCFB] px-5 pb-28 pt-8 text-[#152535]"><div className="mx-auto max-w-[520px]"><p className="text-xs font-semibold uppercase tracking-widest text-[#23B3A5]">Для исполнителя</p><h1 className="mt-2 text-[28px] font-extrabold tracking-tight">Мои доходы</h1><div className="mt-7 rounded-[26px] bg-[#E4F8F3] p-6"><Wallet className="h-7 w-7 text-[#20B4A4]"/><p className="mt-4 text-sm font-semibold text-[#65847E]">Статистика заработка</p><h2 className="mt-2 text-2xl font-extrabold">Пока недоступна</h2><p className="mt-2 text-xs leading-5 text-[#65847E]">Подключим после реализации учёта выполненных заказов и выплат.</p></div></div><BottomNav role="cleaner"/></main>}
+import { Wallet } from "lucide-react";
+import { AppPageShell } from "@/components/ui/clean-go";
+
+export default function CleanerEarnings() {
+  return <AppPageShell role="cleaner" eyebrow="Для исполнителя" title="Мои доходы">
+    <section className="rounded-[24px] border border-[#D8F1EB] bg-[#E4F8F3] p-6">
+      <Wallet className="h-7 w-7 text-[#20B4A4]" aria-hidden="true" />
+      <p className="mt-4 text-sm font-semibold text-[#65847E]">Статистика заработка</p>
+      <h2 className="mt-2 text-2xl font-extrabold">Пока недоступна</h2>
+      <p className="mt-2 text-xs leading-5 text-[#65847E]">Подключим после реализации учёта выполненных заказов и выплат.</p>
+    </section>
+  </AppPageShell>;
+}
