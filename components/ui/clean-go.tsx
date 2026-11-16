@@ -35,9 +35,7 @@ export function NotificationBell() {
 
 export function AppHeader({ role, subtitle, className = "" }: { role: "client" | "cleaner"; subtitle?: string; className?: string }) {
   return <header className={`flex items-center justify-between gap-3 ${className}`}>
-    {role === "client"
-      ? <CleanGoLogo size={44} showName showTagline priority />
-      : <div><p className="text-[13px] font-semibold text-[#20AFA1]">CleanGo</p><p className="mt-1 text-[11px] text-[#8397A0]">{subtitle ?? "Кабинет исполнителя"}</p></div>}
+    <CleanGoLogo size={44} showName showTagline priority />
     <NotificationBell />
   </header>;
 }
