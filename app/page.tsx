@@ -3,12 +3,11 @@
 
 import { useState } from "react";
 import BottomNav from "@/components/navigation/BottomNav";
-import CleanGoLogo from "@/components/branding/CleanGoLogo";
+import { AppHeader } from "@/components/ui/clean-go";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import {
   ArrowRight,
-  Bell,
   Check,
   ChevronRight,
   Clock3,
@@ -111,13 +110,7 @@ export default function HomePage() {
       <div className="mx-auto min-h-[100dvh] w-full max-w-[520px] bg-white pb-24 shadow-[0_0_45px_rgba(20,70,100,0.05)]">
 
         {/* Шапка */}
-        <header className="cleango-client-header flex items-center justify-between px-5 pb-4 pt-6">
-          <div className="flex items-center gap-3">
-            <CleanGoLogo size={44} showName showTagline priority />
-          </div>
-
-          <div className="flex items-center gap-2"><span className="hidden rounded-full border border-[#E3EFF1] bg-[#F6FBFC] px-3 py-2 text-xs font-medium text-[#718494] min-[390px]:inline-flex">Для вашего дома</span><span role="img" aria-label="Уведомления — скоро" title="Уведомления скоро появятся" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#E4F1EE] bg-white"><Bell className="h-5 w-5 text-[#20B4A4]"/></span></div>
-        </header>
+        <AppHeader role="client" className="cleango-client-header px-5 pb-4 pt-6" />
 
         {/* Приветственный блок */}
         <motion.section
