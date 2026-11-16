@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import {
   ArrowRight,
+  Bell,
   Check,
   ChevronRight,
   Clock3,
@@ -115,9 +116,7 @@ export default function HomePage() {
             <CleanGoLogo size={44} showName showTagline priority />
           </div>
 
-          <div className="rounded-full border border-[#E3EFF1] bg-[#F6FBFC] px-3 py-2 text-xs font-medium text-[#718494]">
-            Для вашего дома
-          </div>
+          <div className="flex items-center gap-2"><span className="hidden rounded-full border border-[#E3EFF1] bg-[#F6FBFC] px-3 py-2 text-xs font-medium text-[#718494] min-[390px]:inline-flex">Для вашего дома</span><span role="img" aria-label="Уведомления — скоро" title="Уведомления скоро появятся" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#E4F1EE] bg-white"><Bell className="h-5 w-5 text-[#20B4A4]"/></span></div>
         </header>
 
         {/* Приветственный блок */}
