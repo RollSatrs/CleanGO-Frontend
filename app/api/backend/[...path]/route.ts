@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-
 // Explicit route allowlist: this endpoint must never become an open proxy.
 function permitted(path: string, method: string): boolean {
   if (method === "GET" && (path === "" || path === "pricing/quote" || path === "orders/offers/mine" || path === "orders/cleaner/profile" || path === "orders")) return true;
