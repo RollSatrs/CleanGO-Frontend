@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { ShieldCheck, UserRound, Settings2, ArrowRight } from "lucide-react";
+import { ShieldCheck, UserRound, Settings2, ArrowRight, Activity } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 
@@ -20,6 +20,9 @@ export default function CleanerProfile() {
     </AppCard>
     <Link href="/cleaner/settings" className="mt-4 flex items-center gap-3 rounded-[20px] border border-[#CDEFE8] bg-white p-4 text-sm font-bold text-[#168C80]">
       <Settings2 className="h-5 w-5"/> Доступность, услуги и геопозиция <ArrowRight className="ml-auto h-4 w-4"/>
+    </Link>
+    <Link href="/cleaner/diagnostics" className="mt-3 flex items-center gap-3 rounded-[20px] border border-[#CDEFE8] bg-white p-4 text-sm font-bold text-[#168C80]">
+      <Activity className="h-5 w-5"/> Диагностика соединения <ArrowRight className="ml-auto h-4 w-4"/>
     </Link>
   </AppPageShell>;
 }
