@@ -30,7 +30,7 @@ export default function AddressPicker({ address, onChange }: {
   const [point, setPoint] = useState<[number, number]>(SEMEY);
   const [locationBusy, setLocationBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const mapContainer = useRef<HTMLDivElement>(null);
+  const [mapNode, setMapNode] = useState<HTMLDivElement | null>(null);
   const mapRef = useRef<MapHandle | null>(null);
   const searchVersion = useRef(0);
 
@@ -96,7 +96,7 @@ export default function AddressPicker({ address, onChange }: {
   }
 
   useEffect(() => {
-    if (!mapOpen || !KEY || !mapContainer.current) return;
+    if (!mapOpen || !KEY || !mapNode) return;
     let disposed = false;
     setMapReady(false);
     const timeout = window.setTimeout(() => { if (!disposed) setMapError("Карта не загрузилась за 15 секунд. Проверьте ограничения MapTiler или доступ к CDN."); }, 15000);
@@ -131,9 +131,9 @@ export default function AddressPicker({ address, onChange }: {
             document.head.appendChild(script);
           });
         }
-        if (disposed || !mapContainer.current || !window.maplibregl) return;
+        if (disposed || !window.maplibregl) return;
         map = new window.maplibregl.Map({
-          container: mapContainer.current,
+          container: mapNode,
           style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(KEY)}`,
           center: point, zoom: 15,
         });
@@ -159,7 +159,7 @@ export default function AddressPicker({ address, onChange }: {
     return () => { disposed = true; window.clearTimeout(timeout); map?.remove(); mapRef.current = null; };
     // Center is captured when the picker opens; don't remount while panning.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapOpen]);
+  }, [mapOpen, mapNode]);
 
   function locateOnMap() {
     if (!mapReady || !mapRef.current || !navigator.geolocation) return;
@@ -246,7 +246,7 @@ export default function AddressPicker({ address, onChange }: {
             <button type="button" aria-label="Закрыть" onClick={() => setMapOpen(false)} className="rounded-full bg-slate-100 p-2"><X className="h-5 w-5" /></button>
           </header>
           <div className="relative min-h-0 flex-1 bg-slate-100">
-            <div ref={mapContainer} className="absolute inset-0" />
+            <div ref={setMapNode} className="absolute inset-0" />
             {!mapReady && !mapError && <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-100/90 text-sm font-semibold text-slate-600">Загружаем карту...</div>}
             {mapError && <div role="alert" className="absolute inset-0 z-20 flex items-center justify-center bg-slate-100 p-6 text-center text-sm text-red-700">{mapError}</div>}
             {mapReady && !mapError && <button type="button" onClick={locateOnMap} disabled={mapLocating} aria-label="Моё местоположение" className="absolute bottom-5 right-4 z-10 rounded-2xl bg-white p-3 text-teal-700 shadow-lg"><LocateFixed className="h-5 w-5" /></button>}
