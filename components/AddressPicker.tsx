@@ -13,6 +13,27 @@ declare global { interface Window { L?: LeafletLibrary } }
 const KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const SEMEY: [number, number] = [80.2275, 50.4111];
 const LEAFLET_VERSION = "1.9.4";
+const VECTOR_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+const MAPLIBRE_VERSION = "5.9.0";
+type VectorMap = {getCenter(): {lat:number;lng:number}; flyTo(options:Record<string,unknown>):void; resize():void; remove():void; on(event:string,cb:()=>void):void; getStyle():{layers?:Array<{id:string;type:string}>}; setPaintProperty(id:string,name:string,value:string):void};
+type VectorApi = {Map:new(options:Record<string,unknown>)=>VectorMap};
+type VectorWindow = Window & {maplibregl?:VectorApi};
+async function loadVector():Promise<VectorApi>{
+  if(!document.getElementById("cg-vector-css")){const l=document.createElement("link");l.id="cg-vector-css";l.rel="stylesheet";l.href=`https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;document.head.appendChild(l);}
+  if((window as VectorWindow).maplibregl?.Map)return (window as VectorWindow).maplibregl!;
+  await new Promise<void>((resolve,reject)=>{const s=document.createElement("script");s.src=`https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;s.onload=()=>resolve();s.onerror=()=>reject(new Error("Векторная карта недоступна"));document.head.appendChild(s);});
+  const lib=(window as VectorWindow).maplibregl;if(!lib?.Map)throw new Error("Карта не загрузилась");return lib;
+}
+function themeVector(map:VectorMap){
+ const colors={background:"#F7F9F6",building:"#E5EAE6",park:"#E5F2E9",water:"#DCEFED",road:"#FFFFFF",edge:"#DCE4E0"};
+ for(const layer of map.getStyle().layers??[]){const id=layer.id.toLowerCase();try{
+ if(layer.type==="background")map.setPaintProperty(layer.id,"background-color",colors.background);
+ if(layer.type==="fill"&&/building/.test(id))map.setPaintProperty(layer.id,"fill-color",colors.building);
+ if(layer.type==="fill"&&/park|grass|wood|landcover|landuse/.test(id))map.setPaintProperty(layer.id,"fill-color",colors.park);
+ if(layer.type==="fill"&&/water/.test(id))map.setPaintProperty(layer.id,"fill-color",colors.water);
+ if(layer.type==="line"&&/road|street|highway|transportation/.test(id))map.setPaintProperty(layer.id,"line-color",/casing|outline/.test(id)?colors.edge:colors.road);
+ }catch{}}
+}
 
 export default function AddressPicker({ address, onChange }: {
   address: string;
@@ -37,6 +58,15 @@ export default function AddressPicker({ address, onChange }: {
   const [message, setMessage] = useState("");
   const [mapNode, setMapNode] = useState<HTMLDivElement | null>(null);
   const mapRef = useRef<MapHandle | null>(null);
+  const vectorRef = useRef<VectorMap | null>(null);
+  const [vectorActive,setVectorActive] = useState(false);
+  const [detailsOpen,setDetailsOpen] = useState(false);
+  const [sheetOpen,setSheetOpen] = useState(true);
+  const [entrance,setEntrance]=useState("");
+  const [floor,setFloor]=useState("");
+  const [apartment,setApartment]=useState("");
+  const [intercom,setIntercom]=useState("");
+  const [comment,setComment]=useState("");
   const searchVersion = useRef(0);
 
   useEffect(() => {
@@ -101,7 +131,7 @@ export default function AddressPicker({ address, onChange }: {
   }
 
   useEffect(() => {
-    if (!mapOpen || !mapNode) return;
+    if (!mapOpen || !mapNode || vectorActive) return;
     let disposed = false;
     let map: MapHandle | null = null;
     setMapReady(false);
@@ -143,7 +173,7 @@ export default function AddressPicker({ address, onChange }: {
           setMapMoving(false);
           const center = map.getCenter();
           setPoint([center.lng, center.lat]);
-          setPickedAddress("Точка: " + center.lat.toFixed(5) + ", " + center.lng.toFixed(5));
+          setPickedAddress("Уточняем адрес...");
         });
         const tiles = leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           subdomains:"abc", maxZoom:19, attribution:"© OpenStreetMap contributors"
@@ -170,6 +200,38 @@ export default function AddressPicker({ address, onChange }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapOpen,mapNode]);
 
+  useEffect(()=>{
+    if(!mapOpen||!mapNode)return;
+    let cancelled=false;let instance:VectorMap|null=null;let verified=false;
+    const timeout=window.setTimeout(()=>{if(!cancelled&&!verified)setVectorActive(false);},9000);
+    void (async()=>{try{
+      const lib=await loadVector();if(cancelled||!mapNode)return;
+      instance=new lib.Map({container:mapNode,center:point,zoom:16,style:VECTOR_STYLE,attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
+      vectorRef.current=instance;
+      instance.on("style.load",()=>{if(instance&&!cancelled)themeVector(instance);});
+      instance.on("movestart",()=>{if(!cancelled)setMapMoving(true);});
+      instance.on("moveend",()=>{if(cancelled||!instance)return;const c=instance.getCenter();setPoint([c.lng,c.lat]);setPickedAddress("Уточняем адрес...");setMapMoving(false);});
+      instance.on("idle",()=>{if(cancelled||!instance)return;const layers=(instance.getStyle().layers??[]).filter(l=>["fill","line","symbol"].includes(l.type)).map(l=>l.id);if(layers.length){verified=true;clearTimeout(timeout);setVectorActive(true);setMapReady(true);setMapError("");}});
+      instance.on("error",()=>{if(!verified&&!cancelled)setVectorActive(false);});
+      window.setTimeout(()=>{if(!cancelled)instance?.resize();},350);
+    }catch{if(!cancelled)setVectorActive(false);}})();
+    return()=>{cancelled=true;clearTimeout(timeout);instance?.remove();vectorRef.current=null;};
+  // Initialize once on opening.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[mapOpen]);
+
+  useEffect(()=>{
+    if(!mapOpen)return;let cancelled=false;
+    const timer=window.setTimeout(async()=>{try{
+      const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=ru&lat=${point[1]}&lon=${point[0]}`;
+      const response=await fetch(url);if(!response.ok)throw new Error("Geocode failed");
+      const result:{address?:Record<string,string>;display_name?:string}=await response.json();if(cancelled)return;
+      const a=result.address??{};const road=a.road||a.pedestrian||a.residential;const city=a.city||a.town||a.village||"Семей";
+      setPickedAddress(road?`${city}, ${road}${a.house_number?", "+a.house_number:""}`:(result.display_name?.split(",").slice(0,3).join(",")||"Адрес не определён"));
+    }catch{if(!cancelled)setPickedAddress("Адрес не определён — уточните точку");}},700);
+    return()=>{cancelled=true;clearTimeout(timer);};
+  },[mapOpen,point]);
+
   async function runDiagnostics() {
     setDiagnosing(true);
     const lines = ["Диагностика CG-LEAFLET-01", "Leaflet: " + (window.L ? "загружен" : "не загружен"), "Первый тайл: " + (mapReady ? "загружен" : "ожидается"), "Ключ геокодирования: " + (KEY ? "есть" : "нет")];
@@ -177,13 +239,13 @@ export default function AddressPicker({ address, onChange }: {
     setDiagnosing(false);
   }
   function locateOnMap() {
-    if (!mapReady || !mapRef.current || !navigator.geolocation) return;
+    if (!mapReady || (!mapRef.current && !vectorRef.current) || !navigator.geolocation) return;
     setMapLocating(true);
     navigator.geolocation.getCurrentPosition(
       ({coords}) => {
         setMapLocating(false);
         if (coords.accuracy > 500) { setMapError("Местоположение определено недостаточно точно."); return; }
-        mapRef.current?.flyTo([coords.latitude,coords.longitude],16);
+        if(vectorActive)vectorRef.current?.flyTo({center:[coords.longitude,coords.latitude],zoom:16});else mapRef.current?.flyTo([coords.latitude,coords.longitude],16);
       },
       () => {setMapLocating(false);setMapError("Разрешите геолокацию в настройках Telegram.");},
       {enableHighAccuracy:true,timeout:15000,maximumAge:0}
@@ -191,17 +253,18 @@ export default function AddressPicker({ address, onChange }: {
   }
 
   async function confirmMap() {
-    if (!KEY || !mapReady || !mapRef.current) return;
+    if (!mapReady || (!mapRef.current && !vectorRef.current)) return;
     setMapBusy(true);
     setMapError("");
     try {
-      const center = mapRef.current.getCenter();
+      const center = vectorActive ? vectorRef.current!.getCenter() : mapRef.current!.getCenter();
       const longitude = center.lng;
       const latitude = center.lat;
-      const response = await fetch(`https://api.maptiler.com/geocoding/${longitude},${latitude}.json?key=${encodeURIComponent(KEY)}&language=ru`);
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=ru&lat=${latitude}&lon=${longitude}`);
       if (!response.ok) throw new Error("Reverse lookup failed");
-      const data: { features?: Feature[] } = await response.json();
-      choose(data.features?.[0]?.place_name ?? `Точка: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`, { latitude, longitude });
+      const data: {address?:Record<string,string>;display_name?:string} = await response.json();
+      const a=data.address??{};const road=a.road||a.pedestrian||a.residential;const city=a.city||a.town||a.village||"Семей";
+      choose(road?`${city}, ${road}${a.house_number?", "+a.house_number:""}`:(data.display_name?.split(",").slice(0,3).join(",")||"Выбранная точка"), { latitude, longitude });
       setMapOpen(false);
     } catch {
       setMapError("Не удалось получить адрес выбранной точки. Повторите попытку.");
@@ -239,7 +302,7 @@ export default function AddressPicker({ address, onChange }: {
         )}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" disabled={!KEY} onClick={() => { setMapError(""); setMapOpen(true); }}
+        <button type="button" onClick={() => { setMapError(""); setMapOpen(true); }}
           className="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-2 py-2 text-sm font-semibold text-teal-800 disabled:opacity-50">
           <MapPinned className="h-4 w-4 shrink-0" /> На карте
         </button>
@@ -255,30 +318,28 @@ export default function AddressPicker({ address, onChange }: {
       {!KEY && <p className="text-sm text-red-700">Не настроен NEXT_PUBLIC_MAPTILER_KEY.</p>}
       {mapOpen && (
         <div role="dialog" aria-modal="true" aria-label="Выбор точки уборки"
-          className="fixed inset-0 z-[100] flex flex-col bg-white">
-          <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-            <div><h2 className="text-lg font-bold text-slate-900">Точка уборки</h2><p className="text-xs text-slate-500">Передвиньте карту под маркером</p></div>
+          className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-[#F7F9F6]">
+          <header className="pointer-events-none absolute inset-x-4 top-[max(72px,env(safe-area-inset-top))] z-[600] flex items-center justify-between rounded-[20px] bg-white/95 px-4 py-3 shadow-xl backdrop-blur-lg pointer-events-auto">
+            <div><p className="text-[11px] font-bold tracking-widest text-[#159f91]">CLEANGO</p><h2 className="text-base font-bold text-[#152535]">Выберите адрес</h2></div>
             <button type="button" aria-label="Закрыть" onClick={() => setMapOpen(false)} className="rounded-full bg-slate-100 p-2"><X className="h-5 w-5" /></button>
           </header>
-          <div className="relative min-h-0 flex-1 bg-slate-100">
-            <div ref={setMapNode} className="absolute inset-0" />
+          <div className="relative min-h-0 flex-1 bg-[#F7F9F6]">
+            <div ref={setMapNode} className="absolute inset-0 h-full w-full" />
             {!mapReady && !mapError && <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-100/90 text-sm font-semibold text-slate-600">Загружаем карту...</div>}
             {mapError && <div role="alert" className="absolute inset-0 z-20 flex items-center justify-center bg-slate-100 p-6 text-center text-sm text-red-700">{mapError}</div>}
             {mapReady && !mapError && <button type="button" onClick={locateOnMap} disabled={mapLocating} aria-label="Моё местоположение" className="absolute bottom-5 right-4 z-10 rounded-2xl bg-white p-3 text-teal-700 shadow-lg"><LocateFixed className="h-5 w-5" /></button>}
             <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-full">
-              <div className={`flex h-7 w-7 -rotate-45 items-center justify-center rounded-[10px] rounded-br-[3px] border-2 border-white bg-teal-600 shadow-xl transition-transform duration-200 ${mapMoving ? "-translate-x-2 -translate-y-2 scale-110" : ""}`}><div className="h-2 w-2 rounded-full border-2 border-white bg-teal-100" /></div>
+              <div className={`flex h-7 w-7 items-center justify-center rounded-full border-[4px] border-white bg-[#159f91] shadow-[0_8px_22px_rgba(10,120,108,.3)] transition-transform duration-200 ${mapMoving ? "-translate-y-2 scale-110" : ""}`}><div className="h-2 w-2 rounded-full border-2 border-white bg-teal-100" /></div>
             </div>
           </div>
-          <footer className="space-y-2 border-t border-slate-100 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <div className="rounded-2xl bg-slate-50 p-3"><p className="text-xs font-semibold text-teal-700">Адрес уборки</p><p className="mt-1 text-sm font-medium text-slate-900">{mapMoving ? "Выбираем точку..." : pickedAddress}</p><p className="mt-1 text-xs text-slate-500">Перемещайте карту, чтобы уточнить точку приезда клинера</p></div>
-            <button type="button" onClick={() => void runDiagnostics()} disabled={diagnosing} className="w-full rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800">{diagnosing ? "Проверяем..." : "Проверить карту"}</button>
-            {diagnostics.length > 0 && <div role="status" className="max-h-40 overflow-auto rounded-xl bg-slate-900 p-3 font-mono text-xs leading-5 text-white">{diagnostics.map((line, index) => <div key={index}>{line}</div>)}</div>}
-            {mapError && <p role="alert" className="text-sm text-red-700">{mapError}</p>}
-            <button type="button" disabled={mapBusy || mapMoving || !mapReady || Boolean(mapError)} onClick={() => void confirmMap()}
+          <footer className="absolute inset-x-0 bottom-0 z-[500] max-h-[75dvh] overflow-y-auto rounded-t-[28px] bg-white p-5 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_38px_rgba(20,70,60,.12)]"><button type="button" onClick={()=>setSheetOpen(!sheetOpen)} className="mb-4 flex h-6 w-full items-center justify-center" aria-label="Свернуть или раскрыть карточку"><span className="h-1.5 w-12 rounded-full bg-[#dbe8e4]"/></button>{sheetOpen && <div className="space-y-3">
+            <div className="flex items-center gap-3"><div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#e5f8f5] text-[#159f91]"><MapPin size={23}/></div><div className="min-w-0"><p className="text-xs font-bold text-[#159f91]">Точка уборки</p><h3 className="text-base font-bold text-[#152535]">Выбранный адрес</h3><p className="text-xs text-[#72847f]">{mapMoving ? "Уточняем адрес..." : pickedAddress}</p></div></div>
+            {detailsOpen && <div className="grid grid-cols-2 gap-3">{([["Подъезд",entrance,setEntrance],["Этаж",floor,setFloor],["Квартира / офис",apartment,setApartment],["Домофон",intercom,setIntercom]] as const).map(([label,value,setter])=><label key={label} className="text-xs font-semibold text-[#667b75]">{label}<input value={value} onChange={e=>setter(e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-[#e0ebe7] bg-[#f7fbf9] px-3 text-sm text-[#152535]"/></label>)}<label className="col-span-2 text-xs font-semibold text-[#667b75]">Комментарий для клинера<textarea value={comment} onChange={e=>setComment(e.target.value)} rows={2} placeholder="Например, вход со двора" className="mt-1 w-full rounded-xl border border-[#e0ebe7] bg-[#f7fbf9] p-3 text-sm text-[#152535]"/></label></div>}
+            <button type="button" disabled={mapBusy || mapMoving || !mapReady || Boolean(mapError)} onClick={() => {if(!detailsOpen)setDetailsOpen(true);else void confirmMap();}}
               className="h-12 w-full rounded-2xl bg-teal-600 font-semibold text-white disabled:opacity-50">
-              {mapBusy ? "Определяем адрес..." : mapReady ? "Подтвердить точку" : "Ожидаем загрузку карты"}
+              {mapBusy ? "Сохраняем..." : mapReady ? (detailsOpen ? "Сохранить адрес" : "Уточнить адрес") : "Ожидаем загрузку карты"}
             </button>
-          </footer>
+          </div>}{!sheetOpen && <button type="button" onClick={()=>setSheetOpen(true)} className="w-full truncate text-left text-sm font-semibold text-[#152535]">{pickedAddress}</button>}<p className="mt-3 text-center text-[10px] text-[#8b9c97]"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a></p></footer>
         </div>
       )}
     </div>
