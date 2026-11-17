@@ -266,7 +266,7 @@ export default function AddressPicker({ address, onChange }: {
             {mapError && <div role="alert" className="absolute inset-0 z-20 flex items-center justify-center bg-slate-100 p-6 text-center text-sm text-red-700">{mapError}</div>}
             {mapReady && !mapError && <button type="button" onClick={locateOnMap} disabled={mapLocating} aria-label="Моё местоположение" className="absolute bottom-5 right-4 z-10 rounded-2xl bg-white p-3 text-teal-700 shadow-lg"><LocateFixed className="h-5 w-5" /></button>}
             <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-full">
-              <div className={`flex h-12 w-12 -rotate-45 items-center justify-center rounded-[18px] rounded-br-sm border-[3px] border-white bg-teal-600 shadow-xl transition-transform duration-200 ${mapMoving ? "-translate-x-2 -translate-y-2 scale-110" : ""}`}><div className="h-4 w-4 rounded-full border-[3px] border-white bg-teal-100" /></div>
+              <div className={`flex h-7 w-7 -rotate-45 items-center justify-center rounded-[10px] rounded-br-[3px] border-2 border-white bg-teal-600 shadow-xl transition-transform duration-200 ${mapMoving ? "-translate-x-2 -translate-y-2 scale-110" : ""}`}><div className="h-2 w-2 rounded-full border-2 border-white bg-teal-100" /></div>
             </div>
           </div>
           <footer className="space-y-2 border-t border-slate-100 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
