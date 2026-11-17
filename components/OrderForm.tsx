@@ -45,6 +45,11 @@ const cleaningTypeNames: Record<CleaningType, string> = {
 export default function OrderForm({ cleaningType }: OrderFormProps) {
   const [address, setAddress] = useState("");
   const [area, setArea] = useState("");
+  const [entrance, setEntrance] = useState("");
+  const [floor, setFloor] = useState("");
+  const [apartment, setApartment] = useState("");
+  const [intercom, setIntercom] = useState("");
+  const [addressNote, setAddressNote] = useState("");
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -173,7 +178,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
           "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify({
-          address: address.trim(),
+          address: [address.trim(), entrance.trim() && `подъезд ${entrance.trim()}`, floor.trim() && `этаж ${floor.trim()}`, apartment.trim() && `кв./офис ${apartment.trim()}`, intercom.trim() && `домофон ${intercom.trim()}`, addressNote.trim() && `комментарий: ${addressNote.trim()}`].filter(Boolean).join(", "),
           area: parsedArea,
           cleaningType,
           ...(coordinates ?? {}),
@@ -292,6 +297,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
             setCreatedOrder(null);
             setAddress("");
             setArea("");
+            setEntrance(""); setFloor(""); setApartment(""); setIntercom(""); setAddressNote("");
             setCoordinates(null);
             setPriceQuote(null);
             setPriceError("");
@@ -310,6 +316,25 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         setAddress(nextAddress);
         setCoordinates(nextCoordinates);
       }} />
+
+      <div className="space-y-3 rounded-[22px] border border-[#DCEDE7] bg-[#F7FCFA] p-4">
+        <div><p className="text-sm font-bold text-[#153D36]">Как найти ваш вход?</p><p className="mt-1 text-xs text-[#6B8780]">Укажите детали, чтобы клинер приехал к нужному подъезду.</p></div>
+        <div className="grid grid-cols-2 gap-3">
+          {([
+            ["Подъезд", entrance, setEntrance, "Например, 2"],
+            ["Этаж", floor, setFloor, "Например, 5"],
+            ["Квартира / офис", apartment, setApartment, "Например, 42"],
+            ["Домофон", intercom, setIntercom, "Код или номер"],
+          ] as const).map(([label, value, update, placeholder]) => (
+            <label key={label} className="block text-xs font-semibold text-[#476C65]">{label}
+              <input value={value} onChange={(event) => update(event.target.value)} maxLength={60} placeholder={placeholder} className="mt-1.5 h-11 w-full rounded-xl border border-[#DDEBE6] bg-white px-3 text-base text-[#152535] outline-none focus:border-[#159F91]" />
+            </label>
+          ))}
+        </div>
+        <label className="block text-xs font-semibold text-[#476C65]">Комментарий для клинера
+          <textarea value={addressNote} onChange={(event) => setAddressNote(event.target.value)} maxLength={250} rows={2} placeholder="Например, вход со двора" className="mt-1.5 w-full resize-none rounded-xl border border-[#DDEBE6] bg-white p-3 text-base text-[#152535] outline-none focus:border-[#159F91]" />
+        </label>
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="area">Площадь помещения (м²)</Label>
