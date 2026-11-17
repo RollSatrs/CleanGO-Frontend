@@ -6,49 +6,69 @@ import Link from "next/link";
 
 type MapInstance = {
   getCenter(): { lat: number; lng: number };
-  flyTo(center: [number, number], zoom?: number): void;
-  invalidateSize(): void;
+  flyTo(options: { center: [number, number]; zoom?: number; essential?: boolean }): void;
+  resize(): void;
   on(event: string, handler: () => void): void;
   remove(): void;
+  setStyle(style: string | Record<string, unknown>): void;
+  getStyle(): { layers?: Array<{ id: string; type: string }> };
+  setPaintProperty(id: string, name: string, value: string): void;
 };
-type TileLayer = {
-  on(event: string, handler: () => void): TileLayer;
-  addTo(map: MapInstance): TileLayer;
-  remove(): void;
-};
-type LeafletApi = {
-  map(element: HTMLElement, options: Record<string, unknown>): MapInstance;
-  tileLayer(url: string, options: Record<string, unknown>): TileLayer;
-};
-type LeafletWindow = Window & { L?: LeafletApi };
+type MapLibreApi = { Map: new (options: Record<string, unknown>) => MapInstance };
+type MapLibreWindow = Window & { maplibregl?: MapLibreApi };
 const SEMEY: [number, number] = [50.4111, 80.2275];
-const LEAFLET_VERSION = "1.9.4";
-async function loadLeaflet(): Promise<LeafletApi> {
-  if (!document.getElementById("cg-preview-leaflet-css")) {
+const MAPLIBRE_VERSION = "5.9.0";
+const VECTOR_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+const RASTER_STYLE = {
+  version: 8,
+  sources: { osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap contributors" } },
+  layers: [{ id: "osm", type: "raster", source: "osm" }],
+};
+const PALETTES = {
+  light: { background: "#F7F9F6", building: "#E5EAE6", park: "#E5F2E9", water: "#DCEFED", road: "#FFFFFF", roadBorder: "#DCE4E0" },
+  dark: { background: "#182522", building: "#30413C", park: "#243E34", water: "#244248", road: "#43534E", roadBorder: "#2D3D38" },
+};
+function styleCleanGo(map: MapInstance, dark: boolean) {
+  const c = PALETTES[dark ? "dark" : "light"];
+  for (const layer of map.getStyle().layers ?? []) {
+    const id = layer.id.toLowerCase();
+    try {
+      if (layer.type === "background") map.setPaintProperty(layer.id, "background-color", c.background);
+      if (layer.type === "fill" && /building/.test(id)) map.setPaintProperty(layer.id, "fill-color", c.building);
+      if (layer.type === "fill" && /park|grass|wood|landcover|landuse/.test(id)) map.setPaintProperty(layer.id, "fill-color", c.park);
+      if (layer.type === "fill" && /water/.test(id)) map.setPaintProperty(layer.id, "fill-color", c.water);
+      if (layer.type === "line" && /road|street|highway|transportation/.test(id)) map.setPaintProperty(layer.id, "line-color", /casing|outline/.test(id) ? c.roadBorder : c.road);
+    } catch { /* Style may use expressions or omit optional layers. */ }
+  }
+}
+async function loadMapLibre(): Promise<MapLibreApi> {
+  const existing = (window as MapLibreWindow).maplibregl;
+  if (existing?.Map) return existing;
+  if (!document.getElementById("cleango-maplibre-css")) {
     const css = document.createElement("link");
-    css.id = "cg-preview-leaflet-css";
+    css.id = "cleango-maplibre-css";
     css.rel = "stylesheet";
-    css.href = `https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.css`;
+    css.href = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
     document.head.appendChild(css);
   }
-  const existing = (window as LeafletWindow).L;
-  if (existing) return existing;
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = `https://unpkg.com/leaflet@${LEAFLET_VERSION}/dist/leaflet.js`;
+    script.src = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Не удалось загрузить карту"));
+    script.onerror = () => reject(new Error("Не удалось загрузить MapLibre"));
     document.head.appendChild(script);
   });
-  const loaded = (window as LeafletWindow).L;
-  if (!loaded) throw new Error("Leaflet не загрузился");
-  return loaded;
+  const api = (window as MapLibreWindow).maplibregl;
+  if (!api?.Map) throw new Error("MapLibre не загрузился");
+  return api;
 }
 
 export default function CleanGoMapsPreview() {
   const node = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapInstance | null>(null);
   const [ready, setReady] = useState(false);
+  const [source, setSource] = useState<"vector" | "raster">("vector");
+  const darkRef = useRef(false);
   const [dark, setDark] = useState(false);
   const [error, setError] = useState("");
   const [moving, setMoving] = useState(false);
@@ -96,15 +116,40 @@ export default function CleanGoMapsPreview() {
   }, [center.lat, center.lng]);
 
   useEffect(() => {
+    darkRef.current = dark;
+    if (map.current && source === "vector") {
+      map.current.setStyle(VECTOR_STYLE);
+    }
+  }, [dark, source]);
+
+  useEffect(() => {
     if (!node.current) return;
     let cancelled = false;
     let instance: MapInstance | null = null;
-    const timeout = window.setTimeout(() => { if (!cancelled) setError("Карта загружается слишком долго. Проверьте подключение."); }, 18000);
+    let fallback = false;
+    let loaded = false;
+    const fallbackToRaster = () => {
+      if (cancelled || fallback || !instance) return;
+      fallback = true;
+      setSource("raster");
+      setError("");
+      instance.setStyle(RASTER_STYLE);
+    };
+    const timer = window.setTimeout(fallbackToRaster, 11000);
     void (async () => {
       try {
-        const leaflet = await loadLeaflet();
+        const lib = await loadMapLibre();
         if (cancelled || !node.current) return;
-        instance = leaflet.map(node.current, { center: SEMEY, zoom: 16, zoomControl: false, attributionControl: false });
+        instance = new lib.Map({
+          container: node.current,
+          center: [SEMEY[1], SEMEY[0]],
+          zoom: 16,
+          style: VECTOR_STYLE,
+          attributionControl: false,
+          dragRotate: false,
+          pitchWithRotate: false,
+          touchPitch: false,
+        });
         map.current = instance;
         instance.on("movestart", () => { if (!cancelled) { setMoving(true); setSaved(false); } });
         instance.on("moveend", () => {
@@ -113,31 +158,33 @@ export default function CleanGoMapsPreview() {
           setCenter({ lat: point.lat, lng: point.lng });
           setMoving(false);
         });
-        // Use the OSM source directly. CARTO now returns API-key watermarks as valid images,
-        // so tileload cannot detect that failure and a fallback never starts.
-        const tiles = leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          subdomains: "abc", maxZoom: 19, attribution: "© OpenStreetMap contributors",
+        instance.on("style.load", () => {
+          if (cancelled || !instance) return;
+          if (!fallback) styleCleanGo(instance, darkRef.current);
         });
-        tiles.on("tileload", () => {
-          if (!cancelled) { clearTimeout(timeout); setReady(true); setError(""); }
+        instance.on("idle", () => {
+          if (cancelled) return;
+          loaded = true;
+          clearTimeout(timer);
+          setReady(true);
+          setError("");
         });
-        tiles.on("tileerror", () => {
-          if (!cancelled) setError("Не удалось загрузить карту. Проверьте подключение.");
+        instance.on("error", () => {
+          if (!cancelled && !loaded) fallbackToRaster();
         });
-        tiles.addTo(instance);
-        window.setTimeout(() => { if (!cancelled) instance?.invalidateSize(); }, 300);
+        window.setTimeout(() => { if (!cancelled) instance?.resize(); }, 350);
       } catch (e) {
-        if (!cancelled) { clearTimeout(timeout); setError(e instanceof Error ? e.message : "Ошибка карты"); }
+        if (!cancelled) { clearTimeout(timer); setError(e instanceof Error ? e.message : "Ошибка карты"); }
       }
     })();
-    return () => { cancelled = true; clearTimeout(timeout); instance?.remove(); map.current = null; };
+    return () => { cancelled = true; clearTimeout(timer); instance?.remove(); map.current = null; };
   }, []);
 
   function locate() {
     if (!navigator.geolocation) { setError("Геолокация недоступна"); return; }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => { setLocating(false); map.current?.flyTo([coords.latitude, coords.longitude], 17); },
+      ({ coords }) => { setLocating(false); map.current?.flyTo({ center: [coords.longitude, coords.latitude], zoom: 17, essential: true }); },
       () => { setLocating(false); setError("Разрешите доступ к местоположению в Telegram"); },
       { enableHighAccuracy: true, timeout: 12000 },
     );
@@ -179,7 +226,7 @@ export default function CleanGoMapsPreview() {
         <p className="mt-3 text-center text-[11px] text-[#8b9c97]">Тестовая версия · Заказ не создаётся</p>
         </>}
         {!sheetOpen && <button type="button" onClick={() => setSheetOpen(true)} className="w-full truncate pb-2 text-left text-sm font-semibold">{address}</button>}
-        <p className="mt-2 text-center text-[10px] text-[#8b9c97]"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a></p>
+        <p className="mt-2 text-center text-[10px] text-[#8b9c97]"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a> · {source === "vector" ? "CleanGo Vector" : "Резервная карта"}</p>
       </section>
     </main>
   );
