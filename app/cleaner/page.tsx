@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import BottomNav from "@/components/navigation/BottomNav";
-import { ArrowRight, ClipboardList, ShieldCheck, Wallet } from "lucide-react";
+import { ArrowRight, ClipboardList, ShieldCheck, Wallet, Settings2 } from "lucide-react";
 import { AppHeader, AppCard, AppLinkButton } from "@/components/ui/clean-go";
 
 export default function CleanerPage() {
@@ -21,6 +21,7 @@ export default function CleanerPage() {
         <Link href="/cleaner/jobs" className="block"><AppCard><ClipboardList className="h-6 w-6 text-[#20B4A4]"/><p className="mt-5 text-sm font-bold">Заказы</p><p className="mt-1 text-xs leading-5 text-[#8A9AA2]">Новые заявки</p></AppCard></Link>
         <Link href="/cleaner/earnings" className="block"><AppCard><Wallet className="h-6 w-6 text-[#20B4A4]"/><p className="mt-5 text-sm font-bold">Доходы</p><p className="mt-1 text-xs leading-5 text-[#8A9AA2]">История заработка</p></AppCard></Link>
       </div>
+      <Link href="/cleaner/settings" className="mt-5 flex items-center gap-3 rounded-[20px] border border-[#CDEFE8] bg-white p-4 text-sm font-bold text-[#168C80]"><Settings2 className="h-5 w-5"/> Настроить доступность и геопозицию <ArrowRight className="ml-auto h-4 w-4"/></Link>
       <div className="mt-5 flex items-center gap-3 rounded-[20px] bg-[#EDF9F6] p-4"><ShieldCheck className="h-5 w-5 shrink-0 text-[#20B4A4]"/><p className="text-xs leading-5 text-[#67857E]">Доступность заказов зависит от подключения серверной логики и проверки профиля.</p></div>
       </div>
     </div>
