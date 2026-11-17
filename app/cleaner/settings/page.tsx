@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001").replace(/\/$/, "");
+const API_URL = "/api/backend";
 const TYPES = [
   { id: "regular", label: "Поддерживающая" },
   { id: "general", label: "Генеральная" },
