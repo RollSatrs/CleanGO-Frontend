@@ -5,7 +5,7 @@ import { Check, LocateFixed, MapPin, MapPinned, X } from "lucide-react";
 
 type Coordinates = { latitude: number; longitude: number };
 type Feature = { place_name: string; center: [number, number] };
-type MapHandle = { getCenter(): {lng:number;lat:number}; flyTo(center: [number,number], zoom?:number): void; invalidateSize(): void; remove(): void };
+type MapHandle = { getCenter(): {lng:number;lat:number}; flyTo(center: [number,number], zoom?:number): void; invalidateSize(): void; remove(): void; on(event:string,callback:()=>void):void };
 type TileLayer = { on(event:string, callback:()=>void): TileLayer; addTo(map:MapHandle):TileLayer };
 type LeafletLibrary = { map(node:HTMLElement, options:Record<string,unknown>):MapHandle; tileLayer(url:string, options:Record<string,unknown>):TileLayer };
 declare global { interface Window { L?: LeafletLibrary } }
@@ -28,6 +28,8 @@ export default function AddressPicker({ address, onChange }: {
   const [mapBusy, setMapBusy] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapLocating, setMapLocating] = useState(false);
+  const [mapMoving, setMapMoving] = useState(false);
+  const [pickedAddress, setPickedAddress] = useState("Переместите карту для выбора адреса");
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
   const [diagnosing, setDiagnosing] = useState(false);
   const [point, setPoint] = useState<[number, number]>(SEMEY);
@@ -135,6 +137,14 @@ export default function AddressPicker({ address, onChange }: {
         const leaflet = window.L;
         map = leaflet.map(mapNode, {center:[point[1],point[0]], zoom:15, zoomControl:true, attributionControl:true});
         mapRef.current = map;
+        map.on("movestart", () => { if (!disposed) setMapMoving(true); });
+        map.on("moveend", () => {
+          if (disposed || !map) return;
+          setMapMoving(false);
+          const center = map.getCenter();
+          setPoint([center.lng, center.lat]);
+          setPickedAddress("Точка: " + center.lat.toFixed(5) + ", " + center.lng.toFixed(5));
+        });
         const tiles = leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           subdomains:"abc", maxZoom:19, attribution:"© OpenStreetMap contributors"
         });
@@ -256,14 +266,15 @@ export default function AddressPicker({ address, onChange }: {
             {mapError && <div role="alert" className="absolute inset-0 z-20 flex items-center justify-center bg-slate-100 p-6 text-center text-sm text-red-700">{mapError}</div>}
             {mapReady && !mapError && <button type="button" onClick={locateOnMap} disabled={mapLocating} aria-label="Моё местоположение" className="absolute bottom-5 right-4 z-10 rounded-2xl bg-white p-3 text-teal-700 shadow-lg"><LocateFixed className="h-5 w-5" /></button>}
             <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-full">
-              <MapPin className="h-11 w-11 fill-teal-600 text-white drop-shadow-xl" />
+              <div className={`flex h-12 w-12 -rotate-45 items-center justify-center rounded-[18px] rounded-br-sm border-[3px] border-white bg-teal-600 shadow-xl transition-transform duration-200 ${mapMoving ? "-translate-x-2 -translate-y-2 scale-110" : ""}`}><div className="h-4 w-4 rounded-full border-[3px] border-white bg-teal-100" /></div>
             </div>
           </div>
           <footer className="space-y-2 border-t border-slate-100 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="rounded-2xl bg-slate-50 p-3"><p className="text-xs font-semibold text-teal-700">Адрес уборки</p><p className="mt-1 text-sm font-medium text-slate-900">{mapMoving ? "Выбираем точку..." : pickedAddress}</p><p className="mt-1 text-xs text-slate-500">Перемещайте карту, чтобы уточнить точку приезда клинера</p></div>
             <button type="button" onClick={() => void runDiagnostics()} disabled={diagnosing} className="w-full rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800">{diagnosing ? "Проверяем..." : "Проверить карту"}</button>
             {diagnostics.length > 0 && <div role="status" className="max-h-40 overflow-auto rounded-xl bg-slate-900 p-3 font-mono text-xs leading-5 text-white">{diagnostics.map((line, index) => <div key={index}>{line}</div>)}</div>}
             {mapError && <p role="alert" className="text-sm text-red-700">{mapError}</p>}
-            <button type="button" disabled={mapBusy || !mapReady || Boolean(mapError)} onClick={() => void confirmMap()}
+            <button type="button" disabled={mapBusy || mapMoving || !mapReady || Boolean(mapError)} onClick={() => void confirmMap()}
               className="h-12 w-full rounded-2xl bg-teal-600 font-semibold text-white disabled:opacity-50">
               {mapBusy ? "Определяем адрес..." : mapReady ? "Подтвердить точку" : "Ожидаем загрузку карты"}
             </button>
