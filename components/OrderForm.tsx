@@ -321,13 +321,14 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
           max="1000"
           step="1"
           placeholder="Например, 65"
+          className="h-12 rounded-2xl border-[#E0EAE7] bg-[#FBFDFC] px-4 text-base"
           value={area}
           onChange={(event) => setArea(event.target.value)}
           required
         />
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-teal-100 bg-teal-50/70 p-4 sm:p-5">
+      <div className="space-y-3 rounded-[22px] border-0 bg-[#E9F8F3] p-5">
         <div>
           <p className="text-sm font-medium text-gray-600">
             Предварительная стоимость уборки
@@ -354,7 +355,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
           )
         ) : (
           <div className="space-y-3">
-            <p className="text-3xl font-bold text-teal-700">
+            <p className="text-[38px] font-bold tracking-tight text-[#087F71]">
               {priceQuote.totalPrice.toLocaleString("ru-RU")} ₸
             </p>
 
@@ -400,16 +401,12 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
           !address.trim() ||
           !coordinates
         }
-        className="h-12 w-full rounded-2xl bg-teal-600 text-base font-semibold text-white hover:bg-teal-700"
+        className="h-14 w-full rounded-2xl bg-[#0A9A89] text-base font-bold text-white shadow-[0_8px_20px_rgba(10,154,137,0.18)] hover:bg-[#078776]"
       >
         {loading ? "Создаём заказ..." : "Найти клинера"}
       </Button>
 
-      <p className="text-center text-xs text-gray-500">
-        Сейчас мы регистрируем заявку.
-        Автоматический поиск исполнителей появится
-        на следующем этапе.
-      </p>
+      <p className="text-center text-xs leading-5 text-[#94A5A1]">Нажимая кнопку, вы отправляете заявку на уборку.</p>
     </form>
   );
 }
