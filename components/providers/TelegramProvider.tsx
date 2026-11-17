@@ -95,6 +95,7 @@ export default function TelegramProvider({
   const [ready, setReady] = useState(false);
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
+  const isPublicMapPreview = pathname === "/dev/cleango-maps";
 
   // Telegram fullscreen uses a different content area than compact/fullsize.
   // Read its actual insets instead of applying a fixed top margin.
@@ -232,6 +233,8 @@ export default function TelegramProvider({
       </main>
     );
   }
+
+  if (isPublicMapPreview) return <>{children}</>;
 
   return (
     <AuthProvider>
