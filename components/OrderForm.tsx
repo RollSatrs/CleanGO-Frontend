@@ -340,6 +340,30 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         />
       </div>
 
+      <div className="space-y-2 rounded-xl border border-teal-200 bg-teal-50 p-4">
+        <p className="text-sm font-medium text-slate-800">Точка уборки на карте</p>
+        <p className="text-xs text-slate-600">
+          Если вы сейчас находитесь по адресу уборки, определите местоположение для поиска ближайшего клинера.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={locationLoading}
+          onClick={requestLocation}
+        >
+          {locationLoading ? "Определяем местоположение..." : "Я нахожусь по адресу уборки — определить точку"}
+        </Button>
+        {coordinates && (
+          <p className="text-sm text-teal-800" role="status">
+            Местоположение определено. Координаты будут переданы вместе с заказом.
+          </p>
+        )}
+        {locationError && (
+          <p className="text-sm text-red-700" role="alert">{locationError}</p>
+        )}
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="area">Площадь помещения (м²)</Label>
 
