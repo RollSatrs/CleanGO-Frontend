@@ -60,6 +60,7 @@ export default function AddressPicker({ address, onChange }: {
   const mapRef = useRef<MapHandle | null>(null);
   const vectorRef = useRef<VectorMap | null>(null);
   const [vectorActive,setVectorActive] = useState(false);
+  const [vectorFallback,setVectorFallback] = useState(false);
   const [detailsOpen,setDetailsOpen] = useState(false);
   const [sheetOpen,setSheetOpen] = useState(true);
   const [entrance,setEntrance]=useState("");
@@ -131,7 +132,7 @@ export default function AddressPicker({ address, onChange }: {
   }
 
   useEffect(() => {
-    if (!mapOpen || !mapNode || vectorActive) return;
+    if (!mapOpen || !mapNode || !vectorFallback) return;
     let disposed = false;
     let map: MapHandle | null = null;
     setMapReady(false);
@@ -203,7 +204,8 @@ export default function AddressPicker({ address, onChange }: {
   useEffect(()=>{
     if(!mapOpen||!mapNode)return;
     let cancelled=false;let instance:VectorMap|null=null;let verified=false;
-    const timeout=window.setTimeout(()=>{if(!cancelled&&!verified)setVectorActive(false);},9000);
+    const fallback=()=>{if(cancelled||verified)return;instance?.remove();instance=null;vectorRef.current=null;setVectorActive(false);setVectorFallback(true);};
+    const timeout=window.setTimeout(fallback,9000);
     void (async()=>{try{
       const lib=await loadVector();if(cancelled||!mapNode)return;
       instance=new lib.Map({container:mapNode,center:point,zoom:16,style:VECTOR_STYLE,attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
@@ -212,9 +214,9 @@ export default function AddressPicker({ address, onChange }: {
       instance.on("movestart",()=>{if(!cancelled)setMapMoving(true);});
       instance.on("moveend",()=>{if(cancelled||!instance)return;const c=instance.getCenter();setPoint([c.lng,c.lat]);setPickedAddress("Уточняем адрес...");setMapMoving(false);});
       instance.on("idle",()=>{if(cancelled||!instance)return;const layers=(instance.getStyle().layers??[]).filter(l=>["fill","line","symbol"].includes(l.type)).map(l=>l.id);if(layers.length){verified=true;clearTimeout(timeout);setVectorActive(true);setMapReady(true);setMapError("");}});
-      instance.on("error",()=>{if(!verified&&!cancelled)setVectorActive(false);});
+      instance.on("error",()=>{if(!verified&&!cancelled){clearTimeout(timeout);fallback();}});
       window.setTimeout(()=>{if(!cancelled)instance?.resize();},350);
-    }catch{if(!cancelled)setVectorActive(false);}})();
+    }catch{if(!cancelled){clearTimeout(timeout);fallback();}}})();
     return()=>{cancelled=true;clearTimeout(timeout);instance?.remove();vectorRef.current=null;};
   // Initialize once on opening.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -302,7 +304,7 @@ export default function AddressPicker({ address, onChange }: {
         )}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => { setMapError(""); setMapOpen(true); }}
+        <button type="button" onClick={() => { setMapError(""); setVectorFallback(false); setVectorActive(false); setMapOpen(true); }}
           className="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-2 py-2 text-sm font-semibold text-teal-800 disabled:opacity-50">
           <MapPinned className="h-4 w-4 shrink-0" /> На карте
         </button>
