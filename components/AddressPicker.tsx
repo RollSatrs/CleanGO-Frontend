@@ -29,7 +29,6 @@ export default function AddressPicker({ address, onChange }: {
   const [mapLocating, setMapLocating] = useState(false);
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
   const [diagnosing, setDiagnosing] = useState(false);
-  const [previewError, setPreviewError] = useState(false);
   const [point, setPoint] = useState<[number, number]>(SEMEY);
   const [locationBusy, setLocationBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -116,6 +115,10 @@ export default function AddressPicker({ address, onChange }: {
           link.href = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
           document.head.appendChild(link);
         }
+        const critical = document.getElementById("cleango-maplibre-critical-css") || document.createElement("style");
+        critical.id = "cleango-maplibre-critical-css";
+        critical.textContent = ".maplibregl-map{position:relative;overflow:hidden}.maplibregl-canvas-container{position:absolute;left:0;top:0;width:100%;height:100%}.maplibregl-canvas{position:absolute;left:0;top:0}";
+        document.head.appendChild(critical);
         if (!window.maplibregl) {
           await new Promise<void>((resolve, reject) => {
             const id = "cleango-maplibre-script";
@@ -137,7 +140,7 @@ export default function AddressPicker({ address, onChange }: {
         if (disposed || !window.maplibregl) return;
         map = new window.maplibregl.Map({
           container: mapNode,
-          style: { version: 8, sources: { "base": { type: "raster", tiles: [`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${encodeURIComponent(KEY)}`], tileSize: 256, attribution: "© MapTiler © OpenStreetMap contributors" } }, layers: [{ id: "base", type: "raster", source: "base" }] },
+          style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(KEY)}`,
           center: point, zoom: 15, failIfMajorPerformanceCaveat: false,
         });
         mapRef.current = map;
@@ -177,6 +180,7 @@ export default function AddressPicker({ address, onChange }: {
     const mapCanvas = mapNode?.querySelector("canvas");
     add("Canvas: " + (mapCanvas ? mapCanvas.width + "x" + mapCanvas.height : "не найден"));
     add("MapLibre load: " + (mapReady ? "да" : "нет"));
+    if (mapCanvas) { const r = mapCanvas.getBoundingClientRect(); add("Canvas CSS: " + Math.round(r.width) + "x" + Math.round(r.height)); }
     if (KEY) {
       for (const [name, path] of [["Стиль", "maps/streets-v2/style.json"], ["Тайл", "maps/streets-v2/13/5921/2750.png"]]) {
         const controller = new AbortController();
@@ -285,7 +289,6 @@ export default function AddressPicker({ address, onChange }: {
           </div>
           <footer className="space-y-2 border-t border-slate-100 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <button type="button" onClick={() => void runDiagnostics()} disabled={diagnosing} className="w-full rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800">{diagnosing ? "Проверяем..." : "Проверить карту"}</button>
-            {diagnostics.length > 0 && KEY && <div className="overflow-hidden rounded-xl border border-slate-200"><p className="bg-white px-3 py-2 text-xs font-semibold text-slate-700">Проверка изображения без WebGL</p><img src={`https://api.maptiler.com/maps/streets-v2/static/${point[0]},${point[1]},14/600x240.png?key=${encodeURIComponent(KEY)}`} alt="Проверочное изображение карты" className="block h-36 w-full object-cover" onLoad={() => setPreviewError(false)} onError={() => setPreviewError(true)} />{previewError && <p className="px-3 py-2 text-xs text-red-700">Статическая карта не загрузилась</p>}</div>}
             {diagnostics.length > 0 && <div role="status" className="max-h-40 overflow-auto rounded-xl bg-slate-900 p-3 font-mono text-xs leading-5 text-white">{diagnostics.map((line, index) => <div key={index}>{line}</div>)}</div>}
             {mapError && <p role="alert" className="text-sm text-red-700">{mapError}</p>}
             <button type="button" disabled={mapBusy || !mapReady || Boolean(mapError)} onClick={() => void confirmMap()}
