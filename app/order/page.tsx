@@ -8,13 +8,7 @@ import Link from "next/link";
 import OrderForm from "@/components/OrderForm";
 import CleanGoLogo from "@/components/branding/CleanGoLogo";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+
 
 type CleaningType =
   | "regular"
@@ -112,115 +106,49 @@ function OrderContent() {
   const service = services[serviceId];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:py-12">
-      <div className="mx-auto w-full max-w-3xl space-y-7">
-        {/* Навигация */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition-colors hover:text-teal-700"
-        >
-          <span aria-hidden="true">←</span>
-          Вернуться к услугам
-        </Link>
-
-        {/* Логотип и заголовок */}
-        <header className="space-y-3">
-          <CleanGoLogo
-            size={56}
-            showName
-            className="mb-5"
-          />
-
-          <div className="inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
-            CleanGo · Заказ уборки
+    <main className="min-h-screen bg-[#F7FAF9] pb-12 text-[#152535]">
+      <div className="mx-auto w-full max-w-2xl">
+        <header className="relative overflow-hidden rounded-b-[32px] bg-[#E7F7F3] px-5 pb-7 pt-6 sm:px-8">
+          <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#BCECE1]/60 blur-3xl" />
+          <div className="relative">
+            <Link href="/" className="mb-7 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-[#315C56]">← К услугам</Link>
+            <div className="mb-5"><CleanGoLogo size={44} showName /></div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[#2A9183]">Оформление заказа</p>
+            <h1 className="max-w-sm text-[30px] font-bold leading-[1.12] tracking-[-0.04em] sm:text-4xl">Чистота начинается здесь</h1>
+            <p className="mt-3 max-w-sm text-sm leading-6 text-[#56716E]">Укажите адрес и площадь — мы рассчитаем стоимость уборки.</p>
           </div>
-
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Оформление уборки
-          </h1>
-
-          <p className="max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
-            Выберите параметры уборки, укажите адрес
-            и узнайте предварительную стоимость.
-          </p>
         </header>
-
-        {/* Выбранная услуга */}
-        <Card className="gap-4 rounded-2xl border-slate-200 bg-white py-6 shadow-sm">
-          <CardHeader className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <CardTitle className="text-xl font-bold text-slate-900">
-                {service.title}
-              </CardTitle>
-
-              <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
-                Выбрано
-              </span>
+        <div className="space-y-5 px-4 pt-5 sm:px-6">
+          <section className="rounded-[24px] border border-[#E6EFEC] bg-white p-5 shadow-[0_8px_32px_rgba(21,37,53,0.035)]">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#7A9290]">Ваша услуга</p>
+              <span className="rounded-full bg-[#E7F8F2] px-3 py-1 text-xs font-semibold text-[#168675]">Выбрано ✓</span>
             </div>
-
-            <CardDescription className="text-sm leading-6 text-slate-600">
-              {service.description}
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            <div className="border-t border-slate-100 pt-4">
-              <p className="mb-3 text-sm font-semibold text-slate-800">
-                Что входит в уборку
-              </p>
-
-              <ul className="grid gap-3 sm:grid-cols-2">
+            <h2 className="text-xl font-bold tracking-tight">{service.title}</h2>
+            <p className="mt-2 text-sm leading-6 text-[#718380]">{service.description}</p>
+            <details className="group mt-4 border-t border-[#EEF3F1] pt-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-[#267E73] [&::-webkit-details-marker]:hidden">
+                Что входит в уборку <span className="text-lg transition-transform group-open:rotate-180">⌄</span>
+              </summary>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                 {service.features.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-2 text-sm text-slate-600"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="mt-0.5 font-bold text-teal-600"
-                    >
-                      ✓
-                    </span>
-
-                    <span>{feature}</span>
+                  <li key={feature} className="flex items-start gap-2 text-sm leading-5 text-[#607673]">
+                    <span className="font-bold text-[#2AAB96]">✓</span>{feature}
                   </li>
                 ))}
               </ul>
+            </details>
+          </section>
+          <section className="rounded-[24px] border border-[#E6EFEC] bg-white p-5 shadow-[0_8px_32px_rgba(21,37,53,0.035)] sm:p-6">
+            <div className="mb-6">
+              <p className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-[#7A9290]">Параметры уборки</p>
+              <h2 className="text-xl font-bold tracking-tight">Куда приедет клинер?</h2>
+              <p className="mt-1 text-sm text-[#81918F]">Укажите точный адрес и площадь помещения</p>
             </div>
-
-            <div className="rounded-xl bg-slate-50 px-4 py-3">
-              <p className="text-sm text-slate-600">
-                Стоимость будет рассчитана автоматически
-                после ввода площади помещения.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Форма заказа */}
-        <Card className="gap-4 rounded-2xl border-slate-200 bg-white py-6 shadow-sm">
-          <CardHeader className="space-y-2">
-            <CardTitle className="text-xl font-bold text-slate-900">
-              Детали заказа
-            </CardTitle>
-
-            <CardDescription className="text-sm text-slate-600">
-              Заполните информацию, чтобы зарегистрировать
-              заявку на уборку.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
             <OrderForm cleaningType={serviceId} />
-          </CardContent>
-        </Card>
-
-        {/* Информация */}
-        <p className="text-center text-xs leading-5 text-slate-500">
-          Стоимость рассчитывается сервером CleanGo
-          по текущим тестовым тарифам.
-          После оформления она сохраняется вместе с заказом.
-        </p>
+          </section>
+          <p className="px-4 text-center text-xs leading-5 text-[#91A19E]">Стоимость рассчитывается автоматически по текущим тестовым тарифам CleanGo.</p>
+        </div>
       </div>
     </main>
   );
