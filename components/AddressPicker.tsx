@@ -5,7 +5,7 @@ import { Check, LocateFixed, MapPin, MapPinned, X } from "lucide-react";
 
 type Coordinates = { latitude: number; longitude: number };
 type Feature = { place_name: string; center: [number, number] };
-type MapHandle = { getCenter(): { lng: number; lat: number }; on(event: string, handler: (...args: any[]) => void): void; flyTo(options: {center: [number,number]; zoom?: number}): void; resize(): void; remove(): void };
+type MapHandle = { getCenter(): { lng: number; lat: number }; on(event: string, handler: (...args: any[]) => void): void; flyTo(options: {center: [number,number]; zoom?: number}): void; resize(): void; remove(): void; loaded?(): boolean; areTilesLoaded?(): boolean; isStyleLoaded?(): boolean; getStyle?(): {layers?: Array<{id:string;type:string}>; sources?: Record<string,unknown>}; getZoom?(): number; };
 type MapLibrary = { Map: new (options: Record<string, unknown>) => MapHandle };
 declare global { interface Window { maplibregl?: MapLibrary } }
 
@@ -169,7 +169,7 @@ export default function AddressPicker({ address, onChange }: {
 
   async function runDiagnostics() {
     setDiagnosing(true);
-    const lines: string[] = ["Диагностика CG-MAP-02"];
+    const lines: string[] = ["Диагностика CG-MAP-03"];
     const add = (line: string) => { lines.push(line); setDiagnostics([...lines]); };
     setDiagnostics([...lines]);
     add("Ключ: " + (KEY ? "есть" : "нет"));
@@ -181,6 +181,27 @@ export default function AddressPicker({ address, onChange }: {
     add("Canvas: " + (mapCanvas ? mapCanvas.width + "x" + mapCanvas.height : "не найден"));
     add("MapLibre load: " + (mapReady ? "да" : "нет"));
     if (mapCanvas) { const r = mapCanvas.getBoundingClientRect(); add("Canvas CSS: " + Math.round(r.width) + "x" + Math.round(r.height)); }
+    const activeMap = mapRef.current;
+    if (activeMap) {
+      add("Стиль загружен: " + String(activeMap.isStyleLoaded?.() ?? "неизвестно"));
+      add("Тайлы загружены: " + String(activeMap.areTilesLoaded?.() ?? "неизвестно"));
+      add("Карта loaded: " + String(activeMap.loaded?.() ?? "неизвестно"));
+      const style = activeMap.getStyle?.();
+      add("Слоёв: " + String(style?.layers?.length ?? "неизвестно"));
+      add("Источников: " + String(style?.sources ? Object.keys(style.sources).length : "неизвестно"));
+      add("Zoom: " + String(activeMap.getZoom?.() ?? "неизвестно"));
+      const center = activeMap.getCenter();
+      add("Центр: " + center.lat.toFixed(4) + ", " + center.lng.toFixed(4));
+      const zoom = Math.max(0, Math.min(18, Math.floor(activeMap.getZoom?.() ?? 14)));
+      const n = Math.pow(2, zoom);
+      const x = Math.floor((center.lng + 180) / 360 * n);
+      const latRad = center.lat * Math.PI / 180;
+      const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+      add("Тайл центра: " + zoom + "/" + x + "/" + y);
+    }
+    const resourceNames = performance.getEntriesByType("resource").map(entry => entry.name);
+    add("Запросов MapTiler: " + resourceNames.filter(name => name.includes("api.maptiler.com")).length);
+    add("Запросов тайлов: " + resourceNames.filter(name => /api\.maptiler\.com.*\/(\d+)\/(\d+)\/(\d+)/.test(name)).length);
     if (KEY) {
       for (const [name, path] of [["Стиль", "maps/streets-v2/style.json"], ["Тайл", "maps/streets-v2/13/5921/2750.png"]]) {
         const controller = new AbortController();
