@@ -42,12 +42,27 @@ function applyPalette(map: MapObject, dark: boolean) {
   return changed;
 }
 async function loadMapLibre() {
+  // MapLibre JS can load before its stylesheet. Without CSS its canvas remains
+  // at the default 300px height and the map is visually blank on mobile.
+  const cssId = "cleango-maplibre-lab-css";
+  let link = document.getElementById(cssId) as HTMLLinkElement | null;
+  if (!link) {
+    link = document.createElement("link");
+    link.id = cssId;
+    link.rel = "stylesheet";
+    link.href = CDN + "maplibre-gl.css";
+    document.head.appendChild(link);
+  }
+  if (!link.sheet) {
+    await new Promise<void>((resolve, reject) => {
+      const timer = window.setTimeout(() => reject(new Error("Таймаут CSS MapLibre")), 10000);
+      link!.addEventListener("load", () => { window.clearTimeout(timer); resolve(); }, { once: true });
+      link!.addEventListener("error", () => { window.clearTimeout(timer); reject(new Error("CSS MapLibre недоступен")); }, { once: true });
+      if (link!.sheet) { window.clearTimeout(timer); resolve(); }
+    });
+  }
   const existing = (window as WindowWithMap).maplibregl;
   if (existing?.Map) return existing;
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = CDN + "maplibre-gl.css";
-  document.head.appendChild(link);
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
     script.src = CDN + "maplibre-gl.js";
@@ -163,7 +178,8 @@ export default function CleanGoVectorLab() {
   const dark = theme === "dark";
   return (
     <main className={`relative h-[100dvh] min-h-[500px] overflow-hidden ${dark ? "bg-[#192522] text-white" : "bg-[#F7F9F6] text-[#152535]"}`}>
-      <div ref={node} className="absolute inset-0" />
+      <style>{`.cleango-vector-lab-map .maplibregl-map, .cleango-vector-lab-map .maplibregl-canvas-container { position:absolute!important; inset:0!important; width:100%!important; height:100%!important; } .cleango-vector-lab-map canvas.maplibregl-canvas { position:absolute!important; left:0!important; top:0!important; width:100%!important; height:100%!important; }`}</style>
+      <div ref={node} className="cleango-vector-lab-map absolute inset-0" />
       <header className="absolute left-4 right-4 top-5 z-10 flex items-center justify-between gap-3 rounded-2xl bg-white/95 p-3 text-[#152535] shadow-lg">
         <div><div className="text-[10px] font-bold tracking-widest text-[#159F91]">CLEANGO MAPS 0.4 · LAB</div><h1 className="text-sm font-bold">Собственный стиль карты</h1></div>
         <button type="button" className="rounded-xl bg-[#E5F8F5] px-3 py-2 text-xs font-bold text-[#117D73]" onClick={() => setTheme(dark ? "light" : "dark")}>{dark ? "Светлая" : "Тёмная"}</button>
