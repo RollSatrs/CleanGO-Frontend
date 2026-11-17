@@ -6,6 +6,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import AddressPicker from "@/components/AddressPicker";
 
 type CleaningType = "regular" | "general" | "renovation";
 
@@ -45,8 +46,6 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
   const [address, setAddress] = useState("");
   const [area, setArea] = useState("");
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [locationError, setLocationError] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [priceLoading, setPriceLoading] = useState(false);
@@ -135,31 +134,6 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
     };
   }, [cleaningType, parsedArea, isAreaValid]);
 
-  function requestLocation() {
-    setLocationError("");
-    setCoordinates(null);
-    if (!navigator.geolocation) {
-      setLocationError("Геолокация недоступна в этом браузере.");
-      return;
-    }
-    setLocationLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setLocationLoading(false);
-        if (coords.accuracy > 500) {
-          setLocationError("Местоположение определено слишком неточно. Попробуйте ещё раз.");
-          return;
-        }
-        setCoordinates({ latitude: coords.latitude, longitude: coords.longitude });
-      },
-      () => {
-        setLocationLoading(false);
-        setLocationError("Не удалось получить геолокацию. Разрешите доступ и попробуйте ещё раз.");
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-    );
-  }
-
   // Создание заказа
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -171,6 +145,11 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
 
     if (!address.trim()) {
       setError("Укажите адрес уборки.");
+      return;
+    }
+
+    if (!coordinates) {
+      setError("Выберите адрес из подсказок или точку на карте.");
       return;
     }
 
@@ -314,7 +293,6 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
             setAddress("");
             setArea("");
             setCoordinates(null);
-            setLocationError("");
             setPriceQuote(null);
             setPriceError("");
             setError("");
@@ -327,42 +305,11 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="address">Адрес уборки</Label>
-
-        <Input
-          id="address"
-          placeholder="Например, улица Абая, дом 15"
-          value={address}
-          onChange={(event) => setAddress(event.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2 rounded-xl border border-teal-200 bg-teal-50 p-4">
-        <p className="text-sm font-medium text-slate-800">Точка уборки на карте</p>
-        <p className="text-xs text-slate-600">
-          Если вы сейчас находитесь по адресу уборки, определите местоположение для поиска ближайшего клинера.
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-auto min-h-11 w-full max-w-full whitespace-normal break-words px-3 py-3 text-center text-sm leading-5"
-          disabled={locationLoading}
-          onClick={requestLocation}
-        >
-          {locationLoading ? "Определяем местоположение..." : "Я нахожусь по адресу уборки — определить точку"}
-        </Button>
-        {coordinates && (
-          <p className="text-sm text-teal-800" role="status">
-            Местоположение определено. Координаты будут переданы вместе с заказом.
-          </p>
-        )}
-        {locationError && (
-          <p className="text-sm text-red-700" role="alert">{locationError}</p>
-        )}
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <AddressPicker address={address} onChange={(nextAddress, nextCoordinates) => {
+        setAddress(nextAddress);
+        setCoordinates(nextCoordinates);
+      }} />
 
       <div className="space-y-2">
         <Label htmlFor="area">Площадь помещения (м²)</Label>
@@ -380,7 +327,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         />
       </div>
 
-      <div className="space-y-3 rounded-xl border border-teal-200 bg-teal-50 p-5">
+      <div className="space-y-3 rounded-2xl border border-teal-100 bg-teal-50/70 p-4 sm:p-5">
         <div>
           <p className="text-sm font-medium text-gray-600">
             Предварительная стоимость уборки
@@ -450,9 +397,10 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
           loading ||
           priceLoading ||
           !hasCurrentQuote ||
-          !address.trim()
+          !address.trim() ||
+          !coordinates
         }
-        className="w-full bg-teal-600 text-white hover:bg-teal-700"
+        className="h-12 w-full rounded-2xl bg-teal-600 text-base font-semibold text-white hover:bg-teal-700"
       >
         {loading ? "Создаём заказ..." : "Найти клинера"}
       </Button>
