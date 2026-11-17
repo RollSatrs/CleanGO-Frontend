@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AddressPicker from "@/components/AddressPicker";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 type CleaningType = "regular" | "general" | "renovation";
 
@@ -33,8 +34,7 @@ type PriceQuote = {
   currency: string;
 };
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_URL = "/api/backend";
 
 const cleaningTypeNames: Record<CleaningType, string> = {
   regular: "Поддерживающая уборка",
@@ -43,6 +43,7 @@ const cleaningTypeNames: Record<CleaningType, string> = {
 };
 
 export default function OrderForm({ cleaningType }: OrderFormProps) {
+  const { token, user } = useAuth();
   const [address, setAddress] = useState("");
   const [area, setArea] = useState("");
   const [entrance, setEntrance] = useState("");
@@ -144,6 +145,10 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
     event.preventDefault();
 
     if (loading) return;
+    if (!token || user?.role !== "client" || !user.phoneVerifiedAt) {
+      setError("Для заказа войдите как клиент и подтвердите номер телефона.");
+      return;
+    }
 
     setError("");
     setCreatedOrder(null);
@@ -175,7 +180,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           address: [address.trim(), entrance.trim() && `подъезд ${entrance.trim()}`, floor.trim() && `этаж ${floor.trim()}`, apartment.trim() && `кв./офис ${apartment.trim()}`, intercom.trim() && `домофон ${intercom.trim()}`, addressNote.trim() && `комментарий: ${addressNote.trim()}`].filter(Boolean).join(", "),
