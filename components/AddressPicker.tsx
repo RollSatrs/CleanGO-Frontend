@@ -27,6 +27,8 @@ export default function AddressPicker({ address, onChange }: {
   const [mapBusy, setMapBusy] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapLocating, setMapLocating] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<string[]>([]);
+  const [diagnosing, setDiagnosing] = useState(false);
   const [point, setPoint] = useState<[number, number]>(SEMEY);
   const [locationBusy, setLocationBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -161,6 +163,32 @@ export default function AddressPicker({ address, onChange }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapOpen, mapNode]);
 
+  async function runDiagnostics() {
+    setDiagnosing(true);
+    const lines: string[] = ["Диагностика CG-MAP-02"];
+    const add = (line: string) => { lines.push(line); setDiagnostics([...lines]); };
+    setDiagnostics([...lines]);
+    add("Ключ: " + (KEY ? "есть" : "нет"));
+    const canvas = document.createElement("canvas");
+    let gl = false;
+    try { gl = Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl")); } catch {}
+    add("WebGL: " + (gl ? "доступен" : "недоступен"));
+    const mapCanvas = mapNode?.querySelector("canvas");
+    add("Canvas: " + (mapCanvas ? mapCanvas.width + "x" + mapCanvas.height : "не найден"));
+    add("MapLibre load: " + (mapReady ? "да" : "нет"));
+    if (KEY) {
+      for (const [name, path] of [["Стиль", "maps/streets-v2/style.json"], ["Тайл", "maps/streets-v2/13/5921/2750.png"]]) {
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 8000);
+        try {
+          const response = await fetch("https://api.maptiler.com/" + path + "?key=" + encodeURIComponent(KEY), {signal: controller.signal, cache:"no-store"});
+          add(name + ": HTTP " + response.status + " " + (response.headers.get("content-type") || ""));
+        } catch (error) { add(name + ": " + (error instanceof Error ? error.name : "ошибка сети")); }
+        finally { window.clearTimeout(timeout); }
+      }
+    }
+    setDiagnosing(false);
+  }
   function locateOnMap() {
     if (!mapReady || !mapRef.current || !navigator.geolocation) return;
     setMapLocating(true);
@@ -255,6 +283,8 @@ export default function AddressPicker({ address, onChange }: {
             </div>
           </div>
           <footer className="space-y-2 border-t border-slate-100 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <button type="button" onClick={() => void runDiagnostics()} disabled={diagnosing} className="w-full rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800">{diagnosing ? "Проверяем..." : "Проверить карту"}</button>
+            {diagnostics.length > 0 && <div role="status" className="max-h-40 overflow-auto rounded-xl bg-slate-900 p-3 font-mono text-xs leading-5 text-white">{diagnostics.map((line, index) => <div key={index}>{line}</div>)}</div>}
             {mapError && <p role="alert" className="text-sm text-red-700">{mapError}</p>}
             <button type="button" disabled={mapBusy || !mapReady || Boolean(mapError)} onClick={() => void confirmMap()}
               className="h-12 w-full rounded-2xl bg-teal-600 font-semibold text-white disabled:opacity-50">
