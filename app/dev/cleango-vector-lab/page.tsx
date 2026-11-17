@@ -11,6 +11,9 @@ type MapObject = {
   queryRenderedFeatures(point?: [number, number]): unknown[];
   getCanvas(): HTMLCanvasElement;
   resize(): void;
+  areTilesLoaded(): boolean;
+  isSourceLoaded(id: string): boolean;
+  getZoom(): number;
 };
 type MapLib = { Map: new (options: Record<string, unknown>) => MapObject };
 type WindowWithMap = Window & { maplibregl?: MapLib };
@@ -61,6 +64,8 @@ export default function CleanGoVectorLab() {
   const [styledLayers, setStyledLayers] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
   const [attempt, setAttempt] = useState(0);
+  const [tileStatus, setTileStatus] = useState("Ожидаем данные");
+  const [sources, setSources] = useState("");
   useEffect(() => {
     if (!node.current) return;
     let stopped = false;
@@ -71,6 +76,8 @@ export default function CleanGoVectorLab() {
     setPhase("Загрузка векторного стиля");
     setFeatureCount(0);
     setErrors([]);
+    setTileStatus("Ожидаем данные");
+    setSources("");
     void (async () => {
       try {
         const lib = await loadMapLibre();
@@ -84,20 +91,27 @@ export default function CleanGoVectorLab() {
         instance.on("style.load", () => {
           if (stopped || !instance) return;
           setStyledLayers(applyPalette(instance, theme === "dark"));
+          setSources(Object.keys((instance.getStyle() as {sources?:Record<string,unknown>}).sources ?? {}).join(", ") || "нет");
           setPhase("Стиль загружен, проверяем геометрию");
         });
         instance.on("idle", () => {
           if (stopped || !instance) return;
           let count = 0;
           try {
-            const canvas = instance.getCanvas();
-            count = instance.queryRenderedFeatures([canvas.clientWidth / 2, canvas.clientHeight / 2]).length;
+            count = instance.queryRenderedFeatures().length;
+            setTileStatus(instance.areTilesLoaded() ? "Тайлы загружены" : "Тайлы ещё загружаются");
           } catch { /* Report zero rendered features */ }
           setFeatureCount(count);
           if (count > 0) {
             window.clearTimeout(timeout);
             setPhase("Векторные объекты обнаружены");
+          } else if (instance.areTilesLoaded()) {
+            setPhase("Тайлы загружены, но видимых объектов нет");
           }
+        });
+        instance.on("sourcedata", () => {
+          if (stopped || !instance) return;
+          setTileStatus(instance.areTilesLoaded() ? "Тайлы загружены" : "Ожидаем тайлы");
         });
         instance.on("error", (event) => {
           if (stopped) return;
@@ -125,7 +139,8 @@ export default function CleanGoVectorLab() {
       <section className="absolute bottom-4 left-4 right-4 z-10 rounded-[22px] bg-white/95 p-4 text-[#152535] shadow-xl">
         <div className="mb-1 text-xs font-bold text-[#159F91]">Диагностика векторной карты</div>
         <div className="text-sm font-semibold">{phase}</div>
-        <div className="mt-1 text-xs text-[#63766F]">Объекты в центре: {featureCount} · Стилизованные слои: {styledLayers}</div>
+        <div className="mt-1 text-xs text-[#63766F]">Видимые объекты: {featureCount} · Стилизованные слои: {styledLayers}</div>
+        <p className="mt-1 break-words text-[11px] text-[#63766F]">Источник: {sources || "ожидание"} · {tileStatus}</p>
         {errors.length > 0 && <p className="mt-2 break-words text-xs text-red-700">{errors[errors.length - 1]}</p>}
         <div className="mt-3 flex gap-2">
           <button type="button" onClick={() => setAttempt(n => n + 1)} className="flex-1 rounded-xl bg-[#159F91] px-3 py-3 text-sm font-bold text-white">Повторить проверку</button>
