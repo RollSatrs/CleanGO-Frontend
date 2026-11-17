@@ -5,13 +5,14 @@ import { Check, LocateFixed, MapPin, MapPinned, X } from "lucide-react";
 
 type Coordinates = { latitude: number; longitude: number };
 type Feature = { place_name: string; center: [number, number] };
-type MapHandle = { getCenter(): { lng: number; lat: number }; on(event: string, handler: (...args: any[]) => void): void; flyTo(options: {center: [number,number]; zoom?: number}): void; resize(): void; remove(): void; loaded?(): boolean; areTilesLoaded?(): boolean; isStyleLoaded?(): boolean; getStyle?(): {layers?: Array<{id:string;type:string}>; sources?: Record<string,unknown>}; getZoom?(): number; };
-type MapLibrary = { Map: new (options: Record<string, unknown>) => MapHandle };
-declare global { interface Window { maplibregl?: MapLibrary } }
+type MapHandle = { getCenter(): {lng:number;lat:number}; flyTo(center: [number,number], zoom?:number): void; invalidateSize(): void; remove(): void };
+type TileLayer = { on(event:string, callback:()=>void): TileLayer; addTo(map:MapHandle):TileLayer };
+type LeafletLibrary = { map(node:HTMLElement, options:Record<string,unknown>):MapHandle; tileLayer(url:string, options:Record<string,unknown>):TileLayer };
+declare global { interface Window { L?: LeafletLibrary } }
 
 const KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const SEMEY: [number, number] = [80.2275, 50.4111];
-const MAPLIBRE_VERSION = "5.9.0";
+const LEAFLET_VERSION = "1.9.4";
 
 export default function AddressPicker({ address, onChange }: {
   address: string;
@@ -98,121 +99,71 @@ export default function AddressPicker({ address, onChange }: {
   }
 
   useEffect(() => {
-    if (!mapOpen || !KEY || !mapNode) return;
+    if (!mapOpen || !mapNode) return;
     let disposed = false;
-    setMapReady(false);
-    const timeout = window.setTimeout(() => { if (!disposed) setMapError("Карта не загрузилась за 15 секунд. Проверьте ограничения MapTiler или доступ к CDN."); }, 15000);
     let map: MapHandle | null = null;
+    setMapReady(false);
+    setMapError("");
+    const timeout = window.setTimeout(() => { if (!disposed) setMapError("Карта не загрузилась. Проверьте соединение."); }, 15000);
     const load = async () => {
       try {
-        const probe = await fetch(`https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(KEY)}`);
-        if (!probe.ok) throw new Error(`MapTiler HTTP ${probe.status}`);
-        const cssId = "cleango-maplibre-css";
-        if (!document.getElementById(cssId)) {
+        if (!document.getElementById("cleango-leaflet-css")) {
           const link = document.createElement("link");
-          link.id = cssId;
+          link.id = "cleango-leaflet-css";
           link.rel = "stylesheet";
-          link.href = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
+          link.href = "https://unpkg.com/leaflet@" + LEAFLET_VERSION + "/dist/leaflet.css";
           document.head.appendChild(link);
         }
-        const critical = document.getElementById("cleango-maplibre-critical-css") || document.createElement("style");
-        critical.id = "cleango-maplibre-critical-css";
-        critical.textContent = ".maplibregl-map{position:relative;overflow:hidden}.maplibregl-canvas-container{position:absolute;left:0;top:0;width:100%;height:100%}.maplibregl-canvas{position:absolute;left:0;top:0}";
-        document.head.appendChild(critical);
-        if (!window.maplibregl) {
+        if (!window.L) {
           await new Promise<void>((resolve, reject) => {
-            const id = "cleango-maplibre-script";
-            const existing = document.getElementById(id) as HTMLScriptElement | null;
+            const existing = document.getElementById("cleango-leaflet-script") as HTMLScriptElement | null;
             if (existing) {
-              if (window.maplibregl) { resolve(); return; }
-              existing.addEventListener("load", () => resolve(), { once: true });
-              existing.addEventListener("error", () => reject(new Error("Script failed")), { once: true });
+              if (window.L) { resolve(); return; }
+              existing.addEventListener("load", () => resolve(), {once:true});
+              existing.addEventListener("error", () => reject(new Error("Leaflet CDN недоступен")), {once:true});
               return;
             }
             const script = document.createElement("script");
-            script.id = id;
-            script.src = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
+            script.id = "cleango-leaflet-script";
+            script.src = "https://unpkg.com/leaflet@" + LEAFLET_VERSION + "/dist/leaflet.js";
             script.onload = () => resolve();
-            script.onerror = () => reject(new Error("Script failed"));
+            script.onerror = () => reject(new Error("Leaflet CDN недоступен"));
             document.head.appendChild(script);
           });
         }
-        if (disposed || !window.maplibregl) return;
-        map = new window.maplibregl.Map({
-          container: mapNode,
-          style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(KEY)}`,
-          center: point, zoom: 15, failIfMajorPerformanceCaveat: false,
-        });
+        if (disposed || !window.L) return;
+        const leaflet = window.L;
+        map = leaflet.map(mapNode, {center:[point[1],point[0]], zoom:15, zoomControl:true, attributionControl:true});
         mapRef.current = map;
-        map.on("load", () => { if (!disposed) { window.clearTimeout(timeout); setMapReady(true); requestAnimationFrame(() => map?.resize()); window.setTimeout(() => { if (!disposed) map?.resize(); }, 350); } });
-        map.on("error", (...args: unknown[]) => {
+        const tiles = leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          subdomains:"abc", maxZoom:19, attribution:"© OpenStreetMap contributors"
+        });
+        tiles.on("tileload", () => {
           if (disposed) return;
-          console.error("CleanGo map load error", ...args);
-          setMapError("Не удалось загрузить карту. Проверьте Allowed HTTP Origins ключа MapTiler и интернет.");
-          setMapReady(false);
+          window.clearTimeout(timeout);
+          setMapReady(true);
+          setMapError("");
         });
-        map.on("moveend", () => {
-          if (!map || disposed) return;
-          const center = map.getCenter();
-          setPoint([center.lng, center.lat]);
+        tiles.on("tileerror", () => {
+          if (!disposed) setMapError("Не удалось загрузить изображения карты.");
         });
-      } catch (error) {
+        tiles.addTo(map);
+        window.setTimeout(() => { if (!disposed) map?.invalidateSize(); }, 250);
+      } catch(error) {
         window.clearTimeout(timeout);
-        if (!disposed) setMapError(`Ошибка карты: ${error instanceof Error ? error.message : "неизвестная ошибка"}`);
+        if (!disposed) setMapError(error instanceof Error ? error.message : "Ошибка карты");
       }
     };
     void load();
     return () => { disposed = true; window.clearTimeout(timeout); map?.remove(); mapRef.current = null; };
-    // Center is captured when the picker opens; don't remount while panning.
+    // The initial coordinates are captured when opening the picker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapOpen, mapNode]);
+  }, [mapOpen,mapNode]);
 
   async function runDiagnostics() {
     setDiagnosing(true);
-    const lines: string[] = ["Диагностика CG-MAP-03"];
-    const add = (line: string) => { lines.push(line); setDiagnostics([...lines]); };
-    setDiagnostics([...lines]);
-    add("Ключ: " + (KEY ? "есть" : "нет"));
-    const canvas = document.createElement("canvas");
-    let gl = false;
-    try { gl = Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl")); } catch {}
-    add("WebGL: " + (gl ? "доступен" : "недоступен"));
-    const mapCanvas = mapNode?.querySelector("canvas");
-    add("Canvas: " + (mapCanvas ? mapCanvas.width + "x" + mapCanvas.height : "не найден"));
-    add("MapLibre load: " + (mapReady ? "да" : "нет"));
-    if (mapCanvas) { const r = mapCanvas.getBoundingClientRect(); add("Canvas CSS: " + Math.round(r.width) + "x" + Math.round(r.height)); }
-    const activeMap = mapRef.current;
-    if (activeMap) {
-      add("Стиль загружен: " + String(activeMap.isStyleLoaded?.() ?? "неизвестно"));
-      add("Тайлы загружены: " + String(activeMap.areTilesLoaded?.() ?? "неизвестно"));
-      add("Карта loaded: " + String(activeMap.loaded?.() ?? "неизвестно"));
-      const style = activeMap.getStyle?.();
-      add("Слоёв: " + String(style?.layers?.length ?? "неизвестно"));
-      add("Источников: " + String(style?.sources ? Object.keys(style.sources).length : "неизвестно"));
-      add("Zoom: " + String(activeMap.getZoom?.() ?? "неизвестно"));
-      const center = activeMap.getCenter();
-      add("Центр: " + center.lat.toFixed(4) + ", " + center.lng.toFixed(4));
-      const zoom = Math.max(0, Math.min(18, Math.floor(activeMap.getZoom?.() ?? 14)));
-      const n = Math.pow(2, zoom);
-      const x = Math.floor((center.lng + 180) / 360 * n);
-      const latRad = center.lat * Math.PI / 180;
-      const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
-      add("Тайл центра: " + zoom + "/" + x + "/" + y);
-    }
-    const resourceNames = performance.getEntriesByType("resource").map(entry => entry.name);
-    add("Запросов MapTiler: " + resourceNames.filter(name => name.includes("api.maptiler.com")).length);
-    add("Запросов тайлов: " + resourceNames.filter(name => /api\.maptiler\.com.*\/(\d+)\/(\d+)\/(\d+)/.test(name)).length);
-    if (KEY) {
-      for (const [name, path] of [["Стиль", "maps/streets-v2/style.json"], ["Тайл", "maps/streets-v2/13/5921/2750.png"]]) {
-        const controller = new AbortController();
-        const timeout = window.setTimeout(() => controller.abort(), 8000);
-        try {
-          const response = await fetch("https://api.maptiler.com/" + path + "?key=" + encodeURIComponent(KEY), {signal: controller.signal, cache:"no-store"});
-          add(name + ": HTTP " + response.status + " " + (response.headers.get("content-type") || ""));
-        } catch (error) { add(name + ": " + (error instanceof Error ? error.name : "ошибка сети")); }
-        finally { window.clearTimeout(timeout); }
-      }
-    }
+    const lines = ["Диагностика CG-LEAFLET-01", "Leaflet: " + (window.L ? "загружен" : "не загружен"), "Первый тайл: " + (mapReady ? "загружен" : "ожидается"), "Ключ геокодирования: " + (KEY ? "есть" : "нет")];
+    setDiagnostics(lines);
     setDiagnosing(false);
   }
   function locateOnMap() {
@@ -222,7 +173,7 @@ export default function AddressPicker({ address, onChange }: {
       ({coords}) => {
         setMapLocating(false);
         if (coords.accuracy > 500) { setMapError("Местоположение определено недостаточно точно."); return; }
-        mapRef.current?.flyTo({center:[coords.longitude,coords.latitude],zoom:16});
+        mapRef.current?.flyTo([coords.latitude,coords.longitude],16);
       },
       () => {setMapLocating(false);setMapError("Разрешите геолокацию в настройках Telegram.");},
       {enableHighAccuracy:true,timeout:15000,maximumAge:0}
