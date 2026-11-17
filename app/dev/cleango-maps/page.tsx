@@ -13,7 +13,24 @@ type MapInstance = {
   setStyle(style: string | Record<string, unknown>): void;
   getStyle(): { layers?: Array<{ id: string; type: string }> };
   setPaintProperty(id: string, name: string, value: string): void;
+  queryRenderedFeatures(point?: [number, number], options?: { layers?: string[] }): Array<unknown>;
+  getCanvas(): HTMLCanvasElement;
 };
+type LeafletMap = { getCenter(): {lat:number;lng:number}; flyTo(point:[number,number], zoom:number):void; invalidateSize():void; remove():void; on(event:string, handler:()=>void):void };
+type LeafletApi = { map(node:HTMLElement, options:Record<string,unknown>):LeafletMap; tileLayer(url:string,options:Record<string,unknown>): { on(event:string,handler:()=>void):void; addTo(map:LeafletMap):void } };
+type LeafletWindow = Window & { L?: LeafletApi };
+async function loadLeaflet(): Promise<LeafletApi> {
+  if (!document.getElementById("cg-leaflet-css")) {
+    const link=document.createElement("link"); link.id="cg-leaflet-css"; link.rel="stylesheet"; link.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(link);
+  }
+  if ((window as LeafletWindow).L?.map) return (window as LeafletWindow).L!;
+  await new Promise<void>((resolve,reject)=>{
+    const script=document.createElement("script"); script.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; script.onload=()=>resolve(); script.onerror=()=>reject(new Error("Не удалось загрузить резервную карту")); document.head.appendChild(script);
+  });
+  const api=(window as LeafletWindow).L;
+  if (!api?.map) throw new Error("Leaflet не загрузился");
+  return api;
+}
 type MapLibreApi = { Map: new (options: Record<string, unknown>) => MapInstance };
 type MapLibreWindow = Window & { maplibregl?: MapLibreApi };
 const SEMEY: [number, number] = [50.4111, 80.2275];
@@ -66,8 +83,11 @@ async function loadMapLibre(): Promise<MapLibreApi> {
 export default function CleanGoMapsPreview() {
   const node = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapInstance | null>(null);
+  const leafletNode = useRef<HTMLDivElement | null>(null);
+  const leafletMap = useRef<LeafletMap | null>(null);
   const [ready, setReady] = useState(false);
   const [source, setSource] = useState<"vector" | "raster">("vector");
+  const [leafletActive, setLeafletActive] = useState(false);
   const darkRef = useRef(false);
   const [dark, setDark] = useState(false);
   const [error, setError] = useState("");
@@ -117,7 +137,7 @@ export default function CleanGoMapsPreview() {
 
   useEffect(() => {
     darkRef.current = dark;
-    if (map.current && source === "vector") {
+    if (map.current && source === "vector" && !leafletActive) {
       map.current.setStyle(VECTOR_STYLE);
     }
   }, [dark, source]);
@@ -127,15 +147,23 @@ export default function CleanGoMapsPreview() {
     let cancelled = false;
     let instance: MapInstance | null = null;
     let fallback = false;
-    let loaded = false;
-    const fallbackToRaster = () => {
-      if (cancelled || fallback || !instance) return;
+    let verified = false;
+    const fallbackToLeaflet = () => {
+      if (cancelled || fallback) return;
       fallback = true;
       setSource("raster");
+      setLeafletActive(true);
+      setReady(false);
       setError("");
-      instance.setStyle(RASTER_STYLE);
+      if (instance) {
+        const p=instance.getCenter();
+        setCenter({lat:p.lat,lng:p.lng});
+        instance.remove();
+        map.current=null;
+        instance=null;
+      }
     };
-    const timer = window.setTimeout(fallbackToRaster, 11000);
+    const timer = window.setTimeout(fallbackToLeaflet, 9000);
     void (async () => {
       try {
         const lib = await loadMapLibre();
@@ -163,28 +191,60 @@ export default function CleanGoMapsPreview() {
           if (!fallback) styleCleanGo(instance, darkRef.current);
         });
         instance.on("idle", () => {
-          if (cancelled) return;
-          loaded = true;
-          clearTimeout(timer);
-          setReady(true);
-          setError("");
+          if (cancelled || fallback || !instance) return;
+          const layers=(instance.getStyle().layers ?? []).filter(l => l.type==="fill" || l.type==="line" || l.type==="symbol").map(l=>l.id);
+          const canvas=instance.getCanvas();
+          const middle:[number,number]=[canvas.width/2,canvas.height/2];
+          let count=0;
+          try { count=instance.queryRenderedFeatures(middle,{layers}).length; } catch { count=0; }
+          if (count > 0) {
+            verified=true;
+            clearTimeout(timer);
+            setReady(true);
+            setError("");
+          }
         });
         instance.on("error", () => {
-          if (!cancelled && !loaded) fallbackToRaster();
+          if (!cancelled && !verified) fallbackToLeaflet();
         });
         window.setTimeout(() => { if (!cancelled) instance?.resize(); }, 350);
       } catch (e) {
-        if (!cancelled) { clearTimeout(timer); setError(e instanceof Error ? e.message : "Ошибка карты"); }
+        if (!cancelled) { clearTimeout(timer); fallbackToLeaflet(); }
       }
     })();
     return () => { cancelled = true; clearTimeout(timer); instance?.remove(); map.current = null; };
   }, []);
 
+  useEffect(() => {
+    if (!leafletActive || !leafletNode.current) return;
+    let cancelled=false;
+    let instance:LeafletMap|null=null;
+    const timeout=window.setTimeout(()=>{if(!cancelled)setError("Не удалось загрузить резервную карту");},14000);
+    void (async()=>{
+      try {
+        const lib=await loadLeaflet();
+        if(cancelled||!leafletNode.current)return;
+        instance=lib.map(leafletNode.current,{center:[center.lat,center.lng],zoom:16,zoomControl:false,attributionControl:false});
+        leafletMap.current=instance;
+        instance.on("movestart",()=>{if(!cancelled){setMoving(true);setSaved(false);}});
+        instance.on("moveend",()=>{if(!cancelled&&instance){const p=instance.getCenter();setCenter({lat:p.lat,lng:p.lng});setMoving(false);}});
+        const tiles=lib.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{subdomains:"abc",maxZoom:19,attribution:"© OpenStreetMap contributors"});
+        tiles.on("tileload",()=>{if(!cancelled){clearTimeout(timeout);setReady(true);setError("");}});
+        tiles.on("tileerror",()=>{if(!cancelled)setError("Не удалось загрузить тайлы OpenStreetMap");});
+        tiles.addTo(instance);
+        window.setTimeout(()=>{if(!cancelled)instance?.invalidateSize();},350);
+      } catch(e){if(!cancelled){clearTimeout(timeout);setError(e instanceof Error?e.message:"Ошибка резервной карты");}}
+    })();
+    return()=>{cancelled=true;clearTimeout(timeout);instance?.remove();leafletMap.current=null;};
+  // Initialize Leaflet only once after switching to fallback.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[leafletActive]);
+
   function locate() {
     if (!navigator.geolocation) { setError("Геолокация недоступна"); return; }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => { setLocating(false); map.current?.flyTo({ center: [coords.longitude, coords.latitude], zoom: 17, essential: true }); },
+      ({ coords }) => { setLocating(false); if (leafletMap.current) leafletMap.current.flyTo([coords.latitude, coords.longitude],17); else map.current?.flyTo({ center: [coords.longitude, coords.latitude], zoom: 17, essential: true }); },
       () => { setLocating(false); setError("Разрешите доступ к местоположению в Telegram"); },
       { enableHighAccuracy: true, timeout: 12000 },
     );
@@ -192,7 +252,8 @@ export default function CleanGoMapsPreview() {
 
   return (
     <main className="relative flex h-[100dvh] min-h-[540px] flex-col overflow-hidden bg-[#F7F9F6] text-[#152535] dark:bg-[#182522] dark:text-white">
-      <div ref={node} className="absolute inset-0" />
+      <div ref={node} className={`absolute inset-0 ${leafletActive ? "invisible" : ""}`} />
+      {leafletActive && <div ref={leafletNode} className="absolute inset-0 z-[1]" />}
       <div className="pointer-events-none absolute inset-0 z-[400] bg-gradient-to-b from-[#f4faf7]/10 via-transparent to-[#dcece7]/10" />
       <header className="pointer-events-none absolute inset-x-0 top-0 z-[600] px-4 pt-[max(16px,env(safe-area-inset-top),var(--cleango-telegram-top,0px))]">
         <div className="pointer-events-auto flex items-center gap-3 rounded-[18px] border border-white/80 bg-white/95 dark:border-[#344943] dark:bg-[#253936]/95 p-2 shadow-[0_12px_40px_rgba(18,55,52,.12)] backdrop-blur-xl">
