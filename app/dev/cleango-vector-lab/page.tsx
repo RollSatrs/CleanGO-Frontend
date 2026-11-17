@@ -59,6 +59,8 @@ async function loadMapLibre() {
 export default function CleanGoVectorLab() {
   const node = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [originalStyle, setOriginalStyle] = useState(true);
+  const [renderInfo, setRenderInfo] = useState("Проверка WebGL ожидается");
   const [phase, setPhase] = useState("Подготовка карты");
   const [featureCount, setFeatureCount] = useState(0);
   const [styledLayers, setStyledLayers] = useState(0);
@@ -78,6 +80,9 @@ export default function CleanGoVectorLab() {
     setErrors([]);
     setTileStatus("Ожидаем данные");
     setSources("");
+    const probe = document.createElement("canvas");
+    const gl = probe.getContext("webgl2") || probe.getContext("webgl");
+    setRenderInfo(gl ? `WebGL доступен · ${gl.getParameter(gl.VERSION)}` : "WebGL недоступен");
     void (async () => {
       try {
         const lib = await loadMapLibre();
@@ -90,7 +95,7 @@ export default function CleanGoVectorLab() {
         });
         instance.on("style.load", () => {
           if (stopped || !instance) return;
-          setStyledLayers(applyPalette(instance, theme === "dark"));
+          setStyledLayers(originalStyle ? 0 : applyPalette(instance, theme === "dark"));
           setSources(Object.keys((instance.getStyle() as {sources?:Record<string,unknown>}).sources ?? {}).join(", ") || "нет");
           setPhase("Стиль загружен, проверяем геометрию");
         });
@@ -124,7 +129,7 @@ export default function CleanGoVectorLab() {
       }
     })();
     return () => { stopped = true; window.clearTimeout(timeout); instance?.remove(); };
-  }, [theme, attempt]);
+  }, [theme, originalStyle, attempt]);
   const dark = theme === "dark";
   return (
     <main className={`relative h-[100dvh] min-h-[500px] overflow-hidden ${dark ? "bg-[#192522] text-white" : "bg-[#F7F9F6] text-[#152535]"}`}>
@@ -141,6 +146,11 @@ export default function CleanGoVectorLab() {
         <div className="text-sm font-semibold">{phase}</div>
         <div className="mt-1 text-xs text-[#63766F]">Видимые объекты: {featureCount} · Стилизованные слои: {styledLayers}</div>
         <p className="mt-1 break-words text-[11px] text-[#63766F]">Источник: {sources || "ожидание"} · {tileStatus}</p>
+        <p className="mt-1 break-words text-[11px] text-[#63766F]">{renderInfo}</p>
+        <div className="mt-3 flex gap-2">
+          <button type="button" onClick={() => setOriginalStyle(true)} className={`flex-1 rounded-xl px-2 py-2 text-xs font-bold ${originalStyle ? "bg-[#159F91] text-white" : "bg-[#E5F8F5] text-[#117D73]"}`}>Исходный стиль</button>
+          <button type="button" onClick={() => setOriginalStyle(false)} className={`flex-1 rounded-xl px-2 py-2 text-xs font-bold ${!originalStyle ? "bg-[#159F91] text-white" : "bg-[#E5F8F5] text-[#117D73]"}`}>Стиль CleanGo</button>
+        </div>
         {errors.length > 0 && <p className="mt-2 break-words text-xs text-red-700">{errors[errors.length - 1]}</p>}
         <div className="mt-3 flex gap-2">
           <button type="button" onClick={() => setAttempt(n => n + 1)} className="flex-1 rounded-xl bg-[#159F91] px-3 py-3 text-sm font-bold text-white">Повторить проверку</button>
