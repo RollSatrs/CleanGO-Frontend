@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Clock3,
   Home,
+  MapPin,
   Paintbrush,
   ShieldCheck,
   Sparkles,
@@ -166,6 +167,15 @@ export default function HomePage() {
             </div>
           </div>
         </motion.section>
+
+        {/* Тестовая карта доступна непосредственно в Telegram Mini App */}
+        <section className="px-5 pt-5">
+          <button type="button" onClick={() => router.push("/dev/cleango-maps")} className="flex w-full items-center gap-3 rounded-[22px] border border-[#CDEFE8] bg-[#F1FBF8] px-4 py-3 text-left transition-colors active:bg-[#E2F6F0]">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#D6F4EC] text-[#119B8E]"><MapPin className="h-5 w-5" /></span>
+            <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-[#143D37]">Попробовать CleanGo Maps</span><span className="block text-xs text-[#5E8880]">Тестовая карта · выбор точки и подъезда</span></span>
+            <ChevronRight className="h-5 w-5 shrink-0 text-[#119B8E]" />
+          </button>
+        </section>
 
         {/* Преимущества */}
         <motion.section
