@@ -1,0 +1,138 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+
+type MapObject = {
+  on(event: string, callback: (event?: { error?: { message?: string } }) => void): void;
+  remove(): void;
+  getStyle(): { layers?: Array<{ id: string; type: string }> };
+  setPaintProperty(id: string, property: string, value: string): void;
+  queryRenderedFeatures(point?: [number, number]): unknown[];
+  getCanvas(): HTMLCanvasElement;
+  resize(): void;
+};
+type MapLib = { Map: new (options: Record<string, unknown>) => MapObject };
+type WindowWithMap = Window & { maplibregl?: MapLib };
+const CDN = "https://unpkg.com/maplibre-gl@5.9.0/dist/";
+const STYLE = "https://tiles.openfreemap.org/styles/liberty";
+
+function applyPalette(map: MapObject, dark: boolean) {
+  const palette = dark
+    ? { background: "#192522", building: "#30423C", park: "#284438", water: "#25464B", road: "#53645E", outline: "#34443F" }
+    : { background: "#F7F9F6", building: "#E4EAE5", park: "#E7F2E9", water: "#DCEEEB", road: "#FFFFFF", outline: "#DDE6E1" };
+  let changed = 0;
+  for (const layer of map.getStyle().layers ?? []) {
+    const id = layer.id.toLowerCase();
+    let property = "";
+    let value = "";
+    if (layer.type === "background") { property = "background-color"; value = palette.background; }
+    else if (layer.type === "fill" && /building/.test(id)) { property = "fill-color"; value = palette.building; }
+    else if (layer.type === "fill" && /park|grass|wood|landcover|landuse/.test(id)) { property = "fill-color"; value = palette.park; }
+    else if (layer.type === "fill" && /water/.test(id)) { property = "fill-color"; value = palette.water; }
+    else if (layer.type === "line" && /road|street|highway|transportation/.test(id)) { property = "line-color"; value = /casing|outline/.test(id) ? palette.outline : palette.road; }
+    if (property) { try { map.setPaintProperty(layer.id, property, value); changed++; } catch { /* Layer may not support the selected paint property */ } }
+  }
+  return changed;
+}
+async function loadMapLibre() {
+  const existing = (window as WindowWithMap).maplibregl;
+  if (existing?.Map) return existing;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = CDN + "maplibre-gl.css";
+  document.head.appendChild(link);
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = CDN + "maplibre-gl.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Не загрузилась библиотека MapLibre"));
+    document.head.appendChild(script);
+  });
+  const lib = (window as WindowWithMap).maplibregl;
+  if (!lib?.Map) throw new Error("MapLibre недоступен");
+  return lib;
+}
+export default function CleanGoVectorLab() {
+  const node = useRef<HTMLDivElement>(null);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [phase, setPhase] = useState("Подготовка карты");
+  const [featureCount, setFeatureCount] = useState(0);
+  const [styledLayers, setStyledLayers] = useState(0);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (!node.current) return;
+    let stopped = false;
+    let instance: MapObject | null = null;
+    const timeout = window.setTimeout(() => {
+      if (!stopped) setPhase("Таймаут: векторные объекты не подтверждены");
+    }, 12000);
+    setPhase("Загрузка векторного стиля");
+    setFeatureCount(0);
+    setErrors([]);
+    void (async () => {
+      try {
+        const lib = await loadMapLibre();
+        if (stopped || !node.current) return;
+        instance = new lib.Map({
+          container: node.current, style: STYLE,
+          center: [80.2145, 50.3923], zoom: 16,
+          attributionControl: false, dragRotate: false,
+          pitchWithRotate: false, touchPitch: false,
+        });
+        instance.on("style.load", () => {
+          if (stopped || !instance) return;
+          setStyledLayers(applyPalette(instance, theme === "dark"));
+          setPhase("Стиль загружен, проверяем геометрию");
+        });
+        instance.on("idle", () => {
+          if (stopped || !instance) return;
+          let count = 0;
+          try {
+            const canvas = instance.getCanvas();
+            count = instance.queryRenderedFeatures([canvas.clientWidth / 2, canvas.clientHeight / 2]).length;
+          } catch { /* Report zero rendered features */ }
+          setFeatureCount(count);
+          if (count > 0) {
+            window.clearTimeout(timeout);
+            setPhase("Векторные объекты обнаружены");
+          }
+        });
+        instance.on("error", (event) => {
+          if (stopped) return;
+          const message = event?.error?.message || "Ошибка загрузки ресурса карты";
+          setErrors(prev => [...prev.slice(-2), message]);
+        });
+        window.setTimeout(() => { if (!stopped) instance?.resize(); }, 400);
+      } catch (error) {
+        if (!stopped) setPhase(error instanceof Error ? error.message : "Ошибка инициализации");
+      }
+    })();
+    return () => { stopped = true; window.clearTimeout(timeout); instance?.remove(); };
+  }, [theme, attempt]);
+  const dark = theme === "dark";
+  return (
+    <main className={`relative h-[100dvh] min-h-[500px] overflow-hidden ${dark ? "bg-[#192522] text-white" : "bg-[#F7F9F6] text-[#152535]"}`}>
+      <div ref={node} className="absolute inset-0" />
+      <header className="absolute left-4 right-4 top-5 z-10 flex items-center justify-between gap-3 rounded-2xl bg-white/95 p-3 text-[#152535] shadow-lg">
+        <div><div className="text-[10px] font-bold tracking-widest text-[#159F91]">CLEANGO MAPS 0.4 · LAB</div><h1 className="text-sm font-bold">Собственный стиль карты</h1></div>
+        <button type="button" className="rounded-xl bg-[#E5F8F5] px-3 py-2 text-xs font-bold text-[#117D73]" onClick={() => setTheme(dark ? "light" : "dark")}>{dark ? "Светлая" : "Тёмная"}</button>
+      </header>
+      <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
+        <div className="h-5 w-5 rounded-full border-[4px] border-white bg-[#159F91] shadow-[0_5px_18px_rgba(15,120,110,.35)]" />
+      </div>
+      <section className="absolute bottom-4 left-4 right-4 z-10 rounded-[22px] bg-white/95 p-4 text-[#152535] shadow-xl">
+        <div className="mb-1 text-xs font-bold text-[#159F91]">Диагностика векторной карты</div>
+        <div className="text-sm font-semibold">{phase}</div>
+        <div className="mt-1 text-xs text-[#63766F]">Объекты в центре: {featureCount} · Стилизованные слои: {styledLayers}</div>
+        {errors.length > 0 && <p className="mt-2 break-words text-xs text-red-700">{errors[errors.length - 1]}</p>}
+        <div className="mt-3 flex gap-2">
+          <button type="button" onClick={() => setAttempt(n => n + 1)} className="flex-1 rounded-xl bg-[#159F91] px-3 py-3 text-sm font-bold text-white">Повторить проверку</button>
+          <Link href="/dev/cleango-maps" className="flex-1 rounded-xl bg-[#E5F8F5] px-3 py-3 text-center text-sm font-bold text-[#117D73]">Рабочая карта</Link>
+        </div>
+        <p className="mt-2 text-center text-[10px] text-[#80918B]">Экспериментальная страница · Основная карта не изменена · © OpenStreetMap contributors</p>
+      </section>
+    </main>
+  );
+}
