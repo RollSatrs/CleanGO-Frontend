@@ -78,7 +78,7 @@ export default function CleanerSettings() {
         const data = await response.json().catch(() => null);
         throw new Error(typeof data?.message === "string" ? data.message : "Не удалось сохранить настройки");
       }
-      setLocationSaved(Boolean(location));
+      setLocationSaved(Boolean(location) || locationSaved);
       setNotice(available ? "Вы на линии! Предложения будут приходить при совпадении условий." : "Настройки сохранены. Вы не на линии.");
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка сохранения"); }
     finally { setBusy(false); }
