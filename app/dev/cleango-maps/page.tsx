@@ -10,7 +10,7 @@ type MapInstance = {
   resize(): void;
   on(event: string, handler: () => void): void;
   remove(): void;
-  setStyle(style: string): void;
+  setStyle(style: object): void;
   getStyle(): { layers?: Array<{ id: string; type: string }> };
   setPaintProperty(layer: string, property: string, value: string): void;
 };
@@ -22,8 +22,16 @@ type MapLibreWindow = Window & { maplibregl?: MapLibreApi };
 const SEMEY: [number, number] = [80.2275, 50.4111];
 const MAPLIBRE_VERSION = "5.9.0";
 const STYLES = {
-  light: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-  dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+  light: {
+    version: 8,
+    sources: { osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, maxzoom: 19, attribution: "© OpenStreetMap contributors" } },
+    layers: [{ id: "osm", type: "raster", source: "osm" }],
+  },
+  dark: {
+    version: 8,
+    sources: { osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, maxzoom: 19, attribution: "© OpenStreetMap contributors" } },
+    layers: [{ id: "osm", type: "raster", source: "osm", paint: { "raster-brightness-max": 0.72, "raster-saturation": -0.6 } }],
+  },
 };
 function tuneMap(map: MapInstance, dark: boolean) {
   const colors = dark
@@ -154,7 +162,7 @@ export default function CleanGoMapsPreview() {
           tuneMap(instance, themeRef.current);
         });
         instance.on("idle", () => { if (!cancelled) { clearTimeout(timeout); setReady(true); setError(""); } });
-        instance.on("error", () => { if (!cancelled) setError("Не удалось загрузить карту. Проверьте соединение."); });
+        instance.on("error", () => { if (!cancelled) setError("Не удалось загрузить изображения карты. Проверьте соединение."); });
         setTimeout(() => { if (!cancelled) instance?.resize(); }, 350);
       } catch (e) {
         if (!cancelled) { clearTimeout(timeout); setError(e instanceof Error ? e.message : "Ошибка карты"); }
@@ -211,7 +219,7 @@ export default function CleanGoMapsPreview() {
         <p className="mt-3 text-center text-[11px] text-[#8b9c97]">Тестовая версия · Заказ не создаётся</p>
         </>}
         {!sheetOpen && <button type="button" onClick={() => setSheetOpen(true)} className="w-full truncate pb-2 text-left text-sm font-semibold">{address}</button>}
-        <p className="mt-2 text-center text-[10px] text-[#8b9c97]">© CARTO · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a></p>
+        <p className="mt-2 text-center text-[10px] text-[#8b9c97]"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a></p>
       </section>
     </main>
   );
