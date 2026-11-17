@@ -59,15 +59,25 @@ function styleCleanGo(map: MapInstance, dark: boolean) {
   }
 }
 async function loadMapLibre(): Promise<MapLibreApi> {
+  const cssId = "cleango-maplibre-css";
+  let link = document.getElementById(cssId) as HTMLLinkElement | null;
+  if (!link) {
+    link = document.createElement("link");
+    link.id = cssId;
+    link.rel = "stylesheet";
+    link.href = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
+    document.head.appendChild(link);
+  }
+  if (!link.sheet) {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error("Не удалось загрузить стили карты")), 12000);
+      link!.addEventListener("load", () => { clearTimeout(timeout); resolve(); }, { once: true });
+      link!.addEventListener("error", () => { clearTimeout(timeout); reject(new Error("Стили карты недоступны")); }, { once: true });
+      if (link!.sheet) { clearTimeout(timeout); resolve(); }
+    });
+  }
   const existing = (window as MapLibreWindow).maplibregl;
   if (existing?.Map) return existing;
-  if (!document.getElementById("cleango-maplibre-css")) {
-    const css = document.createElement("link");
-    css.id = "cleango-maplibre-css";
-    css.rel = "stylesheet";
-    css.href = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
-    document.head.appendChild(css);
-  }
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
     script.src = `https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
@@ -252,14 +262,14 @@ export default function CleanGoMapsPreview() {
 
   return (
     <main className="relative flex h-[100dvh] min-h-[540px] flex-col overflow-hidden bg-[#F7F9F6] text-[#152535] dark:bg-[#182522] dark:text-white">
-      <div ref={node} className={`absolute inset-0 ${leafletActive ? "invisible" : ""}`} />
-      {leafletActive && <div ref={leafletNode} className="absolute inset-0 z-[1]" />}
+      <div ref={node} className={`absolute inset-0 h-full w-full ${leafletActive ? "invisible" : ""}`} style={{ minHeight: "100dvh" }} />
+      {leafletActive && <div ref={leafletNode} className="absolute inset-0 z-[1] h-full w-full" />}
       <div className="pointer-events-none absolute inset-0 z-[400] bg-gradient-to-b from-[#f4faf7]/10 via-transparent to-[#dcece7]/10" />
       <header className="pointer-events-none absolute inset-x-0 top-0 z-[600] px-4 pt-[max(16px,env(safe-area-inset-top),var(--cleango-telegram-top,0px))]">
         <div className="pointer-events-auto flex items-center gap-3 rounded-[18px] border border-white/80 bg-white/95 dark:border-[#344943] dark:bg-[#253936]/95 p-2 shadow-[0_12px_40px_rgba(18,55,52,.12)] backdrop-blur-xl">
           <Link href="/" aria-label="Назад" className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-[#f0f7f5]"><ArrowLeft size={20} /></Link>
           <div className="min-w-0 flex-1"><p className="text-[11px] font-bold uppercase tracking-[.15em] text-[#27998e]">CleanGo</p><h1 className="truncate text-sm font-bold">Выберите адрес</h1></div>
-          <Link href="/dev/cleango-vector-lab" aria-label="Открыть экспериментальную векторную карту" className="shrink-0 rounded-xl border border-[#cceae3] bg-[#e5f8f5] px-3 py-2 text-[11px] font-bold text-[#117d73]">Vector 0.4</Link>
+
 
         </div>
       </header>
@@ -272,23 +282,23 @@ export default function CleanGoMapsPreview() {
       <button type="button" onClick={locate} disabled={locating || !ready} aria-label="Моё местоположение" className="absolute right-4 top-[36%] z-[600] grid h-12 w-12 place-items-center rounded-2xl border border-white bg-white dark:bg-[#253936] text-[#118f83] shadow-lg disabled:opacity-50"><LocateFixed size={22}/></button>
       {!ready && !error && <div className="absolute inset-0 z-[650] grid place-items-center bg-[#eef6f3]/90 text-sm font-semibold">Загружаем CleanGo Maps...</div>}
       {error && <div role="alert" className="absolute left-4 right-4 top-28 z-[700] rounded-2xl bg-white p-4 text-sm text-red-700 shadow-xl">{error}<button className="ml-2 font-bold text-[#128d81]" onClick={() => setError("")}>Закрыть</button></div>}
-      <section className="absolute inset-x-0 bottom-0 z-[600] max-h-[75dvh] overflow-y-auto rounded-t-[26px] border border-white/90 bg-white dark:bg-[#253936] px-5 pb-[max(20px,env(safe-area-inset-bottom),var(--cleango-telegram-bottom,0px))] pt-5 shadow-[0_-16px_45px_rgba(30,65,60,.14)]">
-        <button type="button" onClick={() => setSheetOpen(!sheetOpen)} aria-label="Свернуть или развернуть карточку" className="mx-auto mb-4 flex items-center justify-center gap-2"><span className="h-1 w-11 rounded-full bg-[#dbe8e4]" /><ChevronDown size={16} className={sheetOpen ? "" : "rotate-180"} /></button>
+      <section className="absolute inset-x-0 bottom-0 z-[600] max-h-[78dvh] overflow-y-auto rounded-t-[26px] border border-white/90 bg-white dark:bg-[#253936] px-5 pb-[max(20px,env(safe-area-inset-bottom),var(--cleango-telegram-bottom,0px))] pt-5 shadow-[0_-16px_45px_rgba(30,65,60,.14)]">
+        <button type="button" onClick={() => setSheetOpen(!sheetOpen)} aria-label="Свернуть или развернуть карточку" className="mx-auto mb-4 flex h-8 w-28 items-center justify-center gap-2"><span className="h-1 w-11 rounded-full bg-[#dbe8e4]" /><ChevronDown size={16} className={sheetOpen ? "" : "rotate-180"} /></button>
         {sheetOpen && <>
         <div className="mb-4 flex items-start gap-3">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#e5f8f5] text-[#13998b]"><MapPin size={23}/></div>
-          <div className="min-w-0 flex-1"><p className="text-xs font-bold text-[#16a394]">Точка уборки</p><h2 className="mt-1 text-lg font-extrabold">{moving ? "Выбираем место..." : "Выбранная точка"}</h2><p className="mt-1 text-xs text-[#72847f]">{address}</p></div>
+          <div className="min-w-0 flex-1"><p className="text-xs font-bold text-[#16a394]">Точка уборки</p><h2 className="mt-1 text-base font-bold">{moving ? "Выбираем место..." : "Выбранная точка"}</h2><p className="mt-1 text-xs text-[#72847f]">{address}</p></div>
         </div>
         {details && <div className="mb-4 grid grid-cols-2 gap-3">
           {([["Подъезд", entrance, setEntrance], ["Этаж", floor, setFloor], ["Квартира / офис", apartment, setApartment], ["Домофон", intercom, setIntercom]] as const).map(([label, value, setter]) => <label key={label} className="text-xs font-bold text-[#667b75]">{label}<input value={value} onChange={e => setter(e.target.value)} placeholder="Не указан" className="mt-1.5 h-11 w-full rounded-xl border border-[#e0ebe7] bg-[#f7fbf9] px-3 text-sm text-[#152535] dark:text-white outline-none focus:border-[#16a394]" /></label>)}
           <label className="col-span-2 text-xs font-bold text-[#667b75]">Комментарий для клинера<textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Например, вход со двора" rows={2} className="mt-1.5 w-full resize-none rounded-xl border border-[#e0ebe7] bg-[#f7fbf9] p-3 text-sm text-[#152535] outline-none focus:border-[#16a394]" /></label>
         </div>}
-        {saved && <p role="status" className="mb-3 text-sm font-semibold text-[#138b7d]">Точка и детали сохранены в этом предварительном просмотре.</p>}
+        {saved && <p role="status" className="mb-3 text-sm font-semibold text-[#138b7d]">Адрес сохранён в тестовом просмотре.</p>}
         <button type="button" disabled={!ready || moving} onClick={() => { if (!details) setDetails(true); else setSaved(true); }} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#159f91] text-sm font-extrabold text-white shadow-[0_8px_24px_rgba(21,159,145,.25)] disabled:opacity-50">{details ? <><Check size={19}/> Сохранить адрес</> : <>Уточнить адрес <ChevronRight size={19}/></>}</button>
-        <p className="mt-3 text-center text-[11px] text-[#8b9c97]">Тестовая версия · Заказ не создаётся</p>
+        <p className="mt-3 text-center text-[11px] text-[#8b9c97]">Предпросмотр · Заказ не создаётся</p>
         </>}
         {!sheetOpen && <button type="button" onClick={() => setSheetOpen(true)} className="w-full truncate pb-2 text-left text-sm font-semibold">{address}</button>}
-        <p className="mt-2 text-center text-[10px] text-[#8b9c97]"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a> · {source === "vector" ? "CleanGo Vector" : "Резервная карта"}</p>
+        <p className="mt-2 text-center text-[10px] text-[#8b9c97]"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a></p>
       </section>
     </main>
   );
