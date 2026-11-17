@@ -5,7 +5,7 @@ import { Check, LocateFixed, MapPin, MapPinned, X } from "lucide-react";
 
 type Coordinates = { latitude: number; longitude: number };
 type Feature = { place_name: string; center: [number, number] };
-type MapHandle = { getCenter(): { lng: number; lat: number }; on(event: string, handler: () => void): void; remove(): void };
+type MapHandle = { getCenter(): { lng: number; lat: number }; on(event: string, handler: (...args: any[]) => void): void; flyTo(options: {center: [number,number]; zoom?: number}): void; resize(): void; remove(): void };
 type MapLibrary = { Map: new (options: Record<string, unknown>) => MapHandle };
 declare global { interface Window { maplibregl?: MapLibrary } }
 
@@ -25,6 +25,8 @@ export default function AddressPicker({ address, onChange }: {
   const [mapOpen, setMapOpen] = useState(false);
   const [mapError, setMapError] = useState("");
   const [mapBusy, setMapBusy] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapLocating, setMapLocating] = useState(false);
   const [point, setPoint] = useState<[number, number]>(SEMEY);
   const [locationBusy, setLocationBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -96,6 +98,7 @@ export default function AddressPicker({ address, onChange }: {
   useEffect(() => {
     if (!mapOpen || !KEY || !mapContainer.current) return;
     let disposed = false;
+    setMapReady(false);
     let map: MapHandle | null = null;
     const load = async () => {
       try {
@@ -132,8 +135,15 @@ export default function AddressPicker({ address, onChange }: {
           center: point, zoom: 15,
         });
         mapRef.current = map;
-        map.on("move", () => {
-          if (!map) return;
+        map.on("load", () => { if (!disposed) { setMapReady(true); requestAnimationFrame(() => map?.resize()); } });
+        map.on("error", (...args: unknown[]) => {
+          if (disposed) return;
+          console.error("CleanGo map load error", ...args);
+          setMapError("Не удалось загрузить карту. Проверьте Allowed HTTP Origins ключа MapTiler и интернет.");
+          setMapReady(false);
+        });
+        map.on("moveend", () => {
+          if (!map || disposed) return;
           const center = map.getCenter();
           setPoint([center.lng, center.lat]);
         });
@@ -147,14 +157,28 @@ export default function AddressPicker({ address, onChange }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapOpen]);
 
+  function locateOnMap() {
+    if (!mapReady || !mapRef.current || !navigator.geolocation) return;
+    setMapLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({coords}) => {
+        setMapLocating(false);
+        if (coords.accuracy > 500) { setMapError("Местоположение определено недостаточно точно."); return; }
+        mapRef.current?.flyTo({center:[coords.longitude,coords.latitude],zoom:16});
+      },
+      () => {setMapLocating(false);setMapError("Разрешите геолокацию в настройках Telegram.");},
+      {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+    );
+  }
+
   async function confirmMap() {
-    if (!KEY) return;
+    if (!KEY || !mapReady || !mapRef.current) return;
     setMapBusy(true);
     setMapError("");
     try {
-      const [longitude, latitude] = mapRef.current
-        ? (() => { const p = mapRef.current!.getCenter(); return [p.lng, p.lat]; })()
-        : point;
+      const center = mapRef.current.getCenter();
+      const longitude = center.lng;
+      const latitude = center.lat;
       const response = await fetch(`https://api.maptiler.com/geocoding/${longitude},${latitude}.json?key=${encodeURIComponent(KEY)}&language=ru`);
       if (!response.ok) throw new Error("Reverse lookup failed");
       const data: { features?: Feature[] } = await response.json();
@@ -219,15 +243,18 @@ export default function AddressPicker({ address, onChange }: {
           </header>
           <div className="relative min-h-0 flex-1 bg-slate-100">
             <div ref={mapContainer} className="absolute inset-0" />
+            {!mapReady && !mapError && <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-100/90 text-sm font-semibold text-slate-600">Загружаем карту...</div>}
+            {mapError && <div role="alert" className="absolute inset-0 z-20 flex items-center justify-center bg-slate-100 p-6 text-center text-sm text-red-700">{mapError}</div>}
+            {mapReady && !mapError && <button type="button" onClick={locateOnMap} disabled={mapLocating} aria-label="Моё местоположение" className="absolute bottom-5 right-4 z-10 rounded-2xl bg-white p-3 text-teal-700 shadow-lg"><LocateFixed className="h-5 w-5" /></button>}
             <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-full">
               <MapPin className="h-11 w-11 fill-teal-600 text-white drop-shadow-xl" />
             </div>
           </div>
           <footer className="space-y-2 border-t border-slate-100 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {mapError && <p role="alert" className="text-sm text-red-700">{mapError}</p>}
-            <button type="button" disabled={mapBusy || Boolean(mapError)} onClick={() => void confirmMap()}
+            <button type="button" disabled={mapBusy || !mapReady || Boolean(mapError)} onClick={() => void confirmMap()}
               className="h-12 w-full rounded-2xl bg-teal-600 font-semibold text-white disabled:opacity-50">
-              {mapBusy ? "Определяем адрес..." : "Подтвердить точку"}
+              {mapBusy ? "Определяем адрес..." : mapReady ? "Подтвердить точку" : "Ожидаем загрузку карты"}
             </button>
           </footer>
         </div>
