@@ -99,9 +99,12 @@ export default function AddressPicker({ address, onChange }: {
     if (!mapOpen || !KEY || !mapContainer.current) return;
     let disposed = false;
     setMapReady(false);
+    const timeout = window.setTimeout(() => { if (!disposed) setMapError("Карта не загрузилась за 15 секунд. Проверьте ограничения MapTiler или доступ к CDN."); }, 15000);
     let map: MapHandle | null = null;
     const load = async () => {
       try {
+        const probe = await fetch(`https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(KEY)}`);
+        if (!probe.ok) throw new Error(`MapTiler HTTP ${probe.status}`);
         const cssId = "cleango-maplibre-css";
         if (!document.getElementById(cssId)) {
           const link = document.createElement("link");
@@ -135,7 +138,7 @@ export default function AddressPicker({ address, onChange }: {
           center: point, zoom: 15,
         });
         mapRef.current = map;
-        map.on("load", () => { if (!disposed) { setMapReady(true); requestAnimationFrame(() => map?.resize()); } });
+        map.on("load", () => { if (!disposed) { window.clearTimeout(timeout); setMapReady(true); requestAnimationFrame(() => map?.resize()); } });
         map.on("error", (...args: unknown[]) => {
           if (disposed) return;
           console.error("CleanGo map load error", ...args);
@@ -147,12 +150,13 @@ export default function AddressPicker({ address, onChange }: {
           const center = map.getCenter();
           setPoint([center.lng, center.lat]);
         });
-      } catch {
-        if (!disposed) setMapError("Не удалось загрузить карту. Проверьте API-ключ и соединение.");
+      } catch (error) {
+        window.clearTimeout(timeout);
+        if (!disposed) setMapError(`Ошибка карты: ${error instanceof Error ? error.message : "неизвестная ошибка"}`);
       }
     };
     void load();
-    return () => { disposed = true; map?.remove(); mapRef.current = null; };
+    return () => { disposed = true; window.clearTimeout(timeout); map?.remove(); mapRef.current = null; };
     // Center is captured when the picker opens; don't remount while panning.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapOpen]);
