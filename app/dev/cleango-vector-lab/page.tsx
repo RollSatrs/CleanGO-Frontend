@@ -127,7 +127,9 @@ export default function CleanGoVectorLab() {
           const c = instance.getCanvas();
           const rect = c.getBoundingClientRect();
           const style = getComputedStyle(c);
-          setCanvasInfo(`Canvas: ${c.width}×${c.height} · CSS ${Math.round(rect.width)}×${Math.round(rect.height)} · display ${style.display} · opacity ${style.opacity}`);
+          const parent = c.parentElement?.getBoundingClientRect();
+          const host = node.current?.getBoundingClientRect();
+          setCanvasInfo(`Canvas: ${c.width}×${c.height} · CSS ${Math.round(rect.width)}×${Math.round(rect.height)} · parent ${Math.round(parent?.height ?? -1)} · host ${Math.round(host?.height ?? -1)} · display ${style.display} · opacity ${style.opacity}`);
         };
         instance.on("style.load", () => {
           if (stopped || !instance) return;
@@ -178,8 +180,7 @@ export default function CleanGoVectorLab() {
   const dark = theme === "dark";
   return (
     <main className={`relative h-[100dvh] min-h-[500px] overflow-hidden ${dark ? "bg-[#192522] text-white" : "bg-[#F7F9F6] text-[#152535]"}`}>
-      <style>{`.cleango-vector-lab-map .maplibregl-map, .cleango-vector-lab-map .maplibregl-canvas-container { position:absolute!important; inset:0!important; width:100%!important; height:100%!important; } .cleango-vector-lab-map canvas.maplibregl-canvas { position:absolute!important; left:0!important; top:0!important; width:100%!important; height:100%!important; }`}</style>
-      <div ref={node} className="cleango-vector-lab-map absolute inset-0" />
+      <div ref={node} className="absolute inset-0 h-full w-full" style={{ minHeight: "100dvh" }} />
       <header className="absolute left-4 right-4 top-5 z-10 flex items-center justify-between gap-3 rounded-2xl bg-white/95 p-3 text-[#152535] shadow-lg">
         <div><div className="text-[10px] font-bold tracking-widest text-[#159F91]">CLEANGO MAPS 0.4 · LAB</div><h1 className="text-sm font-bold">Собственный стиль карты</h1></div>
         <button type="button" className="rounded-xl bg-[#E5F8F5] px-3 py-2 text-xs font-bold text-[#117D73]" onClick={() => setTheme(dark ? "light" : "dark")}>{dark ? "Светлая" : "Тёмная"}</button>
