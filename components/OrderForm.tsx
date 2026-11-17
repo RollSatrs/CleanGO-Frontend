@@ -348,7 +348,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         <Button
           type="button"
           variant="outline"
-          className="w-full"
+          className="h-auto min-h-11 w-full max-w-full whitespace-normal break-words px-3 py-3 text-center text-sm leading-5"
           disabled={locationLoading}
           onClick={requestLocation}
         >
