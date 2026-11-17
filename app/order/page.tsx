@@ -7,6 +7,7 @@ import Link from "next/link";
 
 import OrderForm from "@/components/OrderForm";
 import CleanGoLogo from "@/components/branding/CleanGoLogo";
+import { AppHeader } from "@/components/ui/clean-go";
 
 
 
@@ -108,16 +109,13 @@ function OrderContent() {
   return (
     <main className="min-h-screen bg-[#F7FAF9] pb-12 text-[#152535]">
       <div className="mx-auto w-full max-w-2xl">
-        <header className="relative overflow-hidden rounded-b-[32px] bg-[#E7F7F3] px-5 pb-7 pt-6 sm:px-8">
-          <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#BCECE1]/60 blur-3xl" />
-          <div className="relative">
-            <Link href="/" className="mb-7 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-[#315C56]">← К услугам</Link>
-            <div className="mb-5"><CleanGoLogo size={44} showName /></div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[#2A9183]">Оформление заказа</p>
-            <h1 className="max-w-sm text-[30px] font-bold leading-[1.12] tracking-[-0.04em] sm:text-4xl">Чистота начинается здесь</h1>
-            <p className="mt-3 max-w-sm text-sm leading-6 text-[#56716E]">Укажите адрес и площадь — мы рассчитаем стоимость уборки.</p>
-          </div>
-        </header>
+        <AppHeader role="client" className="cleango-client-header bg-white px-5 pb-4 pt-6" />
+        <div className="px-5 pt-5 sm:px-6">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-[#47716A]">← К услугам</Link>
+          <p className="mb-2 mt-6 text-xs font-bold uppercase tracking-[0.16em] text-[#2A9183]">Оформление заказа</p>
+          <h1 className="text-[28px] font-bold leading-tight tracking-[-0.04em]">Оформление уборки</h1>
+          <p className="mt-2 text-sm leading-6 text-[#718380]">Укажите адрес и площадь — мы рассчитаем стоимость.</p>
+        </div>
         <div className="space-y-5 px-4 pt-5 sm:px-6">
           <section className="rounded-[24px] border border-[#E6EFEC] bg-white p-5 shadow-[0_8px_32px_rgba(21,37,53,0.035)]">
             <div className="mb-4 flex items-center justify-between gap-3">
