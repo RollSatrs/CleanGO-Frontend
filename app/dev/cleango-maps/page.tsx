@@ -259,6 +259,7 @@ export default function CleanGoMapsPreview() {
         <div className="pointer-events-auto flex items-center gap-3 rounded-[18px] border border-white/80 bg-white/95 dark:border-[#344943] dark:bg-[#253936]/95 p-2 shadow-[0_12px_40px_rgba(18,55,52,.12)] backdrop-blur-xl">
           <Link href="/" aria-label="Назад" className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-[#f0f7f5]"><ArrowLeft size={20} /></Link>
           <div className="min-w-0 flex-1"><p className="text-[11px] font-bold uppercase tracking-[.15em] text-[#27998e]">CleanGo</p><h1 className="truncate text-sm font-bold">Выберите адрес</h1></div>
+          <Link href="/dev/cleango-vector-lab" aria-label="Открыть экспериментальную векторную карту" className="shrink-0 rounded-xl border border-[#cceae3] bg-[#e5f8f5] px-3 py-2 text-[11px] font-bold text-[#117d73]">Vector 0.4</Link>
 
         </div>
       </header>
