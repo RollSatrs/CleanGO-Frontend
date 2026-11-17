@@ -16,7 +16,7 @@ type MapInstance = {
 };
 type MapLibreApi = {
   Map: new (options: Record<string, unknown>) => MapInstance;
-  supported(): boolean;
+  supported?: () => boolean;
 };
 type MapLibreWindow = Window & { maplibregl?: MapLibreApi };
 const SEMEY: [number, number] = [80.2275, 50.4111];
@@ -66,10 +66,11 @@ export default function CleanGoMapsPreview() {
   const node = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapInstance | null>(null);
   const [ready, setReady] = useState(false);
+  const themeRef = useRef(false);
   const [dark, setDark] = useState(false);
   const [error, setError] = useState("");
   const [moving, setMoving] = useState(false);
-  const [center, setCenter] = useState({ lat: SEMEY[0], lng: SEMEY[1] });
+  const [center, setCenter] = useState({ lat: SEMEY[1], lng: SEMEY[0] });
   const [details, setDetails] = useState(false);
   const [entrance, setEntrance] = useState("");
   const [floor, setFloor] = useState("");
@@ -85,8 +86,7 @@ export default function CleanGoMapsPreview() {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const update = () => {
       const appTheme = document.documentElement.getAttribute("data-theme");
-      const hasExplicitTheme = appTheme === "dark" || appTheme === "light";
-      setDark(hasExplicitTheme ? appTheme === "dark" : document.documentElement.classList.contains("dark"));
+      setDark(appTheme === "dark" || (appTheme !== "light" && document.documentElement.classList.contains("dark")));
     };
     update();
     const observer = new MutationObserver(update);
@@ -96,6 +96,7 @@ export default function CleanGoMapsPreview() {
   }, []);
 
   useEffect(() => {
+    themeRef.current = dark;
     if (!map.current) return;
     setReady(false);
     map.current.setStyle(STYLES[dark ? "dark" : "light"]);
@@ -128,7 +129,8 @@ export default function CleanGoMapsPreview() {
       try {
         const lib = await loadMapLibre();
         if (cancelled || !node.current) return;
-        if (!lib.supported()) throw new Error("Устройство не поддерживает WebGL");
+        if (typeof lib.Map !== "function") throw new Error("Библиотека карты загружена некорректно");
+        if (typeof lib.supported === "function" && !lib.supported()) throw new Error("Устройство не поддерживает WebGL");
         instance = new lib.Map({
           container: node.current,
           style: STYLES[dark ? "dark" : "light"],
@@ -149,10 +151,10 @@ export default function CleanGoMapsPreview() {
         });
         instance.on("style.load", () => {
           if (cancelled || !instance) return;
-          tuneMap(instance, document.documentElement.classList.contains("dark") || document.documentElement.getAttribute("data-theme") === "dark");
+          tuneMap(instance, themeRef.current);
         });
         instance.on("idle", () => { if (!cancelled) { clearTimeout(timeout); setReady(true); setError(""); } });
-        instance.on("error", () => { if (!cancelled && !ready) setError("Не удалось загрузить карту. Проверьте соединение."); });
+        instance.on("error", () => { if (!cancelled) setError("Не удалось загрузить карту. Проверьте соединение."); });
         setTimeout(() => { if (!cancelled) instance?.resize(); }, 350);
       } catch (e) {
         if (!cancelled) { clearTimeout(timeout); setError(e instanceof Error ? e.message : "Ошибка карты"); }
