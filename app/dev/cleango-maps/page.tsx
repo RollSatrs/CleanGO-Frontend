@@ -15,7 +15,7 @@ type LeafletApi = {
   map(node: HTMLElement, options: Record<string, unknown>): MapInstance;
   tileLayer(url: string, options: Record<string, unknown>): { addTo(map: MapInstance): void; on(event: string, handler: () => void): void };
 };
-declare global { interface Window { L?: LeafletApi } }
+type LeafletWindow = Window & { L?: LeafletApi };
 
 const SEMEY: [number, number] = [50.4111, 80.2275];
 const VERSION = "1.9.4";
@@ -28,11 +28,11 @@ async function loadLeaflet() {
     css.href = `https://unpkg.com/leaflet@${VERSION}/dist/leaflet.css`;
     document.head.appendChild(css);
   }
-  if (window.L) return window.L;
+  if ((window as LeafletWindow).L) return (window as LeafletWindow).L;
   await new Promise<void>((resolve, reject) => {
     const existing = document.getElementById("cg-map-js") as HTMLScriptElement | null;
     if (existing) {
-      if (window.L) { resolve(); return; }
+      if ((window as LeafletWindow).L) { resolve(); return; }
       existing.addEventListener("load", () => resolve(), { once: true });
       existing.addEventListener("error", () => reject(new Error("Не удалось загрузить библиотеку карты")), { once: true });
       return;
@@ -44,8 +44,8 @@ async function loadLeaflet() {
     script.onerror = () => reject(new Error("Не удалось загрузить библиотеку карты"));
     document.head.appendChild(script);
   });
-  if (!window.L) throw new Error("Библиотека карты недоступна");
-  return window.L;
+  if (!(window as LeafletWindow).L) throw new Error("Библиотека карты недоступна");
+  return (window as LeafletWindow).L;
 }
 
 export default function CleanGoMapsPreview() {
