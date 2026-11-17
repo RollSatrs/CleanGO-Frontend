@@ -50,7 +50,6 @@ export default function CleanGoMapsPreview() {
   const map = useRef<MapInstance | null>(null);
   const [ready, setReady] = useState(false);
   const [dark, setDark] = useState(false);
-  const [basemap, setBasemap] = useState<"cleango" | "fallback">("cleango");
   const [error, setError] = useState("");
   const [moving, setMoving] = useState(false);
   const [center, setCenter] = useState({ lat: SEMEY[0], lng: SEMEY[1] });
@@ -114,25 +113,18 @@ export default function CleanGoMapsPreview() {
           setCenter({ lat: point.lat, lng: point.lng });
           setMoving(false);
         });
-        // CARTO Positron is a minimal light basemap close to the approved CleanGo reference.
-        // Keep the previously working OSM raster source as a genuine fallback.
-        let fallbackStarted = false;
-        const fallback = () => {
-          if (cancelled || fallbackStarted || !instance) return;
-          fallbackStarted = true;
-          setBasemap("fallback");
-          tiles.remove();
-          const osm = leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { subdomains: "abc", maxZoom: 19, attribution: "© OpenStreetMap contributors" });
-          osm.on("tileload", () => { if (!cancelled) { clearTimeout(timeout); setReady(true); setError(""); } });
-          osm.on("tileerror", () => { if (!cancelled) setError("Не удалось загрузить карту. Проверьте подключение."); });
-          osm.addTo(instance);
-        };
-        const tiles = leaflet.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd", maxZoom: 19, attribution: "© CARTO · © OpenStreetMap contributors" });
-        let loaded = false;
-        tiles.on("tileload", () => { if (!cancelled) { loaded = true; clearTimeout(timeout); setReady(true); setError(""); } });
-        tiles.on("tileerror", () => { if (!loaded) fallback(); });
+        // Use the OSM source directly. CARTO now returns API-key watermarks as valid images,
+        // so tileload cannot detect that failure and a fallback never starts.
+        const tiles = leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          subdomains: "abc", maxZoom: 19, attribution: "© OpenStreetMap contributors",
+        });
+        tiles.on("tileload", () => {
+          if (!cancelled) { clearTimeout(timeout); setReady(true); setError(""); }
+        });
+        tiles.on("tileerror", () => {
+          if (!cancelled) setError("Не удалось загрузить карту. Проверьте подключение.");
+        });
         tiles.addTo(instance);
-        window.setTimeout(() => { if (!cancelled && !loaded) fallback(); }, 7000);
         window.setTimeout(() => { if (!cancelled) instance?.invalidateSize(); }, 300);
       } catch (e) {
         if (!cancelled) { clearTimeout(timeout); setError(e instanceof Error ? e.message : "Ошибка карты"); }
