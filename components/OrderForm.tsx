@@ -44,6 +44,9 @@ const cleaningTypeNames: Record<CleaningType, string> = {
 export default function OrderForm({ cleaningType }: OrderFormProps) {
   const [address, setAddress] = useState("");
   const [area, setArea] = useState("");
+  const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [priceLoading, setPriceLoading] = useState(false);
@@ -132,6 +135,31 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
     };
   }, [cleaningType, parsedArea, isAreaValid]);
 
+  function requestLocation() {
+    setLocationError("");
+    setCoordinates(null);
+    if (!navigator.geolocation) {
+      setLocationError("Геолокация недоступна в этом браузере.");
+      return;
+    }
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLocationLoading(false);
+        if (coords.accuracy > 500) {
+          setLocationError("Местоположение определено слишком неточно. Попробуйте ещё раз.");
+          return;
+        }
+        setCoordinates({ latitude: coords.latitude, longitude: coords.longitude });
+      },
+      () => {
+        setLocationLoading(false);
+        setLocationError("Не удалось получить геолокацию. Разрешите доступ и попробуйте ещё раз.");
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
+  }
+
   // Создание заказа
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -169,6 +197,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
           address: address.trim(),
           area: parsedArea,
           cleaningType,
+          ...(coordinates ?? {}),
         }),
       });
 
@@ -284,6 +313,8 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
             setCreatedOrder(null);
             setAddress("");
             setArea("");
+            setCoordinates(null);
+            setLocationError("");
             setPriceQuote(null);
             setPriceError("");
             setError("");
