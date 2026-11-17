@@ -14,6 +14,9 @@ type MapObject = {
   areTilesLoaded(): boolean;
   isSourceLoaded(id: string): boolean;
   getZoom(): number;
+  addSource(id: string, source: Record<string, unknown>): void;
+  addLayer(layer: Record<string, unknown>): void;
+  triggerRepaint(): void;
 };
 type MapLib = { Map: new (options: Record<string, unknown>) => MapObject };
 type WindowWithMap = Window & { maplibregl?: MapLib };
@@ -61,6 +64,9 @@ export default function CleanGoVectorLab() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [originalStyle, setOriginalStyle] = useState(true);
   const [renderInfo, setRenderInfo] = useState("Проверка WebGL ожидается");
+  const [canvasInfo, setCanvasInfo] = useState("Canvas ожидается");
+  const [testLayer, setTestLayer] = useState("Тестовый слой ожидается");
+  const [contextStatus, setContextStatus] = useState("Контекст не проверен");
   const [phase, setPhase] = useState("Подготовка карты");
   const [featureCount, setFeatureCount] = useState(0);
   const [styledLayers, setStyledLayers] = useState(0);
@@ -80,6 +86,9 @@ export default function CleanGoVectorLab() {
     setErrors([]);
     setTileStatus("Ожидаем данные");
     setSources("");
+    setCanvasInfo("Canvas ожидается");
+    setTestLayer("Тестовый слой ожидается");
+    setContextStatus("Контекст активен (потеря не обнаружена)");
     const probe = document.createElement("canvas");
     const gl = probe.getContext("webgl2") || probe.getContext("webgl");
     setRenderInfo(gl ? `WebGL доступен · ${gl.getParameter(gl.VERSION)}` : "WebGL недоступен");
@@ -93,11 +102,30 @@ export default function CleanGoVectorLab() {
           attributionControl: false, dragRotate: false,
           pitchWithRotate: false, touchPitch: false,
         });
+        const canvas = instance.getCanvas();
+        const onLost = (event: Event) => { event.preventDefault(); if (!stopped) setContextStatus("WebGL-контекст потерян"); };
+        const onRestored = () => { if (!stopped) setContextStatus("WebGL-контекст восстановлен"); };
+        canvas.addEventListener("webglcontextlost", onLost);
+        canvas.addEventListener("webglcontextrestored", onRestored);
+        const measure = () => {
+          if (stopped || !instance) return;
+          const c = instance.getCanvas();
+          const rect = c.getBoundingClientRect();
+          const style = getComputedStyle(c);
+          setCanvasInfo(`Canvas: ${c.width}×${c.height} · CSS ${Math.round(rect.width)}×${Math.round(rect.height)} · display ${style.display} · opacity ${style.opacity}`);
+        };
         instance.on("style.load", () => {
           if (stopped || !instance) return;
           setStyledLayers(originalStyle ? 0 : applyPalette(instance, theme === "dark"));
           setSources(Object.keys((instance.getStyle() as {sources?:Record<string,unknown>}).sources ?? {}).join(", ") || "нет");
           setPhase("Стиль загружен, проверяем геометрию");
+          try {
+            instance.addSource("cleango-render-probe", { type: "geojson", data: { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "Point", coordinates: [80.2145, 50.3923] }, properties: {} }] } });
+            instance.addLayer({ id: "cleango-render-probe-circle", type: "circle", source: "cleango-render-probe", paint: { "circle-radius": 35, "circle-color": "#ff00cc", "circle-stroke-color": "#000000", "circle-stroke-width": 5 } });
+            setTestLayer("Тестовый слой добавлен: должен быть розовый круг в центре");
+            instance.triggerRepaint();
+          } catch (error) { setTestLayer(`Ошибка тестового слоя: ${error instanceof Error ? error.message : String(error)}`); }
+          measure();
         });
         instance.on("idle", () => {
           if (stopped || !instance) return;
@@ -107,6 +135,7 @@ export default function CleanGoVectorLab() {
             setTileStatus(instance.areTilesLoaded() ? "Тайлы загружены" : "Тайлы ещё загружаются");
           } catch { /* Report zero rendered features */ }
           setFeatureCount(count);
+          measure();
           if (count > 0) {
             window.clearTimeout(timeout);
             setPhase("Векторные объекты обнаружены");
@@ -123,7 +152,8 @@ export default function CleanGoVectorLab() {
           const message = event?.error?.message || "Ошибка загрузки ресурса карты";
           setErrors(prev => [...prev.slice(-2), message]);
         });
-        window.setTimeout(() => { if (!stopped) instance?.resize(); }, 400);
+        window.setTimeout(() => { if (!stopped) { instance?.resize(); measure(); } }, 400);
+        window.setTimeout(() => { if (!stopped) { instance?.resize(); instance?.triggerRepaint(); measure(); } }, 1800);
       } catch (error) {
         if (!stopped) setPhase(error instanceof Error ? error.message : "Ошибка инициализации");
       }
@@ -147,6 +177,9 @@ export default function CleanGoVectorLab() {
         <div className="mt-1 text-xs text-[#63766F]">Видимые объекты: {featureCount} · Стилизованные слои: {styledLayers}</div>
         <p className="mt-1 break-words text-[11px] text-[#63766F]">Источник: {sources || "ожидание"} · {tileStatus}</p>
         <p className="mt-1 break-words text-[11px] text-[#63766F]">{renderInfo}</p>
+        <p className="mt-1 break-words text-[11px] text-[#63766F]">{canvasInfo}</p>
+        <p className="mt-1 break-words text-[11px] text-[#63766F]">{contextStatus}</p>
+        <p className="mt-1 break-words text-[11px] text-[#63766F]">{testLayer}</p>
         <div className="mt-3 flex gap-2">
           <button type="button" onClick={() => setOriginalStyle(true)} className={`flex-1 rounded-xl px-2 py-2 text-xs font-bold ${originalStyle ? "bg-[#159F91] text-white" : "bg-[#E5F8F5] text-[#117D73]"}`}>Исходный стиль</button>
           <button type="button" onClick={() => setOriginalStyle(false)} className={`flex-1 rounded-xl px-2 py-2 text-xs font-bold ${!originalStyle ? "bg-[#159F91] text-white" : "bg-[#E5F8F5] text-[#117D73]"}`}>Стиль CleanGo</button>
