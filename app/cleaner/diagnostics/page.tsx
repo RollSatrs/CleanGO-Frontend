@@ -59,11 +59,32 @@ export default function CleanerDiagnostics() {
         setResults([...next]);
       }
     }
+    async function checkProxy(name: string, path: string, authorized: boolean) {
+      const start = performance.now();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      try {
+        const response = await fetch(`/api/backend${path}`, {
+          cache: "no-store",
+          headers: authorized && token ? { Authorization: `Bearer ${token}` } : {},
+          signal: controller.signal,
+        });
+        next.push({ name, status: String(response.status), detail: describeStatus(response.status), elapsedMs: Math.round(performance.now() - start) });
+      } catch (error) {
+        next.push({ name, status: "network", detail: error instanceof Error ? error.name : "Ошибка соединения", elapsedMs: Math.round(performance.now() - start) });
+      } finally {
+        clearTimeout(timeout);
+        setResults([...next]);
+      }
+    }
     try {
-      await check("Публичный backend", "/", false);
+      await check("Публичный backend (напрямую)", "/", false);
+      await checkProxy("Расчёт цены (через Vercel)", "/pricing/quote?cleaningType=regular&area=50", false);
       if (token && user?.role === "cleaner") {
-        await check("Профиль клинера (JWT)", "/orders/cleaner/profile", true);
-        await check("Предложения клинера (JWT)", "/orders/offers/mine", true);
+        await check("Профиль клинера (напрямую)", "/orders/cleaner/profile", true);
+        await checkProxy("Профиль клинера (через Vercel)", "/orders/cleaner/profile", true);
+        await check("Предложения клинера (напрямую)", "/orders/offers/mine", true);
+        await checkProxy("Предложения клинера (через Vercel)", "/orders/offers/mine", true);
       }
     } finally {
       setRunning(false);
