@@ -134,11 +134,11 @@ export default function AddressPicker({ address, onChange }: {
         if (disposed || !window.maplibregl) return;
         map = new window.maplibregl.Map({
           container: mapNode,
-          style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${encodeURIComponent(KEY)}`,
-          center: point, zoom: 15,
+          style: { version: 8, sources: { "base": { type: "raster", tiles: [`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${encodeURIComponent(KEY)}`], tileSize: 256, attribution: "© MapTiler © OpenStreetMap contributors" } }, layers: [{ id: "base", type: "raster", source: "base" }] },
+          center: point, zoom: 15, failIfMajorPerformanceCaveat: false,
         });
         mapRef.current = map;
-        map.on("load", () => { if (!disposed) { window.clearTimeout(timeout); setMapReady(true); requestAnimationFrame(() => map?.resize()); } });
+        map.on("load", () => { if (!disposed) { window.clearTimeout(timeout); setMapReady(true); requestAnimationFrame(() => map?.resize()); window.setTimeout(() => { if (!disposed) map?.resize(); }, 350); } });
         map.on("error", (...args: unknown[]) => {
           if (disposed) return;
           console.error("CleanGo map load error", ...args);
