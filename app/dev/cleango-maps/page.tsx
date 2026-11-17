@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Check, ChevronDown, ChevronRight, LocateFixed, MapPin } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, LocateFixed, MapPin } from "lucide-react";
 import Link from "next/link";
 
 type MapInstance = {
@@ -194,6 +194,7 @@ export default function CleanGoMapsPreview() {
           if (cancelled || !instance) return;
           const point = instance.getCenter();
           setCenter({ lat: point.lat, lng: point.lng });
+          setAddress("Уточняем адрес...");
           setMoving(false);
         });
         instance.on("style.load", () => {
@@ -237,7 +238,7 @@ export default function CleanGoMapsPreview() {
         instance=lib.map(leafletNode.current,{center:[center.lat,center.lng],zoom:16,zoomControl:false,attributionControl:false});
         leafletMap.current=instance;
         instance.on("movestart",()=>{if(!cancelled){setMoving(true);setSaved(false);}});
-        instance.on("moveend",()=>{if(!cancelled&&instance){const p=instance.getCenter();setCenter({lat:p.lat,lng:p.lng});setMoving(false);}});
+        instance.on("moveend",()=>{if(!cancelled&&instance){const p=instance.getCenter();setCenter({lat:p.lat,lng:p.lng});setAddress("Уточняем адрес...");setMoving(false);}});
         const tiles=lib.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{subdomains:"abc",maxZoom:19,attribution:"© OpenStreetMap contributors"});
         tiles.on("tileload",()=>{if(!cancelled){clearTimeout(timeout);setReady(true);setError("");}});
         tiles.on("tileerror",()=>{if(!cancelled)setError("Не удалось загрузить тайлы OpenStreetMap");});
@@ -265,7 +266,7 @@ export default function CleanGoMapsPreview() {
       <div ref={node} className={`absolute inset-0 h-full w-full ${leafletActive ? "invisible" : ""}`} style={{ minHeight: "100dvh" }} />
       {leafletActive && <div ref={leafletNode} className="absolute inset-0 z-[1] h-full w-full" />}
       <div className="pointer-events-none absolute inset-0 z-[400] bg-gradient-to-b from-[#f4faf7]/10 via-transparent to-[#dcece7]/10" />
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-[600] px-4 pt-[max(16px,env(safe-area-inset-top),var(--cleango-telegram-top,0px))]">
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-[600] px-4 pt-[max(72px,env(safe-area-inset-top),var(--cleango-telegram-top,0px))]">
         <div className="pointer-events-auto flex items-center gap-3 rounded-[18px] border border-white/80 bg-white/95 dark:border-[#344943] dark:bg-[#253936]/95 p-2 shadow-[0_12px_40px_rgba(18,55,52,.12)] backdrop-blur-xl">
           <Link href="/" aria-label="Назад" className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-[#f0f7f5]"><ArrowLeft size={20} /></Link>
           <div className="min-w-0 flex-1"><p className="text-[11px] font-bold uppercase tracking-[.15em] text-[#27998e]">CleanGo</p><h1 className="truncate text-sm font-bold">Выберите адрес</h1></div>
@@ -283,7 +284,7 @@ export default function CleanGoMapsPreview() {
       {!ready && !error && <div className="absolute inset-0 z-[650] grid place-items-center bg-[#eef6f3]/90 text-sm font-semibold">Загружаем CleanGo Maps...</div>}
       {error && <div role="alert" className="absolute left-4 right-4 top-28 z-[700] rounded-2xl bg-white p-4 text-sm text-red-700 shadow-xl">{error}<button className="ml-2 font-bold text-[#128d81]" onClick={() => setError("")}>Закрыть</button></div>}
       <section className="absolute inset-x-0 bottom-0 z-[600] max-h-[78dvh] overflow-y-auto rounded-t-[26px] border border-white/90 bg-white dark:bg-[#253936] px-5 pb-[max(20px,env(safe-area-inset-bottom),var(--cleango-telegram-bottom,0px))] pt-5 shadow-[0_-16px_45px_rgba(30,65,60,.14)]">
-        <button type="button" onClick={() => setSheetOpen(!sheetOpen)} aria-label="Свернуть или развернуть карточку" className="mx-auto mb-4 flex h-8 w-28 items-center justify-center gap-2"><span className="h-1 w-11 rounded-full bg-[#dbe8e4]" /><ChevronDown size={16} className={sheetOpen ? "" : "rotate-180"} /></button>
+        <button type="button" onClick={() => setSheetOpen(!sheetOpen)} aria-label="Свернуть или развернуть карточку" className="mx-auto mb-4 flex h-8 w-full items-center justify-center" ><span className="h-1.5 w-12 rounded-full bg-[#dbe8e4]" /></button>
         {sheetOpen && <>
         <div className="mb-4 flex items-start gap-3">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#e5f8f5] text-[#13998b]"><MapPin size={23}/></div>
