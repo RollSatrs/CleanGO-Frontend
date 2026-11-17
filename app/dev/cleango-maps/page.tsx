@@ -112,23 +112,23 @@ export default function CleanGoMapsPreview() {
     <main className="relative flex h-[100dvh] min-h-[540px] flex-col overflow-hidden bg-[#eaf4f1] text-[#152535]">
       <div ref={node} className="absolute inset-0" />
       <div className="pointer-events-none absolute inset-0 z-[400] bg-gradient-to-b from-[#f4faf7]/30 via-transparent to-[#dcece7]/20" />
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-[600] px-4 pt-[max(16px,env(safe-area-inset-top))]">
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-[600] px-4 pt-[max(16px,env(safe-area-inset-top),var(--cleango-telegram-top,0px))]">
         <div className="pointer-events-auto flex items-center gap-3 rounded-[24px] border border-white/80 bg-white/95 p-3 shadow-[0_12px_40px_rgba(18,55,52,.12)] backdrop-blur-xl">
           <Link href="/" aria-label="Назад" className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#f0f7f5]"><ArrowLeft size={20} /></Link>
           <div className="min-w-0 flex-1"><p className="text-[11px] font-bold uppercase tracking-[.15em] text-[#27998e]">CleanGo Maps · Preview</p><h1 className="truncate text-base font-extrabold">Куда приедет клинер?</h1></div>
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#e5f8f5] text-[#138b7d]"><Navigation2 size={21}/></div>
         </div>
       </header>
-      <div className="pointer-events-none absolute left-1/2 top-[45%] z-[500] -translate-x-1/2 -translate-y-full">
+      <div className="pointer-events-none absolute left-1/2 top-[42%] z-[500] -translate-x-1/2 -translate-y-full">
         <div className={`relative flex flex-col items-center transition-transform duration-200 ${moving ? "-translate-y-3 scale-110" : ""}`}>
-          <div className="grid h-[58px] w-[58px] place-items-center rounded-[22px] rounded-br-[7px] border-[4px] border-white bg-[#17a99b] shadow-[0_10px_25px_rgba(10,120,108,.35)] -rotate-45"><span className="h-[17px] w-[17px] rounded-full border-[4px] border-white bg-[#c8f8ee]" /></div>
+          <div className="grid h-[30px] w-[30px] place-items-center rounded-[11px] rounded-br-[4px] border-[2px] border-white bg-[#17a99b] shadow-[0_10px_25px_rgba(10,120,108,.35)] -rotate-45"><span className="h-[9px] w-[9px] rounded-full border-[2px] border-white bg-[#c8f8ee]" /></div>
         </div>
-        <div className={`absolute left-1/2 top-full mt-2 h-2 w-6 -translate-x-1/2 rounded-full bg-[#1d544d]/25 blur-[3px] transition-all ${moving ? "scale-75 opacity-40" : ""}`} />
+        <div className={`absolute left-1/2 top-full mt-2 h-1.5 w-4 -translate-x-1/2 rounded-full bg-[#1d544d]/25 blur-[3px] transition-all ${moving ? "scale-75 opacity-40" : ""}`} />
       </div>
       <button type="button" onClick={locate} disabled={locating || !ready} aria-label="Моё местоположение" className="absolute right-4 top-[36%] z-[600] grid h-12 w-12 place-items-center rounded-2xl border border-white bg-white text-[#118f83] shadow-lg disabled:opacity-50"><LocateFixed size={22}/></button>
       {!ready && !error && <div className="absolute inset-0 z-[650] grid place-items-center bg-[#eef6f3]/90 text-sm font-semibold">Загружаем CleanGo Maps...</div>}
       {error && <div role="alert" className="absolute left-4 right-4 top-28 z-[700] rounded-2xl bg-white p-4 text-sm text-red-700 shadow-xl">{error}<button className="ml-2 font-bold text-[#128d81]" onClick={() => setError("")}>Закрыть</button></div>}
-      <section className="absolute inset-x-0 bottom-0 z-[600] rounded-t-[32px] border border-white/90 bg-white px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-5 shadow-[0_-16px_45px_rgba(30,65,60,.14)]">
+      <section className="absolute inset-x-0 bottom-0 z-[600] rounded-t-[32px] border border-white/90 bg-white px-5 pb-[max(20px,env(safe-area-inset-bottom),var(--cleango-telegram-bottom,0px))] pt-5 shadow-[0_-16px_45px_rgba(30,65,60,.14)]">
         <div className="mx-auto mb-4 h-1 w-11 rounded-full bg-[#dbe8e4]" />
         <div className="mb-4 flex items-start gap-3">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#e5f8f5] text-[#13998b]"><MapPin size={23}/></div>
