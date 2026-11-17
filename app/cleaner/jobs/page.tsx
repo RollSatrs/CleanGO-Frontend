@@ -15,7 +15,7 @@ type Offer = {
   createdAt: string;
 };
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001").replace(/\/$/, "");
+const API_URL = "/api/backend";
 const typeLabels: Record<string, string> = {
   regular: "Поддерживающая уборка",
   general: "Генеральная уборка",
