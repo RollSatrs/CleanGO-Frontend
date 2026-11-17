@@ -28,7 +28,8 @@ async function loadLeaflet() {
     css.href = `https://unpkg.com/leaflet@${VERSION}/dist/leaflet.css`;
     document.head.appendChild(css);
   }
-  if ((window as LeafletWindow).L) return (window as LeafletWindow).L;
+  const existingLeaflet = (window as LeafletWindow).L;
+  if (existingLeaflet) return existingLeaflet;
   await new Promise<void>((resolve, reject) => {
     const existing = document.getElementById("cg-map-js") as HTMLScriptElement | null;
     if (existing) {
@@ -44,8 +45,9 @@ async function loadLeaflet() {
     script.onerror = () => reject(new Error("Не удалось загрузить библиотеку карты"));
     document.head.appendChild(script);
   });
-  if (!(window as LeafletWindow).L) throw new Error("Библиотека карты недоступна");
-  return (window as LeafletWindow).L;
+  const loadedLeaflet = (window as LeafletWindow).L;
+  if (!loadedLeaflet) throw new Error("Библиотека карты недоступна");
+  return loadedLeaflet;
 }
 
 export default function CleanGoMapsPreview() {
