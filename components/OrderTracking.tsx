@@ -121,8 +121,8 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
     return()=>{disposed=true;window.clearTimeout(timeout);map?.remove();};
   },[latitude,longitude,mapNode]);
 
-  const title=isPending?"Ищем клинера":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":"Поиск завершён";
-  const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":"Статус подтверждён сервером CleanGo";
+  const title=isPending?"Ищем клинера":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
+  const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
   return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F5FAF8] text-[#152535] cleango-map-viewport">
     <div ref={setMapNode} className="absolute inset-0" aria-label="Карта адреса уборки" />
     {!mapReady&&<div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-[#6D8880]">{mapError || "Загружаем карту района…"}</div>}
@@ -140,7 +140,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         <div className="min-w-0 flex-1"><h1 className="text-xl font-extrabold tracking-tight">{title}</h1><p className="mt-1 text-xs leading-5 text-[#738C84]">{subtitle}</p></div>
         {isPending&&<span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0A9C8D] opacity-40"/><span className="relative inline-flex h-3 w-3 rounded-full bg-[#0A9C8D]"/></span>}
       </div>
-      {isPending&&<div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#E0F1EB]"><div className="h-full w-1/3 animate-pulse rounded-full bg-[#079B8D]"/></div>}
+      {isPending&&<div className="mt-5 flex items-center gap-2 text-xs text-[#66877E]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#079B8D]"/>Поиск выполняется — время ответа зависит от клинеров</div>}
       <div className="mt-5 flex items-center gap-2 text-sm text-[#617B74]"><MapPin size={16} className="shrink-0 text-[#079B8D]"/><span className="truncate">{order.address}</span></div>
       {expanded&&<div className="mt-4 space-y-3 border-t border-[#EDF3F0] pt-4">
         <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Уборка</span><strong className="text-right">{names[order.cleaningType]}</strong></div>
