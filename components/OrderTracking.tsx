@@ -15,8 +15,7 @@ const terminal = new Set(["accepted", "in_progress", "completed", "cancelled", "
 const style = "https://tiles.openfreemap.org/styles/liberty";
 const cdn = "https://unpkg.com/maplibre-gl@5.9.0/dist/";
 type MapInstance = { on(event:string,cb:()=>void):void; getStyle():{layers?:{id:string;type:string}[]}; setPaintProperty(id:string,property:string,value:string):void; remove():void };
-type MapLibrary = { Map: new (options:Record<string,unknown>)=>MapInstance; Marker: new (options:Record<string,unknown>)=>{setLngLat(coords:[number,number]):{addTo(map:MapInstance):unknown}} };
-declare global { interface Window { maplibregl?: MapLibrary } }
+type MapLibrary = NonNullable<Window["maplibregl"]>;
 let loadingLibrary: Promise<MapLibrary> | null = null;
 function loadLibrary(): Promise<MapLibrary> {
   if (window.maplibregl?.Map) return Promise.resolve(window.maplibregl);
@@ -65,7 +64,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   useEffect(()=>{
     if(!node.current || !Number.isFinite(latitude) || !Number.isFinite(longitude))return;
     let disposed=false;
-    let map:MapInstance|null=null;
+    let map:InstanceType<MapLibrary["Map"]>|null=null;
     void loadLibrary().then(lib=>{
       if(disposed||!node.current)return;
       map=new lib.Map({container:node.current,style,center:[longitude,latitude],zoom:15,attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
