@@ -15,6 +15,10 @@ const TYPES = [
 export default function CleanerSettings() {
   const { user, token } = useAuth();
   const [available, setAvailable] = useState(false);
+  const [hours, setHours] = useState<1 | 2 | 4>(1);
+  const [availableUntil, setAvailableUntil] = useState<string | null>(null);
+  const [clock, setClock] = useState(Date.now());
+  const [locationNeedsRefresh, setLocationNeedsRefresh] = useState(false);
   const [radius, setRadius] = useState(5);
   const [types, setTypes] = useState<string[]>(TYPES.map(t => t.id));
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -22,6 +26,8 @@ export default function CleanerSettings() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  useEffect(() => { const timer = window.setInterval(() => setClock(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
 
   useEffect(() => {
     if (!token || user?.role !== "cleaner" || !user.phoneVerifiedAt) return;
@@ -34,6 +40,8 @@ export default function CleanerSettings() {
     }).then(profile => {
       if (cancelled) return;
       setAvailable(Boolean(profile.isAvailable));
+      setAvailableUntil(profile.availableUntil ?? null);
+      setLocationNeedsRefresh(Boolean(profile.locationNeedsRefresh));
       setRadius(profile.serviceRadiusKm ?? 5);
       setTypes(profile.serviceTypes ?? []);
       setLocationSaved(Boolean(profile.hasLocation));
@@ -53,15 +61,15 @@ export default function CleanerSettings() {
         setLocationSaved(false);
         setNotice("Геопозиция получена. Нажмите «Сохранить настройки».");
       },
-      () => setError("Не удалось получить геопозицию. Разрешите доступ в Telegram и настройках телефона."),
+      err => setError(err.code === 1 ? "Доступ к геопозиции запрещён. Проверьте разрешения Telegram и телефона." : err.code === 2 ? "Местоположение сейчас недоступно. Попробуйте ещё раз в месте с хорошим сигналом." : "Не удалось определить местоположение вовремя. Попробуйте ещё раз."),
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
     );
   }
 
   async function save() {
     if (!token || busy) return;
-    if (available && !location) {
-      setError("Для выхода на линию нажмите «Обновить геопозицию». Местоположение должно быть свежим.");
+    if (available && !location && (!locationSaved || locationNeedsRefresh)) {
+      setError("Для выхода на линию обновите геопозицию. Ранее сохранённая точка может быть устаревшей.");
       return;
     }
     if (!types.length) { setError("Выберите хотя бы один вид уборки"); return; }
@@ -72,13 +80,16 @@ export default function CleanerSettings() {
       const response = await fetch(`${API_URL}/orders/cleaner/profile`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ isAvailable: available, serviceRadiusKm: radius, serviceTypes: types, ...location }),
+        body: JSON.stringify({ isAvailable: available, availabilityHours: available ? hours : undefined, serviceRadiusKm: radius, serviceTypes: types, ...location }),
       });
       if (!response.ok) {
         const data = await response.json().catch(() => null);
         throw new Error(typeof data?.message === "string" ? data.message : "Не удалось сохранить настройки");
       }
-      setLocationSaved(Boolean(location) || locationSaved);
+      const profile = await response.json();
+      setAvailableUntil(profile.availableUntil ?? null);
+      setLocationNeedsRefresh(Boolean(profile.locationNeedsRefresh));
+      setLocationSaved(Boolean(profile.hasLocation));
       setNotice(available ? "Вы на линии! Предложения будут приходить при совпадении условий." : "Настройки сохранены. Вы не на линии.");
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка сохранения"); }
     finally { setBusy(false); }
@@ -97,7 +108,10 @@ export default function CleanerSettings() {
               <input type="checkbox" checked={available} onChange={event => setAvailable(event.target.checked)}
                 className="h-5 w-5 accent-teal-600" />
             </label>
-            <p className="mt-2 text-xs text-slate-500">Предложения появляются только когда вы на линии и ваша геопозиция актуальна (до 30 минут).</p>
+            <p className="mt-2 text-xs text-slate-500">Включите смену на выбранное время. Геопозиция должна оставаться актуальной (до 30 минут).</p>
+            <div className="mt-4 flex gap-2">{([1, 2, 4] as const).map(value => <button key={value} type="button" onClick={() => setHours(value)} aria-pressed={hours === value} className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${hours === value ? "bg-teal-600 text-white" : "bg-teal-50 text-teal-800"}`}>{value} ч</button>)}</div>
+            {availableUntil && available && <p className="mt-3 text-sm font-semibold text-teal-800" aria-live="off">{Math.max(0, Math.ceil((new Date(availableUntil).getTime() - clock) / 60000)) > 0 ? `Осталось ${Math.max(0, Math.ceil((new Date(availableUntil).getTime() - clock) / 60000))} мин` : "Смена закончилась — включите доступность снова"}</p>}
+            {locationNeedsRefresh && <p className="mt-2 text-xs font-medium text-amber-700">Для новых предложений обновите геопозицию.</p>}
           </AppCard>
           <AppCard>
             <p className="text-sm font-semibold">Какие уборки выполняете?</p>
@@ -123,7 +137,7 @@ export default function CleanerSettings() {
               Обновить геопозицию
             </button>
             <p className="mt-2 text-xs text-slate-500">
-              {location ? "Новая геопозиция получена" : locationSaved ? "Ранее сохранена геопозиция (для выхода на линию обновите её)" : "Геопозиция ещё не указана"}
+              {location ? "Новая геопозиция получена" : locationSaved ? "Ранее сохранена геопозиция" : "Геопозиция ещё не указана"}
             </p>
           </AppCard>
           {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
