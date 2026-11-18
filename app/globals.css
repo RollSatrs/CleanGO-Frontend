@@ -55,3 +55,19 @@ html.telegram-mini-app.cleango-fullscreen .cleango-client-header {
 html.telegram-mini-app.cleango-fullscreen .cleango-page-safe-top {
   padding-top: calc(2rem + var(--cleango-telegram-top, 0px) + 36px);
 }
+
+/* One viewport contract for compact, expanded and fullscreen Telegram modes. */
+:root {
+  --cleango-map-top: calc(env(safe-area-inset-top, 0px) + 12px);
+  --cleango-map-bottom: max(env(safe-area-inset-bottom, 0px), var(--cleango-telegram-bottom, 0px));
+}
+html.telegram-mini-app.cleango-fullscreen {
+  --cleango-map-top: calc(max(env(safe-area-inset-top, 0px), var(--cleango-telegram-top, 0px)) + 56px);
+}
+.cleango-map-back { top: var(--cleango-map-top); }
+.cleango-map-search { top: calc(var(--cleango-map-top) + 64px); }
+.cleango-map-sheet { padding-bottom: var(--cleango-map-bottom); }
+.cleango-map-viewport { height: 100dvh; }
+@supports (height: 100svh) {
+  .cleango-map-viewport { height: 100svh; }
+}
