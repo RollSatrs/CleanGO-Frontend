@@ -123,10 +123,11 @@ export default function AddressPicker({ address, onChange }: {
           const data: { features?: Feature[] } = await response.json();
           choose(data.features?.[0]?.place_name ?? `Точка: ${next.latitude.toFixed(5)}, ${next.longitude.toFixed(5)}`, next);
         } catch {
-          setMessage("Не удалось получить адрес. Выберите точку на карте.");
+          choose(`Точка: ${next.latitude.toFixed(5)}, ${next.longitude.toFixed(5)}`, next);
+          setMessage("Точка определена. Уточните адрес на карте, если нужно.");
         }
       },
-      () => { setLocationBusy(false); setMessage("Разрешите доступ к геолокации в Telegram."); },
+      () => { setLocationBusy(false); setMessage("Не удалось определить местоположение. Выберите адрес на карте или введите улицу и дом вручную."); },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
   }
