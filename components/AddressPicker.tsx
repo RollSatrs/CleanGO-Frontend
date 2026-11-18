@@ -56,8 +56,9 @@ function applyCleanGoLightStyle(map:MapHandle){
     }catch{/* Optional vector layer */}
   }
 }
-export default function AddressPicker({ address, onChange }: {
+export default function AddressPicker({ address, onChange, immersive = false }: {
   address: string;
+  immersive?: boolean;
   onChange: (address: string, coordinates: Coordinates | null) => void;
 }) {
   const [focused, setFocused] = useState(false);
@@ -65,7 +66,7 @@ export default function AddressPicker({ address, onChange }: {
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(false);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
-  const [mapOpen, setMapOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(immersive);
   const [mapError, setMapError] = useState("");
   const [mapBusy, setMapBusy] = useState(false);
   const [mapReady, setMapReady] = useState(false);
@@ -238,9 +239,9 @@ export default function AddressPicker({ address, onChange }: {
   }
 
   return (
-    <div className="space-y-3">
-      <label htmlFor="cleango-address" className="block text-sm font-semibold text-slate-800">Адрес уборки</label>
-      <div className="relative">
+    <div className={immersive ? "relative w-full" : "space-y-3"}>
+      <label htmlFor="cleango-address" className={immersive ? "sr-only" : "block text-sm font-semibold text-slate-800"}>Адрес уборки</label>
+      <div className={immersive ? "absolute left-4 right-4 top-5 z-[410] rounded-[22px] bg-white shadow-[0_10px_35px_rgba(20,60,54,0.12)]" : "relative"}>
         <MapPin className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-teal-600" />
         <input id="cleango-address" value={address} autoComplete="off" required
           placeholder="Улица, дом или название места"
@@ -249,7 +250,7 @@ export default function AddressPicker({ address, onChange }: {
             setSelected(false); setCoordinates(null); setResults([]);
             onChange(event.target.value, null);
           }}
-          className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-base text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+          className={immersive ? "h-14 w-full min-w-0 rounded-[22px] border-0 bg-white pl-12 pr-4 text-sm text-slate-900 outline-none" : "h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-base text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"}
         />
         {focused && (results.length > 0 || loading) && (
           <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-64 overflow-y-auto rounded-2xl border border-slate-100 bg-white p-1.5 shadow-xl">
@@ -265,7 +266,7 @@ export default function AddressPicker({ address, onChange }: {
           </div>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className={immersive ? "hidden" : "grid grid-cols-2 gap-2"}>
         <button type="button" onClick={() => { setMapError(""); setMapOpen(true); }}
           className="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-2 py-2 text-sm font-semibold text-teal-800 disabled:opacity-50">
           <MapPinned className="h-4 w-4 shrink-0" /> На карте
@@ -275,14 +276,14 @@ export default function AddressPicker({ address, onChange }: {
           <LocateFixed className="h-4 w-4 shrink-0" /> {locationBusy ? "Определяем..." : "Моя геолокация"}
         </button>
       </div>
-      {coordinates && selected && (
+      {!immersive && coordinates && selected && (
         <p role="status" className="flex items-center gap-2 text-sm font-medium text-teal-700"><Check className="h-4 w-4" /> Адрес и точка выбраны</p>
       )}
       {message && <p role="status" className="text-sm text-amber-700">{message}</p>}
       {!KEY && <p className="text-sm text-red-700">Не настроен NEXT_PUBLIC_MAPTILER_KEY.</p>}
       {mapOpen && (
-        <section aria-label="Выбор точки уборки на карте" className="overflow-hidden rounded-[24px] border border-[#DCEDE7] bg-white shadow-sm">
-          <div className="flex items-center justify-between gap-2 px-4 py-3">
+        <section aria-label="Выбор точки уборки на карте" className={immersive ? "relative overflow-hidden bg-[#F1F6F4]" : "overflow-hidden rounded-[24px] border border-[#DCEDE7] bg-white shadow-sm"}>
+          <div className={immersive ? "hidden" : "flex items-center justify-between gap-2 px-4 py-3"}>
             <div className="min-w-0">
               <p className="text-[11px] font-bold tracking-[0.12em] text-[#159F91]">CLEANGO · КАРТА</p>
               <p className="text-sm font-bold text-[#152535]">Переместите карту под маркер</p>
@@ -293,7 +294,7 @@ export default function AddressPicker({ address, onChange }: {
               {mapExpanded ? "Свернуть" : "Развернуть"}
             </button>
           </div>
-          <div className={`relative w-full bg-[#F1F6F4] transition-[height] duration-200 ${mapExpanded ? "h-[55dvh]" : "h-[260px]"}`}>
+          <div className={immersive ? "relative h-[58dvh] min-h-[390px] w-full bg-[#F1F6F4]" : `relative w-full bg-[#F1F6F4] transition-[height] duration-200 ${mapExpanded ? "h-[55dvh]" : "h-[260px]"}`}>
             <div ref={setMapNode} className="absolute inset-0 h-full w-full" />
             {!mapReady && !mapError && <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-[#F1F6F4]/90 text-sm text-slate-600">Загружаем карту...</div>}
             {mapError && !mapReady && <div role="alert" className="absolute inset-0 z-20 grid place-items-center bg-[#F1F6F4] p-5 text-center text-sm text-amber-700">{mapError}</div>}
@@ -306,7 +307,7 @@ export default function AddressPicker({ address, onChange }: {
               </div>
             </div>
           </div>
-          <div className="space-y-3 p-4">
+          <div className={immersive ? "absolute bottom-5 left-4 right-4 z-[410] rounded-[22px] bg-white/95 p-3 shadow-xl backdrop-blur-lg" : "space-y-3 p-4"}>
             <div className="flex items-start gap-3">
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#E5F8F5] text-[#159F91]"><MapPin size={20}/></div>
               <div className="min-w-0">
@@ -319,7 +320,7 @@ export default function AddressPicker({ address, onChange }: {
               className="h-12 w-full rounded-2xl bg-[#079B8D] font-bold text-white disabled:opacity-50">
               {mapBusy ? "Сохраняем точку..." : "Использовать этот адрес"}
             </button>
-            <p className="text-center text-[11px] text-[#829A94]">После выбора адреса укажите площадь и нажмите «Далее».</p>
+            {!immersive && <p className="text-center text-[11px] text-[#829A94]">После выбора адреса укажите площадь и нажмите «Далее».</p>}
           </div>
         </section>
       )}
