@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, LocateFixed, MapPin, MapPinned, X } from "lucide-react";
+import { Check, LocateFixed, MapPin, MapPinned, ChevronUp, ChevronDown } from "lucide-react";
 
 type Coordinates = { latitude: number; longitude: number };
 type Feature = { place_name: string; center: [number, number] };
@@ -34,15 +34,8 @@ export default function AddressPicker({ address, onChange }: {
   const [message, setMessage] = useState("");
   const [mapNode, setMapNode] = useState<HTMLDivElement | null>(null);
   const mapRef = useRef<MapHandle | null>(null);
-  const [detailsOpen,setDetailsOpen] = useState(false);
-  const [sheetOpen,setSheetOpen] = useState(true);
-  const [entrance,setEntrance]=useState("");
-  const [floor,setFloor]=useState("");
-  const [apartment,setApartment]=useState("");
-  const [intercom,setIntercom]=useState("");
-  const [comment,setComment]=useState("");
+  const [mapExpanded, setMapExpanded] = useState(false);
   const searchVersion = useRef(0);
-  const sheetTouchY = useRef<number | null>(null);
 
   useEffect(() => {
     if (!KEY || !focused || selected || address.trim().length < 3) {
@@ -150,8 +143,8 @@ export default function AddressPicker({ address, onChange }: {
           setPoint([center.lng, center.lat]);
           setPickedAddress("Уточняем адрес...");
         });
-        const tiles = leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          subdomains:"abc", maxZoom:19, attribution:"© OpenStreetMap contributors"
+        const tiles = leaflet.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+          subdomains:"abcd", maxZoom:19, attribution:"© OpenStreetMap contributors © CARTO"
         });
         tiles.on("tileload", () => {
           if (disposed) return;
@@ -160,7 +153,7 @@ export default function AddressPicker({ address, onChange }: {
           setMapError("");
         });
         tiles.on("tileerror", () => {
-          if (!disposed) setMapError("Не удалось загрузить изображения карты. Проверьте интернет и повторите попытку.");
+          if (!disposed) if (!mapReady) setMapError("Не удалось загрузить светлую карту. Проверьте интернет.");
         });
         tiles.addTo(map);
         window.setTimeout(() => { if (!disposed) map?.invalidateSize(); }, 250);
@@ -174,6 +167,8 @@ export default function AddressPicker({ address, onChange }: {
     // A single Leaflet instance owns the map container for its entire lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapOpen,mapNode]);
+
+  useEffect(() => { if (mapOpen) { const timer = window.setTimeout(() => mapRef.current?.invalidateSize(), 260); return () => window.clearTimeout(timer); } }, [mapOpen, mapExpanded]);
 
   useEffect(()=>{
     if(!mapOpen)return;let cancelled=false;
@@ -271,30 +266,47 @@ export default function AddressPicker({ address, onChange }: {
       {message && <p role="status" className="text-sm text-amber-700">{message}</p>}
       {!KEY && <p className="text-sm text-red-700">Не настроен NEXT_PUBLIC_MAPTILER_KEY.</p>}
       {mapOpen && (
-        <div role="dialog" aria-modal="true" aria-label="Выбор точки уборки"
-          className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-[#F7F9F6]">
-          <header className="pointer-events-none absolute inset-x-4 top-[max(72px,env(safe-area-inset-top))] z-[600] flex items-center justify-between rounded-[20px] bg-white/95 px-4 py-3 shadow-xl backdrop-blur-lg pointer-events-auto">
-            <div><p className="text-[11px] font-bold tracking-widest text-[#159f91]">CLEANGO</p><h2 className="text-base font-bold text-[#152535]">Выберите адрес</h2></div>
-            <button type="button" aria-label="Закрыть" onClick={() => setMapOpen(false)} className="rounded-full bg-slate-100 p-2"><X className="h-5 w-5" /></button>
-          </header>
-          <div className="relative min-h-0 flex-1 bg-[#F7F9F6]">
+        <section aria-label="Выбор точки уборки на карте" className="overflow-hidden rounded-[24px] border border-[#DCEDE7] bg-white shadow-sm">
+          <div className="flex items-center justify-between gap-2 px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold tracking-[0.12em] text-[#159F91]">CLEANGO · КАРТА</p>
+              <p className="text-sm font-bold text-[#152535]">Переместите карту под маркер</p>
+            </div>
+            <button type="button" onClick={() => setMapExpanded(v => !v)}
+              className="flex shrink-0 items-center gap-1 rounded-xl bg-[#E8F8F4] px-3 py-2 text-xs font-semibold text-[#087F71]">
+              {mapExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              {mapExpanded ? "Свернуть" : "Развернуть"}
+            </button>
+          </div>
+          <div className={`relative w-full bg-[#F1F6F4] transition-[height] duration-200 ${mapExpanded ? "h-[55dvh]" : "h-[260px]"}`}>
             <div ref={setMapNode} className="absolute inset-0 h-full w-full" />
-            {!mapReady && !mapError && <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-slate-100/90 text-sm font-semibold text-slate-600">Загружаем карту...</div>}
-            {mapError && <div role="alert" className="absolute inset-0 z-20 flex items-center justify-center bg-slate-100 p-6 text-center text-sm text-red-700">{mapError}</div>}
-            {mapReady && !mapError && <button type="button" onClick={locateOnMap} disabled={mapLocating} aria-label="Моё местоположение" className="absolute bottom-5 right-4 z-10 rounded-2xl bg-white p-3 text-teal-700 shadow-lg"><LocateFixed className="h-5 w-5" /></button>}
-            <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-full">
-              <div className={`flex h-7 w-7 items-center justify-center rounded-full border-[4px] border-white bg-[#159f91] shadow-[0_8px_22px_rgba(10,120,108,.3)] transition-transform duration-200 ${mapMoving ? "-translate-y-2 scale-110" : ""}`}><div className="h-2 w-2 rounded-full border-2 border-white bg-teal-100" /></div>
+            {!mapReady && !mapError && <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-[#F1F6F4]/90 text-sm text-slate-600">Загружаем карту...</div>}
+            {mapError && !mapReady && <div role="alert" className="absolute inset-0 z-20 grid place-items-center bg-[#F1F6F4] p-5 text-center text-sm text-amber-700">{mapError}</div>}
+            {mapReady && <button type="button" onClick={locateOnMap} disabled={mapLocating}
+              aria-label="Моё местоположение на карте"
+              className="absolute bottom-4 right-3 z-[400] rounded-xl bg-white p-3 text-teal-700 shadow-md disabled:opacity-50"><LocateFixed size={20}/></button>}
+            <div className="pointer-events-none absolute left-1/2 top-1/2 z-[400] -translate-x-1/2 -translate-y-full">
+              <div className={`grid h-8 w-8 place-items-center rounded-full border-4 border-white bg-[#159F91] shadow-lg ${mapMoving ? "-translate-y-1" : ""}`}>
+                <span className="h-2 w-2 rounded-full bg-white"/>
+              </div>
             </div>
           </div>
-          <footer className="absolute inset-x-0 bottom-0 z-[500] max-h-[75dvh] overflow-y-auto rounded-t-[28px] bg-white p-5 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_38px_rgba(20,70,60,.12)]"><button type="button" onClick={()=>{ if (sheetTouchY.current === -1) { sheetTouchY.current = null; return; } setSheetOpen(!sheetOpen); }} onTouchStart={e => { sheetTouchY.current = e.touches[0]?.clientY ?? null; }} onTouchEnd={e => { if (sheetTouchY.current !== null) { const delta = (e.changedTouches[0]?.clientY ?? sheetTouchY.current) - sheetTouchY.current; if (Math.abs(delta) > 35) { setSheetOpen(delta < 0); sheetTouchY.current = -1; } else sheetTouchY.current = null; } }} className="mb-4 flex h-8 w-full touch-pan-y items-center justify-center" aria-label="Свернуть или раскрыть карточку"><span className="h-1.5 w-12 rounded-full bg-[#dbe8e4]"/></button>{sheetOpen && <div className="space-y-3">
-            <div className="flex items-center gap-3"><div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#e5f8f5] text-[#159f91]"><MapPin size={23}/></div><div className="min-w-0"><p className="text-xs font-bold text-[#159f91]">Точка уборки</p><h3 className="text-base font-bold text-[#152535]">Выбранный адрес</h3><p className="text-xs text-[#72847f]">{mapMoving ? "Уточняем адрес..." : pickedAddress}</p></div></div>
-            {detailsOpen && <div className="grid grid-cols-2 gap-3">{([["Подъезд",entrance,setEntrance],["Этаж",floor,setFloor],["Квартира / офис",apartment,setApartment],["Домофон",intercom,setIntercom]] as const).map(([label,value,setter])=><label key={label} className="text-xs font-semibold text-[#667b75]">{label}<input value={value} onChange={e=>setter(e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-[#e0ebe7] bg-[#f7fbf9] px-3 text-sm text-[#152535]"/></label>)}<label className="col-span-2 text-xs font-semibold text-[#667b75]">Комментарий для клинера<textarea value={comment} onChange={e=>setComment(e.target.value)} rows={2} placeholder="Например, вход со двора" className="mt-1 w-full rounded-xl border border-[#e0ebe7] bg-[#f7fbf9] p-3 text-sm text-[#152535]"/></label></div>}
-            <button type="button" disabled={mapBusy || mapMoving || !mapReady || Boolean(mapError)} onClick={() => {if(!detailsOpen)setDetailsOpen(true);else void confirmMap();}}
-              className="h-12 w-full rounded-2xl bg-teal-600 font-semibold text-white disabled:opacity-50">
-              {mapBusy ? "Сохраняем..." : mapReady ? (detailsOpen ? "Сохранить адрес" : "Уточнить адрес") : "Ожидаем загрузку карты"}
+          <div className="space-y-3 p-4">
+            <div className="flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#E5F8F5] text-[#159F91]"><MapPin size={20}/></div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-[#159F91]">Точка уборки</p>
+                <p className="break-words text-sm text-[#152535]">{mapMoving ? "Уточняем адрес..." : pickedAddress}</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => void confirmMap()}
+              disabled={!mapReady || mapBusy || mapMoving}
+              className="h-12 w-full rounded-2xl bg-[#079B8D] font-bold text-white disabled:opacity-50">
+              {mapBusy ? "Сохраняем точку..." : "Использовать этот адрес"}
             </button>
-          </div>}{!sheetOpen && <button type="button" onClick={()=>setSheetOpen(true)} className="w-full truncate text-left text-sm font-semibold text-[#152535]">{pickedAddress}</button>}<p className="mt-3 text-center text-[10px] text-[#8b9c97]"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a></p></footer>
-        </div>
+            <p className="text-center text-[11px] text-[#829A94]">После выбора адреса укажите площадь и нажмите «Далее».</p>
+          </div>
+        </section>
       )}
     </div>
   );
