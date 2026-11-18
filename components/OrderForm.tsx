@@ -57,6 +57,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
 
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [showAddressDetails, setShowAddressDetails] = useState(false);
   const [priceLoading, setPriceLoading] = useState(false);
 
   const [error, setError] = useState("");
@@ -258,6 +259,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         <div className="space-y-4 rounded-[24px] border border-[#E1F0EC] bg-white p-5">
           <div><p className="text-xs text-[#829792]">Услуга</p><p className="mt-1 font-bold text-[#152535]">{cleaningTypeNames[cleaningType]}</p></div>
           <div className="border-t border-[#EDF3F1] pt-4"><p className="text-xs text-[#829792]">Адрес</p><p className="mt-1 font-medium text-[#152535]">{address || "Не указан"}</p></div>
+          {(entrance || floor || apartment || intercom || addressNote) && <div className="border-t border-[#EDF3F1] pt-4"><p className="text-xs text-[#829792]">Детали входа</p><p className="mt-1 text-sm text-[#152535]">{[entrance && `Подъезд ${entrance}`, floor && `Этаж ${floor}`, apartment && `Квартира/офис ${apartment}`, intercom && `Домофон ${intercom}`, addressNote].filter(Boolean).join(" · ")}</p></div>}
           <div className="border-t border-[#EDF3F1] pt-4"><p className="text-xs text-[#829792]">Площадь</p><p className="mt-1 font-medium text-[#152535]">{area || "Не указана"} м²</p></div>
           <div className="rounded-[20px] bg-[#E6FAF5] p-4"><p className="text-sm text-[#527A72]">Стоимость по тарифу CleanGo</p><p className="mt-1 text-3xl font-extrabold text-[#087F71]">{hasCurrentQuote ? `${priceQuote!.totalPrice.toLocaleString("ru-RU")} ₸` : "Уточняется"}</p></div>
         </div>
@@ -278,8 +280,8 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         setCoordinates(nextCoordinates);
       }} />
 
-      <div className="space-y-3 rounded-[22px] border border-[#DCEDE7] bg-[#F7FCFA] p-4">
-        <div><p className="text-sm font-bold text-[#153D36]">Как найти ваш вход?</p><p className="mt-1 text-xs text-[#6B8780]">Укажите детали, чтобы клинер приехал к нужному подъезду.</p></div>
+      <details open={showAddressDetails} onToggle={(event) => setShowAddressDetails(event.currentTarget.open)} className="space-y-3 rounded-[22px] border border-[#DCEDE7] bg-[#F7FCFA] p-4">
+        <summary className="cursor-pointer text-sm font-bold text-[#153D36]">Подъезд, этаж и комментарий <span className="font-normal text-[#6B8780]">(необязательно)</span></summary><p className="mt-2 text-xs text-[#6B8780]">Эти данные помогут клинеру найти вход.</p>
         <div className="grid grid-cols-2 gap-3">
           {([
             ["Подъезд", entrance, setEntrance, "Например, 2"],
@@ -295,7 +297,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         <label className="block text-xs font-semibold text-[#476C65]">Комментарий для клинера
           <textarea value={addressNote} onChange={(event) => setAddressNote(event.target.value)} maxLength={250} rows={2} placeholder="Например, вход со двора" className="mt-1.5 w-full resize-none rounded-xl border border-[#DDEBE6] bg-white p-3 text-base text-[#152535] outline-none focus:border-[#159F91]" />
         </label>
-      </div>
+      </details>
 
       <div className="space-y-2">
         <Label htmlFor="area">Площадь помещения (м²)</Label>
@@ -392,7 +394,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         {loading ? "Проверяем..." : "Далее — подтвердить заказ"}
       </Button>
 
-      <p className="text-center text-xs leading-5 text-[#94A5A1]">Нажимая кнопку, вы отправляете заявку на уборку.</p>
+      <p className="text-center text-xs leading-5 text-[#94A5A1]">На следующем шаге вы проверите адрес, площадь и стоимость. Заказ пока не создаётся.</p>
     </form>
   );
 }
