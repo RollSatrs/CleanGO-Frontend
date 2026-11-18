@@ -316,10 +316,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
       <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] bg-gradient-to-b from-white/90 via-white/50 to-transparent px-4 pb-8 pt-[max(16px,env(safe-area-inset-top))]">
         <div className="pointer-events-auto flex items-center gap-3">
           <Link href="/client" aria-label="Назад к услугам" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-[#152535] shadow-lg"><ArrowLeft size={23}/></Link>
-          <div className="min-w-0 rounded-2xl bg-white/95 px-4 py-2 shadow-lg backdrop-blur">
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.15em] text-[#0A9A89]">CleanGo</p>
-            <h1 className="text-base font-bold">Оформление уборки</h1>
-          </div>
+
         </div>
       </div>
       <section aria-label="Параметры заказа" className={`absolute inset-x-0 bottom-0 z-[600] flex flex-col rounded-t-[32px] bg-white shadow-[0_-12px_48px_rgba(15,60,55,0.14)] transition-[height] duration-300 ease-out ${sheetLevel === "compact" ? "h-[260px]" : sheetLevel === "medium" ? "h-[49dvh]" : "h-[85dvh]"}`} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
@@ -329,7 +326,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#E5F7F3] text-[#079B8D]"><Sparkles size={25}/></div>
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-extrabold">{cleaningTypeNames[cleaningType]}</h2>
-              <p className="truncate text-xs text-[#7B918B]">{address || "Переместите карту и выберите адрес"}</p>
+              <p className="truncate text-xs text-[#7B918B]">{address || "Коснитесь карты, чтобы выбрать адрес"}</p>
             </div>
             <button type="button" aria-label={sheetLevel === "full" ? "Свернуть панель" : "Раскрыть панель"} onClick={() => setSheetLevel(sheetLevel === "full" ? "compact" : "full")} className="grid h-10 w-10 place-items-center rounded-full bg-[#EDF8F5] text-[#087F71]">{sheetLevel === "full" ? <ChevronDown size={21}/> : <ChevronUp size={21}/>}</button>
           </div>
