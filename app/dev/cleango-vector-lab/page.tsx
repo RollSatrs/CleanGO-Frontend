@@ -61,7 +61,7 @@ async function loadMapLibre() {
       if (link!.sheet) { window.clearTimeout(timer); resolve(); }
     });
   }
-  const existing = (window as WindowWithMap).maplibregl;
+  const existing = (window as unknown as WindowWithMap).maplibregl;
   if (existing?.Map) return existing;
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
@@ -70,7 +70,7 @@ async function loadMapLibre() {
     script.onerror = () => reject(new Error("Не загрузилась библиотека MapLibre"));
     document.head.appendChild(script);
   });
-  const lib = (window as WindowWithMap).maplibregl;
+  const lib = (window as unknown as WindowWithMap).maplibregl;
   if (!lib?.Map) throw new Error("MapLibre недоступен");
   return lib;
 }
@@ -111,45 +111,46 @@ export default function CleanGoVectorLab() {
       try {
         const lib = await loadMapLibre();
         if (stopped || !node.current) return;
-        instance = new lib.Map({
+        const map: MapObject = new lib.Map({
           container: node.current, style: STYLE,
           center: [80.2145, 50.3923], zoom: 16,
           attributionControl: false, dragRotate: false,
           pitchWithRotate: false, touchPitch: false,
         });
-        const canvas = instance.getCanvas();
+        instance = map;
+        const canvas = map.getCanvas();
         const onLost = (event: Event) => { event.preventDefault(); if (!stopped) setContextStatus("WebGL-контекст потерян"); };
         const onRestored = () => { if (!stopped) setContextStatus("WebGL-контекст восстановлен"); };
         canvas.addEventListener("webglcontextlost", onLost);
         canvas.addEventListener("webglcontextrestored", onRestored);
         const measure = () => {
-          if (stopped || !instance) return;
-          const c = instance.getCanvas();
+          if (stopped) return;
+          const c = map.getCanvas();
           const rect = c.getBoundingClientRect();
           const style = getComputedStyle(c);
           const parent = c.parentElement?.getBoundingClientRect();
           const host = node.current?.getBoundingClientRect();
           setCanvasInfo(`Canvas: ${c.width}×${c.height} · CSS ${Math.round(rect.width)}×${Math.round(rect.height)} · parent ${Math.round(parent?.height ?? -1)} · host ${Math.round(host?.height ?? -1)} · display ${style.display} · opacity ${style.opacity}`);
         };
-        instance.on("style.load", () => {
-          if (stopped || !instance) return;
-          setStyledLayers(originalStyle ? 0 : applyPalette(instance, theme === "dark"));
-          setSources(Object.keys((instance.getStyle() as {sources?:Record<string,unknown>}).sources ?? {}).join(", ") || "нет");
+        map.on("style.load", () => {
+          if (stopped) return;
+          setStyledLayers(originalStyle ? 0 : applyPalette(map, theme === "dark"));
+          setSources(Object.keys((map.getStyle() as {sources?:Record<string,unknown>}).sources ?? {}).join(", ") || "нет");
           setPhase("Стиль загружен, проверяем геометрию");
           try {
-            instance.addSource("cleango-render-probe", { type: "geojson", data: { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "Point", coordinates: [80.2145, 50.3923] }, properties: {} }] } });
-            instance.addLayer({ id: "cleango-render-probe-circle", type: "circle", source: "cleango-render-probe", paint: { "circle-radius": 35, "circle-color": "#ff00cc", "circle-stroke-color": "#000000", "circle-stroke-width": 5 } });
+            map.addSource("cleango-render-probe", { type: "geojson", data: { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "Point", coordinates: [80.2145, 50.3923] }, properties: {} }] } });
+            map.addLayer({ id: "cleango-render-probe-circle", type: "circle", source: "cleango-render-probe", paint: { "circle-radius": 35, "circle-color": "#ff00cc", "circle-stroke-color": "#000000", "circle-stroke-width": 5 } });
             setTestLayer("Тестовый слой добавлен: должен быть розовый круг в центре");
-            instance.triggerRepaint();
+            map.triggerRepaint();
           } catch (error) { setTestLayer(`Ошибка тестового слоя: ${error instanceof Error ? error.message : String(error)}`); }
           measure();
         });
-        instance.on("idle", () => {
+        map.on("idle", () => {
           if (stopped || !instance) return;
           let count = 0;
           try {
-            count = instance.queryRenderedFeatures().length;
-            setTileStatus(instance.areTilesLoaded() ? "Тайлы загружены" : "Тайлы ещё загружаются");
+            count = map.queryRenderedFeatures().length;
+            setTileStatus(map.areTilesLoaded() ? "Тайлы загружены" : "Тайлы ещё загружаются");
           } catch { /* Report zero rendered features */ }
           setFeatureCount(count);
           measure();
@@ -160,17 +161,17 @@ export default function CleanGoVectorLab() {
             setPhase("Тайлы загружены, но видимых объектов нет");
           }
         });
-        instance.on("sourcedata", () => {
+        map.on("sourcedata", () => {
           if (stopped || !instance) return;
           setTileStatus(instance.areTilesLoaded() ? "Тайлы загружены" : "Ожидаем тайлы");
         });
-        instance.on("error", (event) => {
+        map.on("error", (event) => {
           if (stopped) return;
           const message = event?.error?.message || "Ошибка загрузки ресурса карты";
           setErrors(prev => [...prev.slice(-2), message]);
         });
-        window.setTimeout(() => { if (!stopped) { instance?.resize(); measure(); } }, 400);
-        window.setTimeout(() => { if (!stopped) { instance?.resize(); instance?.triggerRepaint(); measure(); } }, 1800);
+        window.setTimeout(() => { if (!stopped) { map.resize(); measure(); } }, 400);
+        window.setTimeout(() => { if (!stopped) { map.resize(); map.triggerRepaint(); measure(); } }, 1800);
       } catch (error) {
         if (!stopped) setPhase(error instanceof Error ? error.message : "Ошибка инициализации");
       }
