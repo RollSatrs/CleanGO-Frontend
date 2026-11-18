@@ -266,13 +266,13 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
 
   if (confirming) {
     return (
-      <section className="fixed inset-0 z-[1000] overflow-y-auto bg-white text-[#152535]" style={{height:"100dvh"}}>
-        <div className="bg-gradient-to-b from-[#E8F9F4] to-white px-5 pb-5 pt-[max(24px,env(safe-area-inset-top))]">
+      <section className="fixed inset-0 z-[1000] cleango-map-viewport overflow-y-auto overscroll-contain bg-white text-[#152535]">
+        <div className="cleango-confirmation-header bg-gradient-to-b from-[#E8F9F4] to-white px-5 pb-5">
           <button type="button" onClick={() => {setConfirming(false);setError("");}} className="mb-6 flex items-center gap-2 text-sm font-semibold text-[#087F71]"><ArrowLeft size={19}/> Назад к карте</button><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0A9A89]">CleanGo / Шаг 2 из 2</p>
           <h2 className="mt-3 text-[28px] font-extrabold leading-tight tracking-tight">Подтверждение</h2>
           <p className="mt-2 text-sm text-[#6B857E]">Проверьте детали перед поиском клинера.</p>
         </div>
-        <div className="px-5 pb-6">
+        <div className="px-5 pb-[max(24px,env(safe-area-inset-bottom))]">
           <div className="divide-y divide-[#E9F0ED] bg-white">
             {([
               ["Услуга", cleaningTypeNames[cleaningType]],
