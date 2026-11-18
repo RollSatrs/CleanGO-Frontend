@@ -19,7 +19,8 @@ type MapObject = {
   triggerRepaint(): void;
 };
 type MapLib = { Map: new (options: Record<string, unknown>) => MapObject };
-type WindowWithMap = Window & { maplibregl?: MapLib };
+// Do not intersect with Window: other declarations can give maplibregl a narrower MapHandle type.
+type WindowWithMap = { maplibregl?: MapLib };
 const CDN = "https://unpkg.com/maplibre-gl@5.9.0/dist/";
 const STYLE = "https://tiles.openfreemap.org/styles/liberty";
 
