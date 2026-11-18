@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 
+type AssignedJob = { id: string; status: string; cleaningType: string; area: number; price: number | null; address: string; createdAt: string };
+
 type Offer = {
   offerId: string;
   orderId: string;
@@ -25,6 +27,7 @@ const typeLabels: Record<string, string> = {
 export default function CleanerJobs() {
   const { user, token, status } = useAuth();
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [jobs, setJobs] = useState<AssignedJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -46,6 +49,11 @@ export default function CleanerJobs() {
       const result: unknown = await response.json();
       if (!Array.isArray(result)) throw new Error("Неожиданный ответ сервера");
       setOffers(result as Offer[]);
+      const jobsResponse = await fetch(`${API_URL}/orders/cleaner/jobs`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      if (!jobsResponse.ok) throw new Error("Не удалось загрузить назначенные заказы");
+      const assigned: unknown = await jobsResponse.json();
+      if (!Array.isArray(assigned)) throw new Error("Некорректный список назначенных заказов");
+      setJobs(assigned as AssignedJob[]);
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
@@ -85,6 +93,26 @@ export default function CleanerJobs() {
     }
   }
 
+  async function transition(orderId: string, action: "start" | "complete") {
+    if (!token || busyId) return;
+    if (action === "complete" && !window.confirm("Подтвердить завершение уборки?")) return;
+    setBusyId(orderId);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`${API_URL}/orders/${encodeURIComponent(orderId)}/${action}`, {
+        method: "PATCH", headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(typeof body?.message === "string" ? body.message : "Не удалось обновить заказ");
+      }
+      setMessage(action === "start" ? "Уборка начата." : "Уборка завершена. Вы снова можете получать предложения, если смена и GPS актуальны.");
+      await load();
+    } catch (err) { setError(err instanceof Error ? err.message : "Ошибка соединения"); }
+    finally { setBusyId(null); }
+  }
+
   return (
     <AppPageShell role="cleaner" eyebrow="Для исполнителя" title="Мои предложения"
       description="Только персональные предложения. Точный адрес доступен после назначения заказа.">
@@ -97,12 +125,25 @@ export default function CleanerJobs() {
       {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {message && <p role="status" className="mb-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p>}
       {loading && <p className="text-sm text-slate-500">Загружаем предложения…</p>}
-      {!loading && user?.role === "cleaner" && user.phoneVerifiedAt && offers.length === 0 && !error && (
+      {!loading && user?.role === "cleaner" && user.phoneVerifiedAt && offers.length === 0 && jobs.length === 0 && !error && (
         <AppCard className="py-8 text-center">
           <h2 className="text-lg font-bold">Пока нет предложений</h2>
           <p className="mt-2 text-sm text-slate-500">Новые предложения появятся здесь автоматически. Обновление каждые 15 секунд.</p>
         </AppCard>
       )}
+      {jobs.length > 0 && <section className="mb-6 space-y-3">
+        <h2 className="text-lg font-bold">Мои текущие уборки</h2>
+        {jobs.map(job => <AppCard key={job.id}>
+          <p className="text-sm font-semibold">{typeLabels[job.cleaningType] ?? job.cleaningType}</p>
+          <p className="mt-2 text-sm text-slate-600">{job.area} м² · {job.address}</p>
+          <p className="mt-2 text-sm font-medium text-teal-700">{job.status === "accepted" ? "Заказ принят" : "Уборка выполняется"}</p>
+          <button type="button" disabled={busyId !== null}
+            onClick={() => void transition(job.id, job.status === "accepted" ? "start" : "complete")}
+            className="mt-4 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
+            {job.status === "accepted" ? "Начать уборку" : "Завершить уборку"}
+          </button>
+        </AppCard>)}
+      </section>}
       <div className="space-y-3">
         {offers.map(offer => {
           const expired = new Date(offer.expiresAt).getTime() <= Date.now();
