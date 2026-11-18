@@ -1,0 +1,121 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft, CheckCircle2, Clock3, MapPin, ShieldCheck, Sparkles } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
+
+type Order = {
+  id: string; status: string; address: string; area: number;
+  cleaningType: "regular" | "general" | "renovation";
+  price: number | null; latitude?: string | number | null; longitude?: string | number | null;
+};
+const names = { regular: "Поддерживающая уборка", general: "Генеральная уборка", renovation: "После ремонта" };
+const terminal = new Set(["accepted", "in_progress", "completed", "cancelled", "unassigned", "expired", "failed", "no_cleaner"]);
+const style = "https://tiles.openfreemap.org/styles/liberty";
+const cdn = "https://unpkg.com/maplibre-gl@5.9.0/dist/";
+type MapInstance = { on(event:string,cb:()=>void):void; getStyle():{layers?:{id:string;type:string}[]}; setPaintProperty(id:string,property:string,value:string):void; remove():void };
+type MapLibrary = { Map: new (options:Record<string,unknown>)=>MapInstance; Marker: new (options:Record<string,unknown>)=>{setLngLat(coords:[number,number]):{addTo(map:MapInstance):unknown}} };
+declare global { interface Window { maplibregl?: MapLibrary } }
+let loadingLibrary: Promise<MapLibrary> | null = null;
+function loadLibrary(): Promise<MapLibrary> {
+  if (window.maplibregl?.Map) return Promise.resolve(window.maplibregl);
+  if (loadingLibrary) return loadingLibrary;
+  loadingLibrary = new Promise<MapLibrary>((resolve,reject)=>{
+    if (!document.getElementById("cleango-maplibre-css")) {
+      const css=document.createElement("link");css.id="cleango-maplibre-css";css.rel="stylesheet";css.href=cdn+"maplibre-gl.css";document.head.appendChild(css);
+    }
+    const script=document.createElement("script");script.src=cdn+"maplibre-gl.js";
+    script.onload=()=>window.maplibregl?.Map?resolve(window.maplibregl):reject(new Error("Карта недоступна"));
+    script.onerror=()=>reject(new Error("Не удалось загрузить карту"));
+    document.head.appendChild(script);
+  }).catch(error=>{loadingLibrary=null;throw error;});
+  return loadingLibrary;
+}
+
+export default function OrderTracking({ initialOrder, latitude, longitude }: {
+  initialOrder: Order; latitude: number; longitude: number;
+}) {
+  const {token}=useAuth();
+  const [order,setOrder]=useState(initialOrder);
+  const [networkError,setNetworkError]=useState(false);
+  const [mapError,setMapError]=useState(false);
+  const [expanded,setExpanded]=useState(false);
+  const node=useRef<HTMLDivElement|null>(null);
+  const isPending=order.status==="pending";
+  const isAccepted=["accepted","in_progress","completed"].includes(order.status);
+
+  useEffect(()=>{
+    if(!token || terminal.has(order.status))return;
+    let active=true;
+    const refresh=async()=>{
+      try {
+        const response=await fetch("/api/backend/orders",{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
+        if(!response.ok)throw new Error("Request failed");
+        const orders:Order[]=await response.json();
+        const current=orders.find(item=>item.id===initialOrder.id);
+        if(active){if(current)setOrder(current);setNetworkError(false);}
+      } catch {if(active)setNetworkError(true);}
+    };
+    void refresh();
+    const interval=window.setInterval(()=>void refresh(),5000);
+    return()=>{active=false;window.clearInterval(interval);};
+  },[token,initialOrder.id,order.status]);
+
+  useEffect(()=>{
+    if(!node.current || !Number.isFinite(latitude) || !Number.isFinite(longitude))return;
+    let disposed=false;
+    let map:MapInstance|null=null;
+    void loadLibrary().then(lib=>{
+      if(disposed||!node.current)return;
+      map=new lib.Map({container:node.current,style,center:[longitude,latitude],zoom:15,attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
+      const el=document.createElement("div");
+      el.style.cssText="width:22px;height:22px;border-radius:50%;background:#009B8F;border:5px solid white;box-shadow:0 0 0 12px #009B8F24,0 4px 15px #004E4855";
+      new lib.Marker({element:el,anchor:"center"}).setLngLat([longitude,latitude]).addTo(map);
+      map.on("style.load",()=>{
+        for(const layer of map?.getStyle().layers??[]){
+          const id=layer.id.toLowerCase();
+          try{
+            if(layer.type==="background")map?.setPaintProperty(layer.id,"background-color","#F7FAF8");
+            if(layer.type==="fill"&&/building/.test(id))map?.setPaintProperty(layer.id,"fill-color","#E5EBE8");
+            if(layer.type==="fill"&&/park|grass|landcover/.test(id))map?.setPaintProperty(layer.id,"fill-color","#E4F2E9");
+            if(layer.type==="fill"&&/water/.test(id))map?.setPaintProperty(layer.id,"fill-color","#DCEFED");
+          }catch{/* optional layer */}
+        }
+      });
+    }).catch(()=>{if(!disposed)setMapError(true);});
+    return()=>{disposed=true;map?.remove();};
+  },[latitude,longitude]);
+
+  const title=isPending?"Ищем клинера":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":"Поиск завершён";
+  const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":"Статус подтверждён сервером CleanGo";
+  return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F5FAF8] text-[#152535] cleango-map-viewport">
+    <div ref={node} className="absolute inset-0" aria-label="Карта адреса уборки" />
+    {mapError&&<div className="absolute inset-0 grid place-items-center bg-[#F0F8F5] text-sm text-[#6D8880]">Не удалось загрузить карту</div>}
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-white/95 via-white/70 to-transparent px-5 pb-12 pt-[max(26px,env(safe-area-inset-top))]">
+      <div className="flex items-center justify-between">
+        <Link href="/client/orders" className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-white shadow-md" aria-label="Мои заказы"><ArrowLeft size={20}/></Link>
+        <span className="rounded-full bg-white px-4 py-2 text-xs font-bold tracking-wide text-[#087F71] shadow-sm">CleanGo · Заказ</span>
+      </div>
+    </div>
+    <div className="absolute inset-x-0 bottom-0 z-20 rounded-t-[32px] bg-white px-5 pb-[max(22px,env(safe-area-inset-bottom))] shadow-[0_-12px_50px_rgba(20,65,57,0.12)]">
+      <button type="button" onClick={()=>setExpanded(value=>!value)} aria-expanded={expanded} aria-label="Показать подробности заказа" className="flex w-full justify-center py-3"><span className="h-1.5 w-12 rounded-full bg-[#D9E8E4]"/></button>
+      <div className="flex items-center gap-3">
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#E3F8F2] text-[#079B8D]">{isAccepted?<CheckCircle2 size={25}/>:<Sparkles size={25} className={isPending?"animate-pulse":""}/>}</div>
+        <div className="min-w-0 flex-1"><h1 className="text-xl font-extrabold tracking-tight">{title}</h1><p className="mt-1 text-xs leading-5 text-[#738C84]">{subtitle}</p></div>
+        {isPending&&<span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0A9C8D] opacity-40"/><span className="relative inline-flex h-3 w-3 rounded-full bg-[#0A9C8D]"/></span>}
+      </div>
+      {isPending&&<div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#E0F1EB]"><div className="h-full w-1/3 animate-pulse rounded-full bg-[#079B8D]"/></div>}
+      <div className="mt-5 flex items-center gap-2 text-sm text-[#617B74]"><MapPin size={16} className="shrink-0 text-[#079B8D]"/><span className="truncate">{order.address}</span></div>
+      {expanded&&<div className="mt-4 space-y-3 border-t border-[#EDF3F0] pt-4">
+        <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Уборка</span><strong className="text-right">{names[order.cleaningType]}</strong></div>
+        <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Площадь</span><strong>{order.area} м²</strong></div>
+        <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Стоимость</span><strong>{order.price==null?"Уточняется":`${Number(order.price).toLocaleString("ru-RU")} ₸`}</strong></div>
+        <p className="flex items-start gap-2 text-xs leading-5 text-[#6B8980]"><ShieldCheck size={16} className="shrink-0 text-[#079B8D]"/>Точный адрес доступен исполнителю только после принятия заказа.</p>
+      </div>}
+      {networkError&&<p role="status" className="mt-3 text-xs text-amber-700">Нет связи с сервером. Показываем последний подтверждённый статус.</p>}
+      {isPending&&<p className="mt-3 flex items-center gap-2 text-xs text-[#79918B]"><Clock3 size={14}/>Статус обновляется каждые 5 секунд</p>}
+      <Link href="/client/orders" className="mt-5 flex h-13 min-h-13 items-center justify-center rounded-2xl bg-[#079B8D] font-bold text-white">Мои заказы</Link>
+    </div>
+  </section>;
+}
