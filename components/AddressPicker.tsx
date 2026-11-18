@@ -5,14 +5,57 @@ import { Check, LocateFixed, MapPin, MapPinned, ChevronUp, ChevronDown } from "l
 
 type Coordinates = { latitude: number; longitude: number };
 type Feature = { place_name: string; center: [number, number] };
-type MapHandle = { getCenter(): {lng:number;lat:number}; flyTo(center: [number,number], zoom?:number): void; invalidateSize(): void; remove(): void; on(event:string,callback:()=>void):void };
-type TileLayer = { on(event:string, callback:()=>void): TileLayer; addTo(map:MapHandle):TileLayer };
-type LeafletLibrary = { map(node:HTMLElement, options:Record<string,unknown>):MapHandle; tileLayer(url:string, options:Record<string,unknown>):TileLayer };
-declare global { interface Window { L?: LeafletLibrary } }
+type MapHandle = { getCenter(): {lng:number;lat:number}; flyTo(options: {center:[number,number];zoom?:number;essential?:boolean}): void; resize(): void; remove(): void; on(event:string,callback:()=>void):void; getStyle(): {layers?:Array<{id:string;type:string}>}; setPaintProperty(id:string,property:string,value:string):void; queryRenderedFeatures():unknown[] };
+type MapLibreLibrary = { Map: new(options:Record<string,unknown>)=>MapHandle };
+declare global { interface Window { maplibregl?: MapLibreLibrary } }
 
 const KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const SEMEY: [number, number] = [80.2275, 50.4111];
-const LEAFLET_VERSION = "1.9.4";
+const MAPLIBRE_CDN = "https://unpkg.com/maplibre-gl@5.9.0/dist/";
+const VECTOR_STYLE = "https://tiles.openfreemap.org/styles/liberty";
+async function loadMapLibre(): Promise<MapLibreLibrary> {
+  let css = document.getElementById("cleango-maplibre-css") as HTMLLinkElement | null;
+  if (!css) {
+    css = document.createElement("link");
+    css.id = "cleango-maplibre-css"; css.rel = "stylesheet";
+    css.href = MAPLIBRE_CDN + "maplibre-gl.css";
+    document.head.appendChild(css);
+  }
+  if (!css.sheet) await new Promise<void>((resolve,reject)=>{
+    const timer=window.setTimeout(()=>reject(new Error("Не загрузились стили карты")),12000);
+    css!.addEventListener("load",()=>{clearTimeout(timer);resolve();},{once:true});
+    css!.addEventListener("error",()=>{clearTimeout(timer);reject(new Error("Стили карты недоступны"));},{once:true});
+    if(css!.sheet){clearTimeout(timer);resolve();}
+  });
+  if(window.maplibregl?.Map) return window.maplibregl;
+  await new Promise<void>((resolve,reject)=>{
+    const existing=document.getElementById("cleango-maplibre-script") as HTMLScriptElement|null;
+    if(existing){
+      existing.addEventListener("load",()=>resolve(),{once:true});
+      existing.addEventListener("error",()=>reject(new Error("MapLibre недоступен")),{once:true});
+      return;
+    }
+    const script=document.createElement("script");script.id="cleango-maplibre-script";
+    script.src=MAPLIBRE_CDN+"maplibre-gl.js";
+    script.onload=()=>resolve();script.onerror=()=>reject(new Error("MapLibre недоступен"));
+    document.head.appendChild(script);
+  });
+  if(!window.maplibregl?.Map)throw new Error("MapLibre не загрузился");
+  return window.maplibregl;
+}
+function applyCleanGoLightStyle(map:MapHandle){
+  const palette={background:"#F7F9F6",building:"#E5EAE6",park:"#E5F2E9",water:"#DCEFED",road:"#FFFFFF",roadBorder:"#DCE4E0"};
+  for(const layer of map.getStyle().layers??[]){
+    const id=layer.id.toLowerCase();
+    try{
+      if(layer.type==="background")map.setPaintProperty(layer.id,"background-color",palette.background);
+      if(layer.type==="fill"&&/building/.test(id))map.setPaintProperty(layer.id,"fill-color",palette.building);
+      if(layer.type==="fill"&&/park|grass|wood|landcover|landuse/.test(id))map.setPaintProperty(layer.id,"fill-color",palette.park);
+      if(layer.type==="fill"&&/water/.test(id))map.setPaintProperty(layer.id,"fill-color",palette.water);
+      if(layer.type==="line"&&/road|street|highway|transportation/.test(id))map.setPaintProperty(layer.id,"line-color",/casing|outline/.test(id)?palette.roadBorder:palette.road);
+    }catch{/* Optional vector layer */}
+  }
+}
 export default function AddressPicker({ address, onChange }: {
   address: string;
   onChange: (address: string, coordinates: Coordinates | null) => void;
@@ -100,75 +143,47 @@ export default function AddressPicker({ address, onChange }: {
 
   useEffect(() => {
     if (!mapOpen || !mapNode) return;
-    let disposed = false;
-    let map: MapHandle | null = null;
-    setMapReady(false);
-    setMapError("");
-    const timeout = window.setTimeout(() => { if (!disposed) setMapError("Карта не загрузилась. Проверьте соединение."); }, 15000);
-    const load = async () => {
-      try {
-        if (!document.getElementById("cleango-leaflet-css")) {
-          const link = document.createElement("link");
-          link.id = "cleango-leaflet-css";
-          link.rel = "stylesheet";
-          link.href = "https://unpkg.com/leaflet@" + LEAFLET_VERSION + "/dist/leaflet.css";
-          document.head.appendChild(link);
-        }
-        if (!window.L) {
-          await new Promise<void>((resolve, reject) => {
-            const existing = document.getElementById("cleango-leaflet-script") as HTMLScriptElement | null;
-            if (existing) {
-              if (window.L) { resolve(); return; }
-              existing.addEventListener("load", () => resolve(), {once:true});
-              existing.addEventListener("error", () => reject(new Error("Leaflet CDN недоступен")), {once:true});
-              return;
-            }
-            const script = document.createElement("script");
-            script.id = "cleango-leaflet-script";
-            script.src = "https://unpkg.com/leaflet@" + LEAFLET_VERSION + "/dist/leaflet.js";
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error("Leaflet CDN недоступен"));
-            document.head.appendChild(script);
-          });
-        }
-        if (disposed || !window.L) return;
-        const leaflet = window.L;
-        map = leaflet.map(mapNode, {center:[point[1],point[0]], zoom:15, zoomControl:true, attributionControl:true});
-        mapRef.current = map;
-        map.on("movestart", () => { if (!disposed) setMapMoving(true); });
-        map.on("moveend", () => {
-          if (disposed || !map) return;
+    let disposed=false;
+    let map:MapHandle|null=null;
+    setMapReady(false);setMapError("");
+    const timeout=window.setTimeout(()=>{if(!disposed)setMapError("Карта не загрузилась. Проверьте соединение.");},15000);
+    void(async()=>{
+      try{
+        const lib=await loadMapLibre();
+        if(disposed)return;
+        map=new lib.Map({container:mapNode,center:point,zoom:16,style:VECTOR_STYLE,
+          attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
+        mapRef.current=map;
+        map.on("movestart",()=>{if(!disposed)setMapMoving(true);});
+        map.on("moveend",()=>{
+          if(disposed||!map)return;
           setMapMoving(false);
-          const center = map.getCenter();
-          setPoint([center.lng, center.lat]);
+          const center=map.getCenter();
+          setPoint([center.lng,center.lat]);
           setPickedAddress("Уточняем адрес...");
         });
-        const tiles = leaflet.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-          subdomains:"abcd", maxZoom:19, attribution:"© OpenStreetMap contributors © CARTO"
+        map.on("style.load",()=>{if(!disposed&&map)applyCleanGoLightStyle(map);});
+        map.on("idle",()=>{
+          if(disposed||!map)return;
+          if(map.queryRenderedFeatures().length>0){
+            window.clearTimeout(timeout);setMapReady(true);setMapError("");
+          }
         });
-        tiles.on("tileload", () => {
-          if (disposed) return;
-          window.clearTimeout(timeout);
-          setMapReady(true);
-          setMapError("");
-        });
-        tiles.on("tileerror", () => {
-          if (!disposed) if (!mapReady) setMapError("Не удалось загрузить светлую карту. Проверьте интернет.");
-        });
-        tiles.addTo(map);
-        window.setTimeout(() => { if (!disposed) map?.invalidateSize(); }, 250);
-      } catch(error) {
+        map.on("error",()=>{if(!disposed)setMapError("Ошибка загрузки векторной карты. Проверьте интернет.");});
+        window.setTimeout(()=>{if(!disposed)map?.resize();},350);
+      }catch(error){
         window.clearTimeout(timeout);
-        if (!disposed) setMapError(error instanceof Error ? error.message : "Ошибка карты");
+        if(!disposed)setMapError(error instanceof Error?error.message:"Ошибка карты");
       }
-    };
-    void load();
-    return () => { disposed = true; window.clearTimeout(timeout); map?.remove(); mapRef.current = null; };
-    // A single Leaflet instance owns the map container for its entire lifetime.
+    })();
+    return()=>{disposed=true;window.clearTimeout(timeout);map?.remove();mapRef.current=null;};
+    // Keep a single map instance while its container is mounted.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mapOpen,mapNode]);
+  },[mapOpen,mapNode]);
 
-  useEffect(() => { if (mapOpen) { const timer = window.setTimeout(() => mapRef.current?.invalidateSize(), 260); return () => window.clearTimeout(timer); } }, [mapOpen, mapExpanded]);
+  useEffect(()=>{
+    if(mapOpen){const timer=window.setTimeout(()=>mapRef.current?.resize(),260);return()=>window.clearTimeout(timer);}
+  },[mapOpen,mapExpanded]);
 
   useEffect(()=>{
     if(!mapOpen)return;let cancelled=false;
@@ -189,7 +204,7 @@ export default function AddressPicker({ address, onChange }: {
       ({coords}) => {
         setMapLocating(false);
         if (coords.accuracy > 500) { setMapError("Местоположение определено недостаточно точно."); return; }
-        mapRef.current?.flyTo([coords.latitude,coords.longitude],16);
+        mapRef.current?.flyTo({center:[coords.longitude,coords.latitude],zoom:16,essential:true});
       },
       () => {setMapLocating(false);setMapError("Разрешите геолокацию в настройках Telegram.");},
       {enableHighAccuracy:true,timeout:15000,maximumAge:0}
