@@ -56,9 +56,10 @@ function applyCleanGoLightStyle(map:MapHandle){
     }catch{/* Optional vector layer */}
   }
 }
-export default function AddressPicker({ address, onChange, immersive = false }: {
+export default function AddressPicker({ address, onChange, immersive = false, searchVisible = true }: {
   address: string;
   immersive?: boolean;
+  searchVisible?: boolean;
   onChange: (address: string, coordinates: Coordinates | null) => void;
 }) {
   const [focused, setFocused] = useState(false);
@@ -247,7 +248,7 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
   return (
     <div className={immersive ? "relative h-[100dvh] w-full overflow-hidden" : "space-y-3"}>
       <label htmlFor="cleango-address" className={immersive ? "sr-only" : "block text-sm font-semibold text-slate-800"}>Адрес уборки</label>
-      <div className={immersive ? "absolute left-4 right-4 top-[90px] z-[410] rounded-[22px] bg-white shadow-[0_10px_35px_rgba(20,60,54,0.12)]" : "relative"}>
+      <div className={immersive ? (searchVisible ? "absolute left-4 right-4 top-[76px] z-[650] rounded-[22px] bg-white shadow-[0_10px_35px_rgba(20,60,54,0.12)]" : "hidden") : "relative"}>
         <MapPin className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-teal-600" />
         <input id="cleango-address" value={address} autoComplete="off" required
           placeholder="Улица, дом или название места"
