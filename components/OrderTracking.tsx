@@ -67,7 +67,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const [mapError,setMapError]=useState("");
   const [mapReady,setMapReady]=useState(false);
   const [expanded,setExpanded]=useState(false);
-  const node=useRef<HTMLDivElement|null>(null);
+  const [mapNode,setMapNode]=useState<HTMLDivElement|null>(null);
   const mapReadyRef=useRef(false);
   const isPending=order.status==="pending";
   const isAccepted=["accepted","in_progress","completed"].includes(order.status);
@@ -90,7 +90,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   },[token,initialOrder.id,order.status]);
 
   useEffect(()=>{
-    if(!node.current || !Number.isFinite(latitude) || !Number.isFinite(longitude))return;
+    if(!mapNode || !Number.isFinite(latitude) || !Number.isFinite(longitude))return;
     let disposed=false;
     setMapReady(false);
     mapReadyRef.current=false;
@@ -98,8 +98,8 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
     const timeout=window.setTimeout(()=>{if(!disposed&&!mapReadyRef.current)setMapError("Карта загружается слишком долго. Проверьте интернет и откройте экран снова.");},16000);
     let map:InstanceType<MapLibrary["Map"]>|null=null;
     void loadLibrary().then(lib=>{
-      if(disposed||!node.current)return;
-      map=new lib.Map({container:node.current,style,center:[longitude,latitude],zoom:15,attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
+      if(disposed)return;
+      map=new lib.Map({container:mapNode,style,center:[longitude,latitude],zoom:15,attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
       const el=document.createElement("div");
       el.style.cssText="width:22px;height:22px;border-radius:50%;background:#009B8F;border:5px solid white;box-shadow:0 0 0 12px #009B8F24,0 4px 15px #004E4855";
       new lib.Marker({element:el,anchor:"center"}).setLngLat([longitude,latitude]).addTo(map);
@@ -119,13 +119,13 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       });
     }).catch(error=>{if(!disposed)setMapError(error instanceof Error?error.message:"Не удалось загрузить карту");});
     return()=>{disposed=true;window.clearTimeout(timeout);map?.remove();};
-  },[latitude,longitude]);
+  },[latitude,longitude,mapNode]);
 
   const title=isPending?"Ищем клинера":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":"Поиск завершён";
   const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":"Статус подтверждён сервером CleanGo";
   return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F5FAF8] text-[#152535] cleango-map-viewport">
-    <div ref={node} className="absolute inset-0" aria-label="Карта адреса уборки" />
-    {!mapReady&&<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#F0F8F5]/70 px-8 text-center text-sm text-[#6D8880]">{mapError || "Загружаем карту района…"}</div>}
+    <div ref={setMapNode} className="absolute inset-0" aria-label="Карта адреса уборки" />
+    {!mapReady&&<div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-[#6D8880]">{mapError || "Загружаем карту района…"}</div>}
     <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-white/95 via-white/70 to-transparent px-4 pb-8 cleango-tracking-header">
       <div className="flex items-center justify-between">
         <Link href="/client/orders" className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-white shadow-md" aria-label="Мои заказы"><ArrowLeft size={20}/></Link>
