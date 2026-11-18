@@ -126,9 +126,11 @@ export default function TelegramProvider({
     update();
     events.forEach((event) => app?.onEvent?.(event, update));
     window.addEventListener("resize", update);
+    window.addEventListener("cleango:telegram-viewport-ready", update);
     return () => {
       events.forEach((event) => app?.offEvent?.(event, update));
       window.removeEventListener("resize", update);
+      window.removeEventListener("cleango:telegram-viewport-ready", update);
       root.classList.remove("cleango-fullscreen");
       root.style.removeProperty("--cleango-telegram-top");
       root.style.removeProperty("--cleango-telegram-bottom");
@@ -194,6 +196,7 @@ export default function TelegramProvider({
           document.documentElement.classList.add(
             "telegram-mini-app",
           );
+          window.dispatchEvent(new Event("cleango:telegram-viewport-ready"));
         }
       } catch (error) {
         console.error(
