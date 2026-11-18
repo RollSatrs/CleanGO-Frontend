@@ -239,9 +239,9 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
   }
 
   return (
-    <div className={immersive ? "relative w-full" : "space-y-3"}>
+    <div className={immersive ? "relative h-[100dvh] w-full overflow-hidden" : "space-y-3"}>
       <label htmlFor="cleango-address" className={immersive ? "sr-only" : "block text-sm font-semibold text-slate-800"}>Адрес уборки</label>
-      <div className={immersive ? "absolute left-4 right-4 top-5 z-[410] rounded-[22px] bg-white shadow-[0_10px_35px_rgba(20,60,54,0.12)]" : "relative"}>
+      <div className={immersive ? "absolute left-4 right-4 top-[90px] z-[410] rounded-[22px] bg-white shadow-[0_10px_35px_rgba(20,60,54,0.12)]" : "relative"}>
         <MapPin className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-teal-600" />
         <input id="cleango-address" value={address} autoComplete="off" required
           placeholder="Улица, дом или название места"
@@ -282,7 +282,7 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
       {message && <p role="status" className="text-sm text-amber-700">{message}</p>}
       {!KEY && <p className="text-sm text-red-700">Не настроен NEXT_PUBLIC_MAPTILER_KEY.</p>}
       {mapOpen && (
-        <section aria-label="Выбор точки уборки на карте" className={immersive ? "relative overflow-hidden bg-[#F1F6F4]" : "overflow-hidden rounded-[24px] border border-[#DCEDE7] bg-white shadow-sm"}>
+        <section aria-label="Выбор точки уборки на карте" className={immersive ? "absolute inset-0 overflow-hidden bg-[#F1F6F4]" : "overflow-hidden rounded-[24px] border border-[#DCEDE7] bg-white shadow-sm"}>
           <div className={immersive ? "hidden" : "flex items-center justify-between gap-2 px-4 py-3"}>
             <div className="min-w-0">
               <p className="text-[11px] font-bold tracking-[0.12em] text-[#159F91]">CLEANGO · КАРТА</p>
@@ -294,7 +294,7 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
               {mapExpanded ? "Свернуть" : "Развернуть"}
             </button>
           </div>
-          <div className={immersive ? "relative h-[58dvh] min-h-[390px] w-full bg-[#F1F6F4]" : `relative w-full bg-[#F1F6F4] transition-[height] duration-200 ${mapExpanded ? "h-[55dvh]" : "h-[260px]"}`}>
+          <div className={immersive ? "relative h-full w-full bg-[#F1F6F4]" : `relative w-full bg-[#F1F6F4] transition-[height] duration-200 ${mapExpanded ? "h-[55dvh]" : "h-[260px]"}`}>
             <div ref={setMapNode} className="absolute inset-0 h-full w-full" />
             {!mapReady && !mapError && <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-[#F1F6F4]/90 text-sm text-slate-600">Загружаем карту...</div>}
             {mapError && !mapReady && <div role="alert" className="absolute inset-0 z-20 grid place-items-center bg-[#F1F6F4] p-5 text-center text-sm text-amber-700">{mapError}</div>}
@@ -307,7 +307,7 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
               </div>
             </div>
           </div>
-          <div className={immersive ? "absolute bottom-5 left-4 right-4 z-[410] rounded-[22px] bg-white/95 p-3 shadow-xl backdrop-blur-lg" : "space-y-3 p-4"}>
+          <div className={immersive ? "absolute bottom-[275px] left-4 right-4 z-[410] rounded-[22px] bg-white/95 p-3 shadow-xl backdrop-blur-lg" : "space-y-3 p-4"}>
             <div className="flex items-start gap-3">
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#E5F8F5] text-[#159F91]"><MapPin size={20}/></div>
               <div className="min-w-0">
