@@ -67,10 +67,7 @@ html.telegram-mini-app.cleango-fullscreen {
 .cleango-map-back { top: var(--cleango-map-top); }
 .cleango-map-search { top: calc(var(--cleango-map-top) + 64px); }
 .cleango-map-sheet { padding-bottom: var(--cleango-map-bottom); }
-.cleango-map-viewport { height: 100dvh; }
-@supports (height: 100svh) {
-  .cleango-map-viewport { height: 100svh; }
-}
+.cleango-map-viewport { height: 100dvh; height: var(--tg-viewport-stable-height, 100dvh); }
 
 /* Confirmation is a separate screen, not the map's floating back button.
    Telegram fullscreen overlays native controls near the top corners. */
@@ -79,4 +76,19 @@ html.telegram-mini-app.cleango-fullscreen {
 }
 html.telegram-mini-app.cleango-fullscreen .cleango-confirmation-header {
   padding-top: max(108px, calc(var(--cleango-telegram-top, 0px) + 12px), calc(env(safe-area-inset-top, 0px) + 12px));
+}
+
+/* Order tracking: reserve Telegram overlay clearance without wasting map space. */
+.cleango-tracking-header {
+  padding-top: calc(max(16px, env(safe-area-inset-top, 0px)) + 8px);
+}
+html.telegram-mini-app.cleango-fullscreen .cleango-tracking-header {
+  padding-top: calc(max(env(safe-area-inset-top, 0px), var(--cleango-telegram-top, 0px)) + 64px);
+}
+.cleango-tracking-sheet {
+  padding-bottom: calc(max(12px, env(safe-area-inset-bottom, 0px), var(--cleango-telegram-bottom, 0px)) + 12px);
+}
+@media (max-height: 640px) {
+  .cleango-tracking-sheet { max-height: 78%; }
+  .cleango-tracking-header { padding-bottom: 16px; }
 }
