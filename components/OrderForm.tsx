@@ -284,143 +284,84 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="relative overflow-hidden rounded-[28px] border border-[#DCEDE7] bg-[#F5FAF8] pb-3">
-      <div className="relative flex min-h-[240px] flex-col justify-between overflow-hidden bg-gradient-to-br from-[#E5F6F1] via-[#F7FBFA] to-[#D7F0E9] px-5 py-6">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#098F82]">CleanGo · Оформление</p>
-          <h2 className="mt-2 text-2xl font-extrabold text-[#152535]">Выберите точку уборки</h2>
-          <p className="mt-2 max-w-[260px] text-sm leading-6 text-[#5E8179]">Выберите адрес на светлой карте и настройте уборку в панели ниже.</p>
-        </div>
-        <div className="mt-5 flex items-center gap-2 text-sm font-semibold text-[#087F71]"><MapPin className="h-5 w-5" />{address || "Адрес ещё не выбран"}</div>
-      </div>
-      <div className="-mt-5 relative z-10 rounded-t-[28px] bg-white px-4 pb-5 pt-3 shadow-[0_-12px_35px_rgba(11,70,62,0.07)]">
-        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-[#D6E7E2]" />
+    <form onSubmit={handleSubmit} className="relative mx-auto max-w-xl overflow-hidden rounded-[30px] bg-[#F8FBFA] text-[#152535] shadow-[0_16px_50px_rgba(20,67,59,0.06)]">
+      <div className="relative overflow-hidden bg-gradient-to-b from-[#E9F9F5] via-[#F2FAF8] to-[#F8FBFA] px-5 pb-7 pt-7">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-[#159F91]">Параметры уборки</p>
-            <h3 className="mt-1 text-base font-extrabold text-[#152535]">{cleaningTypeNames[cleaningType]}</h3>
-          </div>
-          <div className="flex items-center gap-1">
-            <button type="button" aria-label="Свернуть панель" disabled={sheetLevel === "compact"} onClick={() => setSheetLevel(sheetLevel === "full" ? "medium" : "compact")} className="rounded-full bg-[#E8F8F4] p-2 text-[#087F71] disabled:opacity-30"><ChevronDown size={20}/></button>
-            <button type="button" aria-label="Развернуть панель" disabled={sheetLevel === "full"} onClick={() => setSheetLevel(sheetLevel === "compact" ? "medium" : "full")} className="rounded-full bg-[#E8F8F4] p-2 text-[#087F71] disabled:opacity-30"><ChevronUp size={20}/></button>
-          </div>
+          <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0D9B8E]">CleanGo / Заказ</span>
+          <span className="rounded-full border border-[#BFE9E1] bg-white/80 px-3 py-1 text-[11px] font-semibold text-[#168678]">Шаг 1 из 2</span>
         </div>
-        <div className="mt-4 flex items-center justify-between rounded-2xl border border-[#E2F0EB] bg-[#F9FCFB] p-3">
-          <div><p className="text-xs text-[#6A8B82]">Площадь помещения</p><label htmlFor="area" className="font-bold text-[#152535]">{isAreaValid ? parsedArea : "—"} м²</label></div>
-          <div className="flex items-center gap-2">
-            <button type="button" aria-label="Уменьшить площадь" onClick={() => setArea(String(Math.max(1,(Number(area)||60)-5)))} className="grid h-11 w-11 place-items-center rounded-full bg-[#E5F8F5] text-xl text-[#087F71]">−</button>
-            <button type="button" aria-label="Увеличить площадь" onClick={() => setArea(String(Math.min(1000,(Number(area)||60)+5)))} className="grid h-11 w-11 place-items-center rounded-full bg-[#E5F8F5] text-xl text-[#087F71]">+</button>
+        <h2 className="mt-5 text-[28px] font-extrabold leading-[1.1] tracking-tight">Куда приехать<br/>на уборку?</h2>
+        <p className="mt-3 max-w-[310px] text-sm leading-6 text-[#69847D]">Выберите точку на карте и укажите площадь помещения.</p>
+      </div>
+
+      <div className="relative -mt-3 rounded-t-[30px] bg-white px-4 pb-5 pt-4 shadow-[0_-8px_30px_rgba(17,83,73,0.04)]">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#0B9B8D]">Ваша услуга</p>
+            <h3 className="mt-1 text-lg font-bold leading-snug">{cleaningTypeNames[cleaningType]}</h3>
           </div>
+          <span className="shrink-0 rounded-full bg-[#E6F7F2] px-3 py-1.5 text-xs font-semibold text-[#078A7B]">Выбрано ✓</span>
         </div>
-        {sheetLevel !== "compact" && <div className="mt-4 space-y-4">
+
+        <div className="rounded-[23px] border border-[#E4EEEA] bg-[#FCFEFD] p-3.5">
+          <div className="mb-3 flex items-center gap-2">
+            <MapPin className="h-4 w-4 shrink-0 text-[#089D8D]" />
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold">{address || "Укажите адрес уборки"}</p>
+          </div>
           <AddressPicker address={address} onChange={(nextAddress, nextCoordinates) => {
             setAddress(nextAddress);
             setCoordinates(nextCoordinates);
+            setError("");
           }} />
-          {sheetLevel === "full" && <div className="space-y-2"><Label htmlFor="area">Точная площадь (м²)</Label><Input id="area" type="number" min="1" max="1000" step="1" value={area} onChange={(event)=>setArea(event.target.value)} className="h-12 rounded-xl" /></div>}
-          {sheetLevel === "full" && <div className="text-xs text-[#66837D]">Уточните подъезд, этаж и комментарий ниже.</div>}
-        </div>}
-        <div className={sheetLevel === "full" ? "mt-4" : "hidden"}>
-
-      <details open={showAddressDetails} onToggle={(event) => setShowAddressDetails(event.currentTarget.open)} className="space-y-3 rounded-[22px] border border-[#DCEDE7] bg-[#F7FCFA] p-4">
-        <summary className="cursor-pointer text-sm font-bold text-[#153D36]">Подъезд, этаж и комментарий <span className="font-normal text-[#6B8780]">(необязательно)</span></summary><p className="mt-2 text-xs text-[#6B8780]">Эти данные помогут клинеру найти вход.</p>
-        <div className="grid grid-cols-2 gap-3">
-          {([
-            ["Подъезд", entrance, setEntrance, "Например, 2"],
-            ["Этаж", floor, setFloor, "Например, 5"],
-            ["Квартира / офис", apartment, setApartment, "Например, 42"],
-            ["Домофон", intercom, setIntercom, "Код или номер"],
-          ] as const).map(([label, value, update, placeholder]) => (
-            <label key={label} className="block text-xs font-semibold text-[#476C65]">{label}
-              <input value={value} onChange={(event) => update(event.target.value)} maxLength={60} placeholder={placeholder} className="mt-1.5 h-11 w-full rounded-xl border border-[#DDEBE6] bg-white px-3 text-base text-[#152535] outline-none focus:border-[#159F91]" />
-            </label>
-          ))}
-        </div>
-        <label className="block text-xs font-semibold text-[#476C65]">Комментарий для клинера
-          <textarea value={addressNote} onChange={(event) => setAddressNote(event.target.value)} maxLength={250} rows={2} placeholder="Например, вход со двора" className="mt-1.5 w-full resize-none rounded-xl border border-[#DDEBE6] bg-white p-3 text-base text-[#152535] outline-none focus:border-[#159F91]" />
-        </label>
-      </details>
-
-      </div>
-      <div className="mt-4 space-y-3 rounded-[22px] border-0 bg-[#E9F8F3] p-4">
-        <div>
-          <p className="text-sm font-medium text-gray-600">
-            Предварительная стоимость уборки
-          </p>
-
-          <p className="mt-1 text-xs text-gray-500">
-            Цена рассчитывается автоматически
-          </p>
         </div>
 
-        {!isAreaValid ? (
-          <p className="text-sm text-gray-500">
-            Укажите площадь от 1 до 1000 м².
-          </p>
-        ) : priceLoading || !hasCurrentQuote ? (
-          priceError && !priceLoading ? (
-            <p className="text-sm text-red-600">
-              {priceError}
-            </p>
-          ) : (
-            <p className="text-sm text-gray-500">
-              Рассчитываем стоимость...
-            </p>
-          )
-        ) : (
-          <div className="space-y-3">
-            <p className="text-[38px] font-bold tracking-tight text-[#087F71]">
-              {priceQuote.totalPrice.toLocaleString("ru-RU")} ₸
-            </p>
-
-            <div className="border-t border-teal-200 pt-3 text-sm text-gray-600">
-              <div className="flex justify-between gap-3">
-                <span>Стоимость за 1 м²</span>
-                <span>
-                  {priceQuote.pricePerSquareMeter.toLocaleString("ru-RU")} ₸
-                </span>
-              </div>
-
-              <div className="mt-2 flex justify-between gap-3">
-                <span>Площадь</span>
-                <span>{priceQuote.area} м²</span>
-              </div>
-
-              <div className="mt-2 flex justify-between gap-3">
-                <span>Минимальная стоимость</span>
-                <span>
-                  {priceQuote.minimumPrice.toLocaleString("ru-RU")} ₸
-                </span>
-              </div>
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-[22px] border border-[#E4EEEA] bg-white px-4 py-3.5">
+          <div className="min-w-0">
+            <label htmlFor="area" className="block text-xs font-medium text-[#748B85]">Площадь помещения</label>
+            <div className="mt-1 flex items-baseline gap-1">
+              <input id="area" type="number" min="1" max="1000" step="1" inputMode="numeric" value={area} onChange={(event) => setArea(event.target.value)} className="w-16 bg-transparent text-2xl font-extrabold outline-none" />
+              <span className="text-sm font-semibold text-[#607E76]">м²</span>
             </div>
           </div>
-        )}
-      </div>
-
-      {error && (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-        >
-          {error}
+          <div className="flex shrink-0 gap-2">
+            <button type="button" aria-label="Уменьшить площадь" onClick={() => setArea(String(Math.max(1, (Number(area) || 60) - 5)))} className="grid h-11 w-11 place-items-center rounded-full bg-[#EAF8F5] text-xl font-medium text-[#078E80]">−</button>
+            <button type="button" aria-label="Увеличить площадь" onClick={() => setArea(String(Math.min(1000, (Number(area) || 60) + 5)))} className="grid h-11 w-11 place-items-center rounded-full bg-[#EAF8F5] text-xl font-medium text-[#078E80]">+</button>
+          </div>
         </div>
-      )}
 
-      <Button
-        type="submit"
-        disabled={
-          loading ||
-          priceLoading ||
-          !hasCurrentQuote ||
-          !address.trim() ||
-          !coordinates
-        }
-        className="mt-4 h-14 w-full rounded-2xl bg-[#0A9A89] text-base font-bold text-white shadow-[0_8px_20px_rgba(10,154,137,0.18)] hover:bg-[#078776]"
-      >
-        {loading ? "Проверяем..." : "Далее — подтвердить заказ"}
-      </Button>
+        <details className="mt-3 rounded-[22px] border border-[#E4EEEA] bg-white p-4">
+          <summary className="cursor-pointer select-none text-sm font-semibold text-[#24473F]">Подъезд, этаж и комментарий <span className="font-normal text-[#81958F]">· необязательно</span></summary>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {([
+              ["Подъезд", entrance, setEntrance, "2"],
+              ["Этаж", floor, setFloor, "5"],
+              ["Квартира / офис", apartment, setApartment, "42"],
+              ["Домофон", intercom, setIntercom, "Код"],
+            ] as const).map(([label, value, update, placeholder]) => (
+              <label key={label} className="block text-xs font-medium text-[#648078]">{label}
+                <input value={value} onChange={(event) => update(event.target.value)} maxLength={60} placeholder={placeholder} className="mt-1.5 h-11 w-full rounded-xl border border-[#DCEAE6] bg-[#FAFDFC] px-3 text-base text-[#152535] outline-none focus:border-[#0A9A89]" />
+              </label>
+            ))}
+          </div>
+          <label className="mt-3 block text-xs font-medium text-[#648078]">Комментарий клинеру
+            <textarea value={addressNote} onChange={(event) => setAddressNote(event.target.value)} maxLength={250} rows={2} placeholder="Например, вход со двора" className="mt-1.5 w-full resize-none rounded-xl border border-[#DCEAE6] bg-[#FAFDFC] p-3 text-base text-[#152535] outline-none focus:border-[#0A9A89]" />
+          </label>
+        </details>
 
-      <p className="mt-3 text-center text-xs leading-5 text-[#94A5A1]">На следующем шаге вы проверите адрес, площадь и стоимость. Заказ пока не создаётся.</p>
+        <div className="mt-4 flex items-center justify-between gap-3 rounded-[23px] bg-gradient-to-r from-[#DDF8F2] to-[#EDF9F6] px-4 py-4">
+          <div>
+            <p className="text-xs font-medium text-[#547E74]">Предварительная стоимость</p>
+            <p className="mt-1 text-[28px] font-extrabold tracking-tight text-[#087E72]">{!isAreaValid ? "Укажите площадь" : priceLoading || !hasCurrentQuote ? "Рассчитываем..." : `${priceQuote!.totalPrice.toLocaleString("ru-RU")} ₸`}</p>
+          </div>
+          <ShieldCheck className="h-7 w-7 shrink-0 text-[#0C9D8E]" />
+        </div>
+        {priceError && <p role="alert" className="mt-2 text-sm text-red-700">{priceError}</p>}
+        {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+
+        <button type="submit" disabled={loading || priceLoading || !hasCurrentQuote || !address.trim() || !coordinates} className="mt-4 flex h-14 w-full items-center justify-center rounded-[19px] bg-[#079B8D] text-base font-bold text-white shadow-[0_10px_24px_rgba(7,155,141,0.17)] transition hover:bg-[#078779] disabled:cursor-not-allowed disabled:opacity-50">
+          Далее — подтвердить заказ
+        </button>
+        <p className="mt-3 text-center text-xs leading-5 text-[#8A9D98]">Заказ создаётся только после подтверждения на следующем шаге.</p>
       </div>
     </form>
   );
