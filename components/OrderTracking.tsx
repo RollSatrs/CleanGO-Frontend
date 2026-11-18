@@ -106,17 +106,10 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       map.on("idle",()=>{if(!disposed&&map&&map.queryRenderedFeatures().length>0){mapReadyRef.current=true;setMapReady(true);setMapError("");window.clearTimeout(timeout);}});
       map.on("error",()=>{if(!disposed&&!mapReadyRef.current)setMapError("Не удалось загрузить картографические данные.");});
       window.setTimeout(()=>{if(!disposed)map?.resize();},350);
-      map.on("style.load",()=>{
-        for(const layer of map?.getStyle().layers??[]){
-          const id=layer.id.toLowerCase();
-          try{
-            if(layer.type==="background")map?.setPaintProperty(layer.id,"background-color","#F7FAF8");
-            if(layer.type==="fill"&&/building/.test(id))map?.setPaintProperty(layer.id,"fill-color","#E5EBE8");
-            if(layer.type==="fill"&&/park|grass|landcover/.test(id))map?.setPaintProperty(layer.id,"fill-color","#E4F2E9");
-            if(layer.type==="fill"&&/water/.test(id))map?.setPaintProperty(layer.id,"fill-color","#DCEFED");
-          }catch{/* optional layer */}
-        }
-      });
+      // Keep the exact vector style used by the working address picker.
+      // Do not mutate its layers during initial tile loading.
+      map.on("load",()=>{if(!disposed){mapReadyRef.current=true;setMapReady(true);setMapError("");window.clearTimeout(timeout);map?.resize();}});
+
     }).catch(error=>{if(!disposed)setMapError(error instanceof Error?error.message:"Не удалось загрузить карту");});
     return()=>{disposed=true;window.clearTimeout(timeout);map?.remove();};
   },[latitude,longitude,mapNode]);
@@ -124,7 +117,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const title=isPending?"Ищем клинера":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
   const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
   return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F5FAF8] text-[#152535] cleango-map-viewport">
-    <div ref={setMapNode} className="absolute inset-0" aria-label="Карта адреса уборки" />
+    <div ref={setMapNode} className="absolute inset-0 min-h-full w-full" style={{minHeight:"100%"}} aria-label="Карта адреса уборки" />
     {!mapReady&&<div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-[#6D8880]">{mapError || "Загружаем карту района…"}</div>}
     <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-white/95 via-white/70 to-transparent px-4 pb-8 cleango-tracking-header">
       <div className="flex items-center justify-between">
