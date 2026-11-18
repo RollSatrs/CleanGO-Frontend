@@ -91,13 +91,14 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F5FAF8] text-[#152535] cleango-map-viewport">
     <div ref={node} className="absolute inset-0" aria-label="Карта адреса уборки" />
     {mapError&&<div className="absolute inset-0 grid place-items-center bg-[#F0F8F5] text-sm text-[#6D8880]">Не удалось загрузить карту</div>}
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-white/95 via-white/70 to-transparent px-5 pb-12 pt-[max(26px,env(safe-area-inset-top))]">
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-white/95 via-white/70 to-transparent px-4 pb-8 cleango-tracking-header">
       <div className="flex items-center justify-between">
         <Link href="/client/orders" className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-white shadow-md" aria-label="Мои заказы"><ArrowLeft size={20}/></Link>
         <span className="rounded-full bg-white px-4 py-2 text-xs font-bold tracking-wide text-[#087F71] shadow-sm">CleanGo · Заказ</span>
       </div>
     </div>
-    <div className="absolute inset-x-0 bottom-0 z-20 rounded-t-[32px] bg-white px-5 pb-[max(22px,env(safe-area-inset-bottom))] shadow-[0_-12px_50px_rgba(20,65,57,0.12)]">
+    <div className="absolute inset-x-0 bottom-0 z-20 flex max-h-[min(80%,650px)] flex-col rounded-t-[28px] bg-white shadow-[0_-12px_50px_rgba(20,65,57,0.12)] cleango-tracking-sheet">
+      <div className="min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5">
       <button type="button" onClick={()=>setExpanded(value=>!value)} aria-expanded={expanded} aria-label="Показать подробности заказа" className="flex w-full justify-center py-3"><span className="h-1.5 w-12 rounded-full bg-[#D9E8E4]"/></button>
       <div className="flex items-center gap-3">
         <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#E3F8F2] text-[#079B8D]">{isAccepted?<CheckCircle2 size={25}/>:<Sparkles size={25} className={isPending?"animate-pulse":""}/>}</div>
@@ -114,7 +115,8 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       </div>}
       {networkError&&<p role="status" className="mt-3 text-xs text-amber-700">Нет связи с сервером. Показываем последний подтверждённый статус.</p>}
       {isPending&&<p className="mt-3 flex items-center gap-2 text-xs text-[#79918B]"><Clock3 size={14}/>Статус обновляется каждые 5 секунд</p>}
-      <Link href="/client/orders" className="mt-5 flex h-13 min-h-13 items-center justify-center rounded-2xl bg-[#079B8D] font-bold text-white">Мои заказы</Link>
+      </div>
+      <div className="shrink-0 px-4 pt-3 sm:px-5"><Link href="/client/orders" className="flex min-h-12 items-center justify-center rounded-2xl bg-[#079B8D] px-4 font-bold text-white">Мои заказы</Link></div>
     </div>
   </section>;
 }
