@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronUp, MapPin, Search, ShieldCheck, Sparkles, ArrowLeft, LoaderCircle } from "lucide-react";
 
 import AddressPicker from "@/components/AddressPicker";
+import OrderTracking from "@/components/OrderTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 type CleaningType = "regular" | "general" | "renovation";
@@ -239,29 +240,9 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
     }
   }
 
-  // Достоверный статус после создания: не имитируем найденного клинера.
-  if (createdOrder) {
-    return (
-      <section className="fixed inset-0 z-[1000] overflow-y-auto bg-white text-[#152535] cleango-map-viewport">
-        <div className="bg-gradient-to-br from-[#D9FAF4] via-[#F2FFFC] to-white px-6 pb-7 pt-9 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_rgba(10,154,137,0.12)]"><Search className="h-9 w-9 text-[#089B8D]" /></div>
-          <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-[#0A9A89]">Заказ создан</p>
-          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-[#152535]">{createdOrder.status === "pending" ? "Ищем клинера" : "Заказ оформлен"}</h2>
-          <p className="mx-auto mt-3 max-w-xs text-sm leading-6 text-[#66837D]">Следите за подтверждённым статусом заказа во вкладке «Мои заказы».</p>
-          <div className="mx-auto mt-5 h-1.5 max-w-[220px] overflow-hidden rounded-full bg-[#C6ECE5]"><div className="h-full w-1/3 animate-pulse rounded-full bg-[#0A9A89]" /></div>
-        </div>
-        <div className="space-y-4 px-5 py-6">
-          <div className="rounded-[20px] border border-[#E1F1ED] bg-[#F8FDFC] p-4">
-            <p className="text-sm font-bold text-[#152535]">{cleaningTypeNames[createdOrder.cleaningType]}</p>
-            <p className="mt-2 flex items-start gap-2 text-sm text-[#617A75]"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#0A9A89]" />{createdOrder.address}</p>
-            <div className="mt-4 flex items-end justify-between border-t border-[#E2F0ED] pt-4"><span className="text-sm text-[#718B84]">{createdOrder.area} м²</span><strong className="text-2xl text-[#087F71]">{createdOrder.price == null ? "Цена уточняется" : `${Number(createdOrder.price).toLocaleString("ru-RU")} ₸`}</strong></div>
-          </div>
-          <p className="flex items-start gap-2 text-xs leading-5 text-[#718B84]"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#0A9A89]" />Назначение клинера подтверждается сервером. Время прибытия появится только после достоверного расчёта.</p>
-          <Link href="/client/orders" className="flex h-14 items-center justify-center rounded-2xl bg-[#079B8D] text-base font-bold text-white shadow-[0_10px_24px_rgba(7,155,141,0.18)]">Следить за заказом</Link>
-          <button type="button" className="w-full py-2 text-sm font-semibold text-[#168675]" onClick={() => { setCreatedOrder(null); setConfirming(false); setAddress(""); setArea(""); setEntrance(""); setFloor(""); setApartment(""); setIntercom(""); setAddressNote(""); setCoordinates(null); setPriceQuote(null); setPriceError(""); setError(""); }}>Оформить ещё одну уборку</button>
-        </div>
-      </section>
-    );
+  // Real map and order status are sourced from the saved order, never simulated.
+  if (createdOrder && coordinates) {
+    return <OrderTracking initialOrder={createdOrder} latitude={coordinates.latitude} longitude={coordinates.longitude} />;
   }
 
   if (confirming) {
