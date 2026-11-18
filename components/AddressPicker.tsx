@@ -5,8 +5,8 @@ import { Check, LocateFixed, MapPin, MapPinned, ChevronUp, ChevronDown } from "l
 
 type Coordinates = { latitude: number; longitude: number };
 type Feature = { place_name: string; center: [number, number] };
-type MapHandle = { getCenter(): {lng:number;lat:number}; flyTo(options: {center:[number,number];zoom?:number;essential?:boolean}): void; resize(): void; remove(): void; on(event:string,callback:()=>void):void; getStyle(): {layers?:Array<{id:string;type:string}>}; setPaintProperty(id:string,property:string,value:string):void; queryRenderedFeatures():unknown[] };
-type MapLibreLibrary = { Map: new(options:Record<string,unknown>)=>MapHandle };
+type MapHandle = { getCenter(): {lng:number;lat:number}; flyTo(options: {center:[number,number];zoom?:number;essential?:boolean}): void; resize(): void; remove(): void; on(event:string,callback:(event?:{lngLat?:{lng:number;lat:number}})=>void):void; getStyle(): {layers?:Array<{id:string;type:string}>}; setPaintProperty(id:string,property:string,value:string):void; queryRenderedFeatures():unknown[] };
+type MapLibreLibrary = { Map: new(options:Record<string,unknown>)=>MapHandle; Marker: new(options?:Record<string,unknown>)=>{setLngLat(point:[number,number]):{addTo(map:MapHandle):{remove():void;setLngLat(point:[number,number]):void}}} };
 declare global { interface Window { maplibregl?: MapLibreLibrary } }
 
 const KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
@@ -72,6 +72,7 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
   const [mapReady, setMapReady] = useState(false);
   const [mapLocating, setMapLocating] = useState(false);
   const [mapMoving, setMapMoving] = useState(false);
+  const selectedPointRef = useRef<[number,number] | null>(null);
   const [pickedAddress, setPickedAddress] = useState("Переместите карту для выбора адреса");
   const [point, setPoint] = useState<[number, number]>(SEMEY);
   const [locationBusy, setLocationBusy] = useState(false);
@@ -80,6 +81,7 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
   const mapRef = useRef<MapHandle | null>(null);
   const [mapExpanded, setMapExpanded] = useState(false);
   const searchVersion = useRef(0);
+  const markerRef = useRef<{remove():void;setLngLat(point:[number,number]):void}|null>(null);
 
   useEffect(() => {
     if (!KEY || !focused || selected || address.trim().length < 3) {
@@ -155,13 +157,14 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
         map=new lib.Map({container:mapNode,center:point,zoom:16,style:VECTOR_STYLE,
           attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
         mapRef.current=map;
+        if(immersive){const el=document.createElement("div");el.style.cssText="width:27px;height:27px;border:6px solid white;border-radius:50%;background:#079F91;box-shadow:0 3px 14px #087F7166;";markerRef.current=new lib.Marker({element:el,anchor:"center"}).setLngLat(selectedPointRef.current??point).addTo(map);}
+        map.on("click",(event)=>{if(disposed||!event?.lngLat)return; const next:[number,number]=[event.lngLat.lng,event.lngLat.lat]; selectedPointRef.current=next; setPoint(next); setPickedAddress("Уточняем адрес..."); setMapError("");});
         map.on("movestart",()=>{if(!disposed)setMapMoving(true);});
         map.on("moveend",()=>{
           if(disposed||!map)return;
           setMapMoving(false);
           const center=map.getCenter();
-          setPoint([center.lng,center.lat]);
-          setPickedAddress("Уточняем адрес...");
+          if(!selectedPointRef.current){setPoint([center.lng,center.lat]);setPickedAddress("Уточняем адрес...");}
         });
         map.on("style.load",()=>{if(!disposed&&map)applyCleanGoLightStyle(map);});
         map.on("idle",()=>{
@@ -177,10 +180,12 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
         if(!disposed)setMapError(error instanceof Error?error.message:"Ошибка карты");
       }
     })();
-    return()=>{disposed=true;window.clearTimeout(timeout);map?.remove();mapRef.current=null;};
+    return()=>{disposed=true;window.clearTimeout(timeout);markerRef.current?.remove();markerRef.current=null;map?.remove();mapRef.current=null;};
     // Keep a single map instance while its container is mounted.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[mapOpen,mapNode]);
+
+  useEffect(()=>{if(immersive&&markerRef.current)markerRef.current.setLngLat(point);},[point,immersive]);
 
   useEffect(()=>{
     if(mapOpen){const timer=window.setTimeout(()=>mapRef.current?.resize(),260);return()=>window.clearTimeout(timer);}
@@ -193,8 +198,8 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
       const response=await fetch(url);if(!response.ok)throw new Error("Geocode failed");
       const result:{address?:Record<string,string>;display_name?:string}=await response.json();if(cancelled)return;
       const a=result.address??{};const road=a.road||a.pedestrian||a.residential;const city=a.city||a.town||a.village||"Семей";
-      setPickedAddress(road?`${city}, ${road}${a.house_number?", "+a.house_number:""}`:(result.display_name?.split(",").slice(0,3).join(",")||"Адрес не определён"));
-    }catch{if(!cancelled)setPickedAddress("Адрес не определён — уточните точку");}},700);
+      const resolved=road?`${city}, ${road}${a.house_number?", "+a.house_number:""}`:(result.display_name?.split(",").slice(0,3).join(",")||"Адрес не определён");setPickedAddress(resolved);if(immersive){setCoordinates({latitude:point[1],longitude:point[0]});onChange(resolved,{latitude:point[1],longitude:point[0]});}
+    }catch{if(!cancelled){const fallback=`Точка: ${point[1].toFixed(5)}, ${point[0].toFixed(5)}`;setPickedAddress(fallback);if(immersive){setCoordinates({latitude:point[1],longitude:point[0]});onChange(fallback,{latitude:point[1],longitude:point[0]});}}}},700);
     return()=>{cancelled=true;clearTimeout(timer);};
   },[mapOpen,point]);
 
@@ -205,7 +210,7 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
       ({coords}) => {
         setMapLocating(false);
         if (coords.accuracy > 500) { setMapError("Местоположение определено недостаточно точно."); return; }
-        mapRef.current?.flyTo({center:[coords.longitude,coords.latitude],zoom:16,essential:true});
+        selectedPointRef.current=[coords.longitude,coords.latitude];setPoint([coords.longitude,coords.latitude]);setPickedAddress("Уточняем адрес...");mapRef.current?.flyTo({center:[coords.longitude,coords.latitude],zoom:16,essential:true});
       },
       () => {setMapLocating(false);setMapError("Разрешите геолокацию в настройках Telegram.");},
       {enableHighAccuracy:true,timeout:15000,maximumAge:0}
@@ -218,18 +223,19 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
     setMapError("");
     try {
       const center = mapRef.current!.getCenter();
-      const longitude = center.lng;
-      const latitude = center.lat;
+      const longitude = selectedPointRef.current?.[0] ?? center.lng;
+      const latitude = selectedPointRef.current?.[1] ?? center.lat;
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=ru&lat=${latitude}&lon=${longitude}`);
       if (!response.ok) throw new Error("Reverse lookup failed");
       const data: {address?:Record<string,string>;display_name?:string} = await response.json();
       const a=data.address??{};const road=a.road||a.pedestrian||a.residential;const city=a.city||a.town||a.village||"Семей";
       choose(road?`${city}, ${road}${a.house_number?", "+a.house_number:""}`:(data.display_name?.split(",").slice(0,3).join(",")||"Выбранная точка"), { latitude, longitude });
-      setMapOpen(false);
+      if (!immersive) setMapOpen(false);
     } catch {
       const center = mapRef.current?.getCenter();
       if (center) {
-        choose(`Точка: ${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}`, { latitude: center.lat, longitude: center.lng });
+        const lat=selectedPointRef.current?.[1]??center.lat;const lng=selectedPointRef.current?.[0]??center.lng;
+        choose(`Точка: ${lat.toFixed(5)}, ${lng.toFixed(5)}`, { latitude: lat, longitude: lng });
         setMapOpen(false);
         setMessage("Координаты сохранены. Уточните улицу и номер дома перед оформлением.");
       } else setMapError("Не удалось сохранить точку. Попробуйте ещё раз.");
@@ -300,14 +306,15 @@ export default function AddressPicker({ address, onChange, immersive = false }: 
             {mapError && !mapReady && <div role="alert" className="absolute inset-0 z-20 grid place-items-center bg-[#F1F6F4] p-5 text-center text-sm text-amber-700">{mapError}</div>}
             {mapReady && <button type="button" onClick={locateOnMap} disabled={mapLocating}
               aria-label="Моё местоположение на карте"
-              className="absolute bottom-4 right-3 z-[400] rounded-xl bg-white p-3 text-teal-700 shadow-md disabled:opacity-50"><LocateFixed size={20}/></button>}
-            <div className="pointer-events-none absolute left-1/2 top-1/2 z-[400] -translate-x-1/2 -translate-y-full">
+              className={immersive ? "absolute bottom-[285px] right-3 z-[400] rounded-xl bg-white p-3 text-teal-700 shadow-md disabled:opacity-50" : "absolute bottom-4 right-3 z-[400] rounded-xl bg-white p-3 text-teal-700 shadow-md disabled:opacity-50"}><LocateFixed size={20}/></button>}
+            {!immersive && <div className="pointer-events-none absolute left-1/2 top-1/2 z-[400] -translate-x-1/2 -translate-y-full">
               <div className={`grid h-8 w-8 place-items-center rounded-full border-4 border-white bg-[#159F91] shadow-lg ${mapMoving ? "-translate-y-1" : ""}`}>
                 <span className="h-2 w-2 rounded-full bg-white"/>
               </div>
-            </div>
+            </div>}
+            {immersive && <div className="pointer-events-none absolute inset-0 z-[390]"><div className="absolute left-1/2 top-1/2 hidden" /></div>}
           </div>
-          <div className={immersive ? "absolute bottom-[275px] left-4 right-4 z-[410] rounded-[22px] bg-white/95 p-3 shadow-xl backdrop-blur-lg" : "space-y-3 p-4"}>
+          <div className={immersive ? "hidden left-4 right-4 z-[410] rounded-[22px] bg-white/95 p-3 shadow-xl backdrop-blur-lg" : "space-y-3 p-4"}>
             <div className="flex items-start gap-3">
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#E5F8F5] text-[#159F91]"><MapPin size={20}/></div>
               <div className="min-w-0">
