@@ -3,11 +3,8 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { CheckCircle2, ChevronDown, ChevronUp, MapPin, Search, ShieldCheck, Sparkles, ArrowLeft } from "lucide-react";
+import { ChevronDown, ChevronUp, MapPin, Search, ShieldCheck, Sparkles, ArrowLeft, LoaderCircle } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import AddressPicker from "@/components/AddressPicker";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -245,7 +242,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
   // Достоверный статус после создания: не имитируем найденного клинера.
   if (createdOrder) {
     return (
-      <section className="overflow-hidden rounded-[28px] border border-[#D9F1EC] bg-white shadow-[0_20px_55px_rgba(9,151,137,0.08)]">
+      <section className="fixed inset-0 z-[1000] overflow-y-auto bg-white text-[#152535]" style={{height:"100dvh"}}>
         <div className="bg-gradient-to-br from-[#D9FAF4] via-[#F2FFFC] to-white px-6 pb-7 pt-9 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_rgba(10,154,137,0.12)]"><Search className="h-9 w-9 text-[#089B8D]" /></div>
           <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-[#0A9A89]">Заказ создан</p>
@@ -269,14 +266,14 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
 
   if (confirming) {
     return (
-      <section className="mx-auto max-w-xl overflow-hidden rounded-[30px] bg-white text-[#152535] shadow-[0_16px_50px_rgba(20,67,59,0.06)]">
-        <div className="bg-gradient-to-b from-[#E8F9F4] to-white px-5 pb-5 pt-7">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0A9A89]">CleanGo / Шаг 2 из 2</p>
+      <section className="fixed inset-0 z-[1000] overflow-y-auto bg-white text-[#152535]" style={{height:"100dvh"}}>
+        <div className="bg-gradient-to-b from-[#E8F9F4] to-white px-5 pb-5 pt-[max(24px,env(safe-area-inset-top))]">
+          <button type="button" onClick={() => {setConfirming(false);setError("");}} className="mb-6 flex items-center gap-2 text-sm font-semibold text-[#087F71]"><ArrowLeft size={19}/> Назад к карте</button><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0A9A89]">CleanGo / Шаг 2 из 2</p>
           <h2 className="mt-3 text-[28px] font-extrabold leading-tight tracking-tight">Подтверждение</h2>
           <p className="mt-2 text-sm text-[#6B857E]">Проверьте детали перед поиском клинера.</p>
         </div>
         <div className="px-5 pb-6">
-          <div className="divide-y divide-[#E9F0ED] rounded-[22px] border border-[#E6EFEB] bg-white px-4">
+          <div className="divide-y divide-[#E9F0ED] bg-white">
             {([
               ["Услуга", cleaningTypeNames[cleaningType]],
               ["Адрес", address],
@@ -290,13 +287,13 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
             ))}
           </div>
           {(entrance || floor || apartment || intercom || addressNote) && <p className="mt-3 text-xs leading-5 text-[#708B83]">{[entrance && `Подъезд ${entrance}`,floor && `Этаж ${floor}`,apartment && `Кв./офис ${apartment}`,intercom && `Домофон ${intercom}`,addressNote].filter(Boolean).join(" · ")}</p>}
-          <div className="mt-4 rounded-[22px] bg-[#E4F8F2] p-4">
+          <div className="mt-5 rounded-[20px] bg-[#E4F8F2] p-5">
             <p className="text-xs font-medium text-[#547E74]">Стоимость уборки</p>
             <p className="mt-1 text-[32px] font-extrabold tracking-tight text-[#087E72]">{hasCurrentQuote ? `${priceQuote!.totalPrice.toLocaleString("ru-RU")} ₸` : "Уточняется"}</p>
           </div>
           {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-          <form onSubmit={handleSubmit} className="mt-5 space-y-3">
-            <button type="submit" disabled={loading || priceLoading || !hasCurrentQuote || !address.trim() || !coordinates} className="h-14 w-full rounded-[19px] bg-[#079B8D] text-base font-bold text-white disabled:opacity-50">{loading ? "Создаём заказ..." : "Подтвердить и найти клинера"}</button>
+          <form onSubmit={handleSubmit} className="mt-5 space-y-3 pb-[max(20px,env(safe-area-inset-bottom))]">
+            <button type="submit" disabled={loading || priceLoading || !hasCurrentQuote || !address.trim() || !coordinates} className="min-h-14 w-full rounded-[19px] bg-[#079B8D] px-3 text-sm font-bold text-white disabled:opacity-50">{loading ? <span className="inline-flex items-center justify-center gap-2"><LoaderCircle className="h-5 w-5 animate-spin"/>Создаём заказ...</span> : "Подтвердить и найти клинера"}</button>
             <button type="button" onClick={()=>{setConfirming(false);setError("");}} className="h-12 w-full rounded-[19px] border border-[#D8EAE4] text-sm font-semibold text-[#168675]">Изменить данные</button>
           </form>
           <p className="mt-3 text-center text-xs text-[#8A9D98]">Оплата сейчас не списывается.</p>
@@ -358,7 +355,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         <div className="shrink-0 bg-white px-5 pb-4 pt-2">
           <div className="mb-3 flex items-center justify-between gap-2">
             <span className="text-xs text-[#708A82]">Предварительная стоимость</span>
-            <strong className="text-xl text-[#087F71]">{!isAreaValid ? "Укажите площадь" : priceLoading || !hasCurrentQuote ? "Рассчитываем..." : `${priceQuote!.totalPrice.toLocaleString("ru-RU")} ₸`}</strong>
+            <strong className="flex min-h-7 items-center justify-end text-xl text-[#087F71]" aria-live="polite">{!isAreaValid ? "Укажите площадь" : priceLoading || !hasCurrentQuote ? <LoaderCircle className="h-6 w-6 animate-spin" aria-label="Рассчитываем стоимость"/> : `${priceQuote!.totalPrice.toLocaleString("ru-RU")} ₸`}</strong>
           </div>
           {priceError && <p role="alert" className="mb-2 text-xs text-red-700">{priceError}</p>}
           {error && <p role="alert" className="mb-2 text-xs text-red-700">{error}</p>}
