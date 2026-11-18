@@ -71,3 +71,12 @@ html.telegram-mini-app.cleango-fullscreen {
 @supports (height: 100svh) {
   .cleango-map-viewport { height: 100svh; }
 }
+
+/* Confirmation is a separate screen, not the map's floating back button.
+   Telegram fullscreen overlays native controls near the top corners. */
+.cleango-confirmation-header {
+  padding-top: max(24px, env(safe-area-inset-top, 0px));
+}
+html.telegram-mini-app.cleango-fullscreen .cleango-confirmation-header {
+  padding-top: calc(max(100px, var(--cleango-telegram-top, 0px), env(safe-area-inset-top, 0px)) + 64px);
+}
