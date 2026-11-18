@@ -2,6 +2,8 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { CheckCircle2, MapPin, Search, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +56,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [priceLoading, setPriceLoading] = useState(false);
 
   const [error, setError] = useState("");
@@ -145,6 +148,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
     event.preventDefault();
 
     if (loading) return;
+    if (!confirming) { setConfirming(true); return; }
     if (!token || user?.role !== "client" || !user.phoneVerifiedAt) {
       setError("Для заказа войдите как клиент и подтвердите номер телефона.");
       return;
@@ -217,101 +221,53 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
     }
   }
 
-  // Экран успешного оформления заказа
+  // Достоверный статус после создания: не имитируем найденного клинера.
   if (createdOrder) {
     return (
-      <div className="space-y-5 rounded-xl border border-green-200 bg-green-50 p-5">
-        <div className="space-y-2">
-          <h3 className="text-xl font-semibold text-green-800">
-            Заказ успешно создан!
-          </h3>
-
-          <p className="text-sm text-green-900">
-            Ваша заявка зарегистрирована в CleanGo.
-          </p>
+      <section className="overflow-hidden rounded-[28px] border border-[#D9F1EC] bg-white shadow-[0_20px_55px_rgba(9,151,137,0.08)]">
+        <div className="bg-gradient-to-br from-[#D9FAF4] via-[#F2FFFC] to-white px-6 pb-7 pt-9 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_rgba(10,154,137,0.12)]"><Search className="h-9 w-9 text-[#089B8D]" /></div>
+          <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-[#0A9A89]">Заказ создан</p>
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-[#152535]">{createdOrder.status === "pending" ? "Ищем клинера" : "Заказ оформлен"}</h2>
+          <p className="mx-auto mt-3 max-w-xs text-sm leading-6 text-[#66837D]">Следите за подтверждённым статусом заказа во вкладке «Мои заказы».</p>
+          <div className="mx-auto mt-5 h-1.5 max-w-[220px] overflow-hidden rounded-full bg-[#C6ECE5]"><div className="h-full w-1/3 animate-pulse rounded-full bg-[#0A9A89]" /></div>
         </div>
-
-        <div className="space-y-3 rounded-lg bg-white p-4 text-sm text-gray-700">
-          <div>
-            <p className="text-gray-500">Номер заказа</p>
-            <p className="break-all font-medium">
-              {createdOrder.id}
-            </p>
+        <div className="space-y-4 px-5 py-6">
+          <div className="rounded-[20px] border border-[#E1F1ED] bg-[#F8FDFC] p-4">
+            <p className="text-sm font-bold text-[#152535]">{cleaningTypeNames[createdOrder.cleaningType]}</p>
+            <p className="mt-2 flex items-start gap-2 text-sm text-[#617A75]"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#0A9A89]" />{createdOrder.address}</p>
+            <div className="mt-4 flex items-end justify-between border-t border-[#E2F0ED] pt-4"><span className="text-sm text-[#718B84]">{createdOrder.area} м²</span><strong className="text-2xl text-[#087F71]">{createdOrder.price == null ? "Цена уточняется" : `${Number(createdOrder.price).toLocaleString("ru-RU")} ₸`}</strong></div>
           </div>
-
-          <div>
-            <p className="text-gray-500">Тип уборки</p>
-            <p className="font-medium">
-              {cleaningTypeNames[createdOrder.cleaningType]}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-gray-500">Адрес</p>
-            <p className="font-medium">
-              {createdOrder.address}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-gray-500">Площадь</p>
-            <p className="font-medium">
-              {createdOrder.area} м²
-            </p>
-          </div>
-
-          <div>
-            <p className="text-gray-500">Статус</p>
-            <p className="font-medium">
-              {createdOrder.status === "pending"
-                ? "Ожидает исполнителя"
-                : createdOrder.status}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-gray-500">Создан</p>
-            <p className="font-medium">
-              {new Date(createdOrder.createdAt).toLocaleString("ru-RU")}
-            </p>
-          </div>
+          <p className="flex items-start gap-2 text-xs leading-5 text-[#718B84]"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#0A9A89]" />Назначение клинера подтверждается сервером. Время прибытия появится только после достоверного расчёта.</p>
+          <Link href="/client/orders" className="flex h-14 items-center justify-center rounded-2xl bg-[#079B8D] text-base font-bold text-white shadow-[0_10px_24px_rgba(7,155,141,0.18)]">Следить за заказом</Link>
+          <button type="button" className="w-full py-2 text-sm font-semibold text-[#168675]" onClick={() => { setCreatedOrder(null); setConfirming(false); setAddress(""); setArea(""); setEntrance(""); setFloor(""); setApartment(""); setIntercom(""); setAddressNote(""); setCoordinates(null); setPriceQuote(null); setPriceError(""); setError(""); }}>Оформить ещё одну уборку</button>
         </div>
+      </section>
+    );
+  }
 
-        <div className="rounded-xl border border-teal-200 bg-white p-5">
-          <p className="text-sm text-gray-500">
-            Стоимость заказа
-          </p>
-
-          <p className="mt-2 text-3xl font-bold text-teal-700">
-            {createdOrder.price !== null
-              ? `${createdOrder.price.toLocaleString("ru-RU")} ₸`
-              : "Не рассчитана"}
-          </p>
-
-          <p className="mt-2 text-xs text-gray-500">
-            Стоимость рассчитана сервером CleanGo и сохранена
-            вместе с заказом.
-          </p>
+  if (confirming) {
+    return (
+      <section className="space-y-5">
+        <div className="rounded-[26px] bg-gradient-to-br from-[#DDFBF5] via-[#F0FFFC] to-white p-6">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#0A9A89] shadow-sm"><Sparkles className="h-6 w-6" /></div>
+          <p className="mt-4 text-xs font-bold uppercase tracking-widest text-[#168675]">Шаг 2 из 2</p>
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-[#152535]">Подтверждение заказа</h2>
+          <p className="mt-2 text-sm leading-6 text-[#66837D]">Проверьте данные перед поиском исполнителя.</p>
         </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={() => {
-            setCreatedOrder(null);
-            setAddress("");
-            setArea("");
-            setEntrance(""); setFloor(""); setApartment(""); setIntercom(""); setAddressNote("");
-            setCoordinates(null);
-            setPriceQuote(null);
-            setPriceError("");
-            setError("");
-          }}
-        >
-          Создать ещё один заказ
-        </Button>
-      </div>
+        <div className="space-y-4 rounded-[24px] border border-[#E1F0EC] bg-white p-5">
+          <div><p className="text-xs text-[#829792]">Услуга</p><p className="mt-1 font-bold text-[#152535]">{cleaningTypeNames[cleaningType]}</p></div>
+          <div className="border-t border-[#EDF3F1] pt-4"><p className="text-xs text-[#829792]">Адрес</p><p className="mt-1 font-medium text-[#152535]">{address || "Не указан"}</p></div>
+          <div className="border-t border-[#EDF3F1] pt-4"><p className="text-xs text-[#829792]">Площадь</p><p className="mt-1 font-medium text-[#152535]">{area || "Не указана"} м²</p></div>
+          <div className="rounded-[20px] bg-[#E6FAF5] p-4"><p className="text-sm text-[#527A72]">Стоимость по тарифу CleanGo</p><p className="mt-1 text-3xl font-extrabold text-[#087F71]">{hasCurrentQuote ? `${priceQuote!.totalPrice.toLocaleString("ru-RU")} ₸` : "Уточняется"}</p></div>
+        </div>
+        {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <button type="submit" disabled={loading || priceLoading || !hasCurrentQuote || !address.trim() || !coordinates} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#079B8D] text-base font-bold text-white disabled:opacity-50"><CheckCircle2 className="h-5 w-5" />{loading ? "Создаём заказ..." : "Подтвердить и найти клинера"}</button>
+          <button type="button" onClick={() => { setConfirming(false); setError(""); }} className="h-12 w-full rounded-2xl border border-[#CFE9E2] font-semibold text-[#168675]">Изменить данные</button>
+        </form>
+        <p className="text-center text-xs text-[#849B94]">Оплата на этом шаге не производится.</p>
+      </section>
     );
   }
 
@@ -433,7 +389,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         }
         className="h-14 w-full rounded-2xl bg-[#0A9A89] text-base font-bold text-white shadow-[0_8px_20px_rgba(10,154,137,0.18)] hover:bg-[#078776]"
       >
-        {loading ? "Создаём заказ..." : "Найти клинера"}
+        {loading ? "Проверяем..." : "Далее — подтвердить заказ"}
       </Button>
 
       <p className="text-center text-xs leading-5 text-[#94A5A1]">Нажимая кнопку, вы отправляете заявку на уборку.</p>
