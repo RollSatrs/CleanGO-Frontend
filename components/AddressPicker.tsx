@@ -69,6 +69,7 @@ export default function AddressPicker({ address, onChange }: {
   const [intercom,setIntercom]=useState("");
   const [comment,setComment]=useState("");
   const searchVersion = useRef(0);
+  const sheetTouchY = useRef<number | null>(null);
 
   useEffect(() => {
     if (!KEY || !focused || selected || address.trim().length < 3) {
@@ -107,14 +108,13 @@ export default function AddressPicker({ address, onChange }: {
 
   function locate() {
     setMessage("");
-    if (!navigator.geolocation) { setMessage("Геолокация недоступна."); return; }
+    if (!navigator.geolocation) { setMessage("Устройство не поддерживает геолокацию. Выберите адрес на карте."); return; }
     setLocationBusy(true);
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         setLocationBusy(false);
         if (coords.accuracy > 500) {
-          setMessage("Местоположение определено недостаточно точно.");
-          return;
+          setMessage("GPS определил приблизительное местоположение. Уточните точку на карте.");
         }
         const next = { latitude: coords.latitude, longitude: coords.longitude };
         try {
@@ -127,7 +127,7 @@ export default function AddressPicker({ address, onChange }: {
           setMessage("Точка определена. Уточните адрес на карте, если нужно.");
         }
       },
-      () => { setLocationBusy(false); setMessage("Не удалось определить местоположение. Выберите адрес на карте или введите улицу и дом вручную."); },
+      (error) => { setLocationBusy(false); setMessage(error.code === 1 ? "Доступ к геолокации запрещён. Разрешите его для Telegram в настройках телефона или выберите точку на карте." : error.code === 3 ? "GPS не ответил вовремя. Попробуйте ещё раз или выберите адрес на карте." : "Не удалось определить местоположение. Выберите точку на карте."); },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
   }
@@ -270,7 +270,12 @@ export default function AddressPicker({ address, onChange }: {
       choose(road?`${city}, ${road}${a.house_number?", "+a.house_number:""}`:(data.display_name?.split(",").slice(0,3).join(",")||"Выбранная точка"), { latitude, longitude });
       setMapOpen(false);
     } catch {
-      setMapError("Не удалось получить адрес выбранной точки. Повторите попытку.");
+      const center = vectorActive ? vectorRef.current?.getCenter() : mapRef.current?.getCenter();
+      if (center) {
+        choose(`Точка: ${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}`, { latitude: center.lat, longitude: center.lng });
+        setMapOpen(false);
+        setMessage("Координаты сохранены. Уточните улицу и номер дома перед оформлением.");
+      } else setMapError("Не удалось сохранить точку. Попробуйте ещё раз.");
     } finally {
       setMapBusy(false);
     }
@@ -309,7 +314,7 @@ export default function AddressPicker({ address, onChange }: {
           className="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-2 py-2 text-sm font-semibold text-teal-800 disabled:opacity-50">
           <MapPinned className="h-4 w-4 shrink-0" /> На карте
         </button>
-        <button type="button" disabled={locationBusy || !KEY} onClick={locate}
+        <button type="button" disabled={locationBusy} onClick={locate}
           className="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 py-2 text-center text-sm font-semibold text-slate-700 disabled:opacity-50">
           <LocateFixed className="h-4 w-4 shrink-0" /> {locationBusy ? "Определяем..." : "Моя геолокация"}
         </button>
@@ -335,7 +340,7 @@ export default function AddressPicker({ address, onChange }: {
               <div className={`flex h-7 w-7 items-center justify-center rounded-full border-[4px] border-white bg-[#159f91] shadow-[0_8px_22px_rgba(10,120,108,.3)] transition-transform duration-200 ${mapMoving ? "-translate-y-2 scale-110" : ""}`}><div className="h-2 w-2 rounded-full border-2 border-white bg-teal-100" /></div>
             </div>
           </div>
-          <footer className="absolute inset-x-0 bottom-0 z-[500] max-h-[75dvh] overflow-y-auto rounded-t-[28px] bg-white p-5 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_38px_rgba(20,70,60,.12)]"><button type="button" onClick={()=>setSheetOpen(!sheetOpen)} className="mb-4 flex h-6 w-full items-center justify-center" aria-label="Свернуть или раскрыть карточку"><span className="h-1.5 w-12 rounded-full bg-[#dbe8e4]"/></button>{sheetOpen && <div className="space-y-3">
+          <footer className="absolute inset-x-0 bottom-0 z-[500] max-h-[75dvh] overflow-y-auto rounded-t-[28px] bg-white p-5 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-12px_38px_rgba(20,70,60,.12)]"><button type="button" onClick={()=>setSheetOpen(!sheetOpen)} onTouchStart={e => { sheetTouchY.current = e.touches[0]?.clientY ?? null; }} onTouchEnd={e => { if (sheetTouchY.current !== null) { const delta = (e.changedTouches[0]?.clientY ?? sheetTouchY.current) - sheetTouchY.current; if (Math.abs(delta) > 35) setSheetOpen(delta < 0); sheetTouchY.current = null; } }} className="mb-4 flex h-8 w-full touch-pan-y items-center justify-center" aria-label="Свернуть или раскрыть карточку"><span className="h-1.5 w-12 rounded-full bg-[#dbe8e4]"/></button>{sheetOpen && <div className="space-y-3">
             <div className="flex items-center gap-3"><div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#e5f8f5] text-[#159f91]"><MapPin size={23}/></div><div className="min-w-0"><p className="text-xs font-bold text-[#159f91]">Точка уборки</p><h3 className="text-base font-bold text-[#152535]">Выбранный адрес</h3><p className="text-xs text-[#72847f]">{mapMoving ? "Уточняем адрес..." : pickedAddress}</p></div></div>
             {detailsOpen && <div className="grid grid-cols-2 gap-3">{([["Подъезд",entrance,setEntrance],["Этаж",floor,setFloor],["Квартира / офис",apartment,setApartment],["Домофон",intercom,setIntercom]] as const).map(([label,value,setter])=><label key={label} className="text-xs font-semibold text-[#667b75]">{label}<input value={value} onChange={e=>setter(e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-[#e0ebe7] bg-[#f7fbf9] px-3 text-sm text-[#152535]"/></label>)}<label className="col-span-2 text-xs font-semibold text-[#667b75]">Комментарий для клинера<textarea value={comment} onChange={e=>setComment(e.target.value)} rows={2} placeholder="Например, вход со двора" className="mt-1 w-full rounded-xl border border-[#e0ebe7] bg-[#f7fbf9] p-3 text-sm text-[#152535]"/></label></div>}
             <button type="button" disabled={mapBusy || mapMoving || !mapReady || Boolean(mapError)} onClick={() => {if(!detailsOpen)setDetailsOpen(true);else void confirmMap();}}
