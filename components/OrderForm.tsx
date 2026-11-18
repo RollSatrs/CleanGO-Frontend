@@ -242,7 +242,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
   // Достоверный статус после создания: не имитируем найденного клинера.
   if (createdOrder) {
     return (
-      <section className="fixed inset-0 z-[1000] overflow-y-auto bg-white text-[#152535]" style={{height:"100dvh"}}>
+      <section className="fixed inset-0 z-[1000] overflow-y-auto bg-white text-[#152535] cleango-map-viewport">
         <div className="bg-gradient-to-br from-[#D9FAF4] via-[#F2FFFC] to-white px-6 pb-7 pt-9 text-center">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-[0_8px_24px_rgba(10,154,137,0.12)]"><Search className="h-9 w-9 text-[#089B8D]" /></div>
           <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-[#0A9A89]">Заказ создан</p>
@@ -303,7 +303,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="fixed inset-0 z-[1000] isolate overflow-hidden bg-[#F5F9F8] text-[#152535]" style={{ height: "100dvh" }}>
+    <form onSubmit={handleSubmit} className="fixed inset-0 z-[1000] isolate overflow-hidden bg-[#F5F9F8] text-[#152535] cleango-map-viewport">
       <div className="absolute inset-0">
         <AddressPicker immersive searchVisible={searchOpen} address={address} onChange={(nextAddress, nextCoordinates) => {
           setAddress(nextAddress);
@@ -312,10 +312,10 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
           if (nextCoordinates) setSearchOpen(false);
         }} />
       </div>
-      <div className="pointer-events-none absolute left-4 top-[max(12px,env(safe-area-inset-top))] z-[500]">
+      <div className="pointer-events-none absolute left-4 cleango-map-back z-[500]">
         <Link href="/client" aria-label="Назад к услугам" className="pointer-events-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[#152535] shadow-[0_5px_22px_rgba(15,60,55,0.12)]"><ArrowLeft size={22}/></Link>
       </div>
-      <section aria-label="Параметры заказа" className={`absolute inset-x-0 bottom-0 z-[600] flex flex-col rounded-t-[30px] bg-white shadow-[0_-8px_35px_rgba(15,60,55,0.12)] transition-[height] duration-300 ease-out ${sheetLevel === "compact" ? "h-[220px]" : sheetLevel === "medium" ? "h-[47dvh]" : "h-[83dvh]"}`} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <section aria-label="Параметры заказа" className={`absolute inset-x-0 bottom-0 z-[600] flex flex-col cleango-map-sheet rounded-t-[30px] bg-white shadow-[0_-8px_35px_rgba(15,60,55,0.12)] transition-[height] duration-300 ease-out ${sheetLevel === "compact" ? "h-[min(240px,43dvh)]" : sheetLevel === "medium" ? "h-[55dvh]" : "h-[88dvh]"}`}>
         <div role="button" tabIndex={0} aria-label="Потяните для раскрытия параметров" aria-expanded={sheetLevel !== "compact"} className="shrink-0 cursor-grab touch-none px-5 pb-2 pt-3" onTouchStart={e => { dragStart.current = { y: e.touches[0].clientY, level: sheetLevel }; }} onTouchEnd={e => onSheetEnd(e.changedTouches[0].clientY)} onPointerDown={e => { if (e.pointerType === "mouse") dragStart.current = { y: e.clientY, level: sheetLevel }; }} onPointerUp={e => { if (e.pointerType === "mouse") onSheetEnd(e.clientY); }} onKeyDown={e => { if (e.key === "ArrowUp") setSheetLevel("full"); if (e.key === "ArrowDown") setSheetLevel("compact"); }}>
           <div className="mx-auto h-1.5 w-11 rounded-full bg-[#D6E5E1]" />
         </div>
