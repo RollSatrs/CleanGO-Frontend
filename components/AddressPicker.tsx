@@ -246,9 +246,9 @@ export default function AddressPicker({ address, onChange, immersive = false, se
   }
 
   return (
-    <div className={immersive ? "relative h-[100dvh] w-full overflow-hidden" : "space-y-3"}>
+    <div className={immersive ? "relative cleango-map-viewport w-full overflow-hidden" : "space-y-3"}>
       <label htmlFor="cleango-address" className={immersive ? "sr-only" : "block text-sm font-semibold text-slate-800"}>Адрес уборки</label>
-      <div className={immersive ? (searchVisible ? "absolute left-4 right-4 top-[76px] z-[650] rounded-[22px] bg-white shadow-[0_10px_35px_rgba(20,60,54,0.12)]" : "hidden") : "relative"}>
+      <div className={immersive ? (searchVisible ? "absolute left-4 right-4 cleango-map-search z-[650] rounded-[22px] bg-white shadow-[0_10px_35px_rgba(20,60,54,0.12)]" : "hidden") : "relative"}>
         <MapPin className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-teal-600" />
         <input id="cleango-address" value={address} autoComplete="off" required
           placeholder="Улица, дом или название места"
@@ -307,7 +307,7 @@ export default function AddressPicker({ address, onChange, immersive = false, se
             {mapError && !mapReady && <div role="alert" className="absolute inset-0 z-20 grid place-items-center bg-[#F1F6F4] p-5 text-center text-sm text-amber-700">{mapError}</div>}
             {mapReady && <button type="button" onClick={locateOnMap} disabled={mapLocating}
               aria-label="Моё местоположение на карте"
-              className={immersive ? "absolute bottom-[285px] right-3 z-[400] rounded-xl bg-white p-3 text-teal-700 shadow-md disabled:opacity-50" : "absolute bottom-4 right-3 z-[400] rounded-xl bg-white p-3 text-teal-700 shadow-md disabled:opacity-50"}><LocateFixed size={20}/></button>}
+              className={immersive ? "absolute bottom-[min(265px,47dvh)] right-3 z-[400] rounded-xl bg-white p-3 text-teal-700 shadow-md disabled:opacity-50" : "absolute bottom-4 right-3 z-[400] rounded-xl bg-white p-3 text-teal-700 shadow-md disabled:opacity-50"}><LocateFixed size={20}/></button>}
             {!immersive && <div className="pointer-events-none absolute left-1/2 top-1/2 z-[400] -translate-x-1/2 -translate-y-full">
               <div className={`grid h-8 w-8 place-items-center rounded-full border-4 border-white bg-[#159F91] shadow-lg ${mapMoving ? "-translate-y-1" : ""}`}>
                 <span className="h-2 w-2 rounded-full bg-white"/>
