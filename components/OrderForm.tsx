@@ -296,84 +296,73 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="relative mx-auto max-w-xl overflow-hidden rounded-[30px] bg-[#F8FBFA] text-[#152535] shadow-[0_16px_50px_rgba(20,67,59,0.06)]">
-      <div className="relative overflow-hidden bg-gradient-to-b from-[#E9F9F5] via-[#F2FAF8] to-[#F8FBFA] px-5 pb-7 pt-7">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0D9B8E]">CleanGo / Заказ</span>
-          <span className="rounded-full border border-[#BFE9E1] bg-white/80 px-3 py-1 text-[11px] font-semibold text-[#168678]">Шаг 1 из 2</span>
+    <form onSubmit={handleSubmit} className="relative -mx-4 -mt-3 min-h-[90dvh] overflow-hidden bg-[#F5FAF9] text-[#142636] sm:mx-0">
+      <div className="relative">
+        <AddressPicker immersive address={address} onChange={(nextAddress, nextCoordinates) => {
+          setAddress(nextAddress);
+          setCoordinates(nextCoordinates);
+          setError("");
+        }} />
+        <div className="pointer-events-none absolute left-5 right-5 top-24 z-[400]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.17em] text-[#078D80]">CleanGo · Оформление</p>
+          <h2 className="mt-1 text-[25px] font-extrabold tracking-tight text-[#152535] drop-shadow-[0_1px_5px_white]">Оформление уборки</h2>
         </div>
-        <h2 className="mt-5 text-[28px] font-extrabold leading-[1.1] tracking-tight">Куда приехать<br/>на уборку?</h2>
-        <p className="mt-3 max-w-[310px] text-sm leading-6 text-[#69847D]">Выберите точку на карте и укажите площадь помещения.</p>
       </div>
 
-      <div className="relative -mt-3 rounded-t-[30px] bg-white px-4 pb-5 pt-4 shadow-[0_-8px_30px_rgba(17,83,73,0.04)]">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#0B9B8D]">Ваша услуга</p>
-            <h3 className="mt-1 text-lg font-bold leading-snug">{cleaningTypeNames[cleaningType]}</h3>
+      <div className="relative z-[420] -mt-4 rounded-t-[34px] bg-white px-5 pb-8 pt-4 shadow-[0_-18px_45px_rgba(17,59,53,0.08)]">
+        <div className="mx-auto mb-6 h-1.5 w-12 rounded-full bg-[#D3DAD9]" />
+        <div className="flex items-center gap-3">
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[20px] bg-[#E9F8F5] text-[#099B8D]"><Sparkles className="h-7 w-7" /></div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base font-extrabold leading-tight">{cleaningTypeNames[cleaningType]}</h3>
+            <p className="mt-1 text-xs text-[#84948F]">Чистота и комфорт без хлопот</p>
           </div>
-          <span className="shrink-0 rounded-full bg-[#E6F7F2] px-3 py-1.5 text-xs font-semibold text-[#078A7B]">Выбрано ✓</span>
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-[#0A9A89]" />
         </div>
 
-        <div className="rounded-[23px] border border-[#E4EEEA] bg-[#FCFEFD] p-3.5">
-          <div className="mb-3 flex items-center gap-2">
-            <MapPin className="h-4 w-4 shrink-0 text-[#089D8D]" />
-            <p className="min-w-0 flex-1 truncate text-sm font-semibold">{address || "Укажите адрес уборки"}</p>
-          </div>
-          <AddressPicker address={address} onChange={(nextAddress, nextCoordinates) => {
-            setAddress(nextAddress);
-            setCoordinates(nextCoordinates);
-            setError("");
-          }} />
-        </div>
-
-        <div className="mt-3 flex items-center justify-between gap-3 rounded-[22px] border border-[#E4EEEA] bg-white px-4 py-3.5">
-          <div className="min-w-0">
-            <label htmlFor="area" className="block text-xs font-medium text-[#748B85]">Площадь помещения</label>
+        <div className="my-5 h-px bg-[#EDF2F0]" />
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <label htmlFor="area" className="text-sm text-[#6A8079]">Площадь помещения</label>
             <div className="mt-1 flex items-baseline gap-1">
-              <input id="area" type="number" min="1" max="1000" step="1" inputMode="numeric" value={area} onChange={(event) => setArea(event.target.value)} className="w-16 bg-transparent text-2xl font-extrabold outline-none" />
-              <span className="text-sm font-semibold text-[#607E76]">м²</span>
+              <input id="area" type="number" min="1" max="1000" step="1" inputMode="numeric" value={area} onChange={(event)=>setArea(event.target.value)} className="w-16 bg-transparent text-[28px] font-extrabold outline-none" />
+              <span className="text-xl font-bold">м²</span>
             </div>
           </div>
-          <div className="flex shrink-0 gap-2">
-            <button type="button" aria-label="Уменьшить площадь" onClick={() => setArea(String(Math.max(1, (Number(area) || 60) - 5)))} className="grid h-11 w-11 place-items-center rounded-full bg-[#EAF8F5] text-xl font-medium text-[#078E80]">−</button>
-            <button type="button" aria-label="Увеличить площадь" onClick={() => setArea(String(Math.min(1000, (Number(area) || 60) + 5)))} className="grid h-11 w-11 place-items-center rounded-full bg-[#EAF8F5] text-xl font-medium text-[#078E80]">+</button>
+          <div className="flex gap-2">
+            <button type="button" aria-label="Уменьшить площадь" onClick={()=>setArea(String(Math.max(1,(Number(area)||60)-5)))} className="grid h-12 w-12 place-items-center rounded-[18px] bg-[#EAF8F5] text-2xl text-[#0A9A89]">−</button>
+            <button type="button" aria-label="Увеличить площадь" onClick={()=>setArea(String(Math.min(1000,(Number(area)||60)+5)))} className="grid h-12 w-12 place-items-center rounded-[18px] bg-[#EAF8F5] text-2xl text-[#0A9A89]">+</button>
           </div>
         </div>
 
-        <details className="mt-3 rounded-[22px] border border-[#E4EEEA] bg-white p-4">
-          <summary className="cursor-pointer select-none text-sm font-semibold text-[#24473F]">Подъезд, этаж и комментарий <span className="font-normal text-[#81958F]">· необязательно</span></summary>
+        <details className="mt-5 border-t border-[#EDF2F0] pt-4">
+          <summary className="cursor-pointer text-sm font-semibold text-[#376D64]">Детали адреса <span className="font-normal text-[#92A29D]">· подъезд, этаж, комментарий</span></summary>
           <div className="mt-4 grid grid-cols-2 gap-3">
             {([
               ["Подъезд", entrance, setEntrance, "2"],
               ["Этаж", floor, setFloor, "5"],
               ["Квартира / офис", apartment, setApartment, "42"],
               ["Домофон", intercom, setIntercom, "Код"],
-            ] as const).map(([label, value, update, placeholder]) => (
-              <label key={label} className="block text-xs font-medium text-[#648078]">{label}
-                <input value={value} onChange={(event) => update(event.target.value)} maxLength={60} placeholder={placeholder} className="mt-1.5 h-11 w-full rounded-xl border border-[#DCEAE6] bg-[#FAFDFC] px-3 text-base text-[#152535] outline-none focus:border-[#0A9A89]" />
+            ] as const).map(([label,value,update,placeholder])=>(
+              <label key={label} className="text-xs text-[#6A8079]">{label}
+                <input value={value} onChange={event=>update(event.target.value)} maxLength={60} placeholder={placeholder} className="mt-1 h-11 w-full rounded-xl bg-[#F3F8F6] px-3 text-base text-[#152535] outline-none focus:ring-2 focus:ring-[#B4E7DB]" />
               </label>
             ))}
           </div>
-          <label className="mt-3 block text-xs font-medium text-[#648078]">Комментарий клинеру
-            <textarea value={addressNote} onChange={(event) => setAddressNote(event.target.value)} maxLength={250} rows={2} placeholder="Например, вход со двора" className="mt-1.5 w-full resize-none rounded-xl border border-[#DCEAE6] bg-[#FAFDFC] p-3 text-base text-[#152535] outline-none focus:border-[#0A9A89]" />
+          <label className="mt-3 block text-xs text-[#6A8079]">Комментарий
+            <textarea value={addressNote} onChange={event=>setAddressNote(event.target.value)} maxLength={250} rows={2} placeholder="Например, вход со двора" className="mt-1 w-full resize-none rounded-xl bg-[#F3F8F6] p-3 text-base outline-none" />
           </label>
         </details>
 
-        <div className="mt-4 flex items-center justify-between gap-3 rounded-[23px] bg-gradient-to-r from-[#DDF8F2] to-[#EDF9F6] px-4 py-4">
-          <div>
-            <p className="text-xs font-medium text-[#547E74]">Предварительная стоимость</p>
-            <p className="mt-1 text-[28px] font-extrabold tracking-tight text-[#087E72]">{!isAreaValid ? "Укажите площадь" : priceLoading || !hasCurrentQuote ? "Рассчитываем..." : `${priceQuote!.totalPrice.toLocaleString("ru-RU")} ₸`}</p>
-          </div>
-          <ShieldCheck className="h-7 w-7 shrink-0 text-[#0C9D8E]" />
+        <div className="relative mt-5 overflow-hidden rounded-[26px] bg-gradient-to-r from-[#E3F8F3] via-[#D4F4EE] to-[#B8EDE5] px-5 py-5">
+          <p className="relative z-10 text-sm font-medium">Предварительная стоимость</p>
+          <p className="relative z-10 mt-1 text-[32px] font-extrabold tracking-tight">{!isAreaValid ? "Укажите площадь" : priceLoading || !hasCurrentQuote ? "Рассчитываем..." : `${priceQuote!.totalPrice.toLocaleString("ru-RU")} ₸`}</p>
+          <div className="pointer-events-none absolute -bottom-10 -right-8 h-28 w-32 rounded-full border-[20px] border-white/20" />
         </div>
-        {priceError && <p role="alert" className="mt-2 text-sm text-red-700">{priceError}</p>}
+        {priceError && <p role="alert" className="mt-3 text-sm text-red-700">{priceError}</p>}
         {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-
-        <button type="submit" disabled={loading || priceLoading || !hasCurrentQuote || !address.trim() || !coordinates} className="mt-4 flex h-14 w-full items-center justify-center rounded-[19px] bg-[#079B8D] text-base font-bold text-white shadow-[0_10px_24px_rgba(7,155,141,0.17)] transition hover:bg-[#078779] disabled:cursor-not-allowed disabled:opacity-50">
-          Далее — подтвердить заказ
-        </button>
-        <p className="mt-3 text-center text-xs leading-5 text-[#8A9D98]">Заказ создаётся только после подтверждения на следующем шаге.</p>
+        <button type="submit" disabled={loading || priceLoading || !hasCurrentQuote || !address.trim() || !coordinates} className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-[22px] bg-[#079F91] text-base font-bold text-white shadow-[0_10px_25px_rgba(7,159,145,0.16)] disabled:opacity-50">Далее — оформить заказ <span aria-hidden="true">→</span></button>
+        <p className="mt-3 text-center text-xs text-[#95A49F]">Перед созданием заказа вы проверите все данные.</p>
       </div>
     </form>
   );
