@@ -78,5 +78,5 @@ html.telegram-mini-app.cleango-fullscreen {
   padding-top: max(24px, env(safe-area-inset-top, 0px));
 }
 html.telegram-mini-app.cleango-fullscreen .cleango-confirmation-header {
-  padding-top: calc(max(100px, var(--cleango-telegram-top, 0px), env(safe-area-inset-top, 0px)) + 64px);
+  padding-top: max(108px, calc(var(--cleango-telegram-top, 0px) + 12px), calc(env(safe-area-inset-top, 0px) + 12px));
 }
