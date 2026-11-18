@@ -18,17 +18,43 @@ type MapInstance = { on(event:string,cb:()=>void):void; getStyle():{layers?:{id:
 type MapLibrary = NonNullable<Window["maplibregl"]>;
 let loadingLibrary: Promise<MapLibrary> | null = null;
 function loadLibrary(): Promise<MapLibrary> {
-  if (window.maplibregl?.Map) return Promise.resolve(window.maplibregl);
   if (loadingLibrary) return loadingLibrary;
-  loadingLibrary = new Promise<MapLibrary>((resolve,reject)=>{
-    if (!document.getElementById("cleango-maplibre-css")) {
-      const css=document.createElement("link");css.id="cleango-maplibre-css";css.rel="stylesheet";css.href=cdn+"maplibre-gl.css";document.head.appendChild(css);
+  loadingLibrary = (async () => {
+    let css = document.getElementById("cleango-maplibre-css") as HTMLLinkElement | null;
+    if (!css) {
+      css = document.createElement("link");
+      css.id = "cleango-maplibre-css";
+      css.rel = "stylesheet";
+      css.href = cdn + "maplibre-gl.css";
+      document.head.appendChild(css);
     }
-    const script=document.createElement("script");script.src=cdn+"maplibre-gl.js";
-    script.onload=()=>window.maplibregl?.Map?resolve(window.maplibregl):reject(new Error("Карта недоступна"));
-    script.onerror=()=>reject(new Error("Не удалось загрузить карту"));
-    document.head.appendChild(script);
-  }).catch(error=>{loadingLibrary=null;throw error;});
+    if (!css.sheet) {
+      await new Promise<void>((resolve, reject) => {
+        const timer = window.setTimeout(() => reject(new Error("Не загрузились стили карты")), 12000);
+        css!.addEventListener("load", () => { window.clearTimeout(timer); resolve(); }, { once: true });
+        css!.addEventListener("error", () => { window.clearTimeout(timer); reject(new Error("Стили карты недоступны")); }, { once: true });
+        if (css!.sheet) { window.clearTimeout(timer); resolve(); }
+      });
+    }
+    if (window.maplibregl?.Map) return window.maplibregl;
+    await new Promise<void>((resolve, reject) => {
+      const existing = document.getElementById("cleango-maplibre-script") as HTMLScriptElement | null;
+      if (existing) {
+        existing.addEventListener("load", () => resolve(), { once: true });
+        existing.addEventListener("error", () => reject(new Error("MapLibre недоступен")), { once: true });
+        if (window.maplibregl?.Map) resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.id = "cleango-maplibre-script";
+      script.src = cdn + "maplibre-gl.js";
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Не удалось загрузить карту"));
+      document.head.appendChild(script);
+    });
+    if (!window.maplibregl?.Map) throw new Error("MapLibre не загрузился");
+    return window.maplibregl;
+  })().catch(error => { loadingLibrary = null; throw error; });
   return loadingLibrary;
 }
 
@@ -38,9 +64,11 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const {token}=useAuth();
   const [order,setOrder]=useState(initialOrder);
   const [networkError,setNetworkError]=useState(false);
-  const [mapError,setMapError]=useState(false);
+  const [mapError,setMapError]=useState("");
+  const [mapReady,setMapReady]=useState(false);
   const [expanded,setExpanded]=useState(false);
   const node=useRef<HTMLDivElement|null>(null);
+  const mapReadyRef=useRef(false);
   const isPending=order.status==="pending";
   const isAccepted=["accepted","in_progress","completed"].includes(order.status);
 
@@ -64,6 +92,10 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   useEffect(()=>{
     if(!node.current || !Number.isFinite(latitude) || !Number.isFinite(longitude))return;
     let disposed=false;
+    setMapReady(false);
+    mapReadyRef.current=false;
+    setMapError("");
+    const timeout=window.setTimeout(()=>{if(!disposed&&!mapReadyRef.current)setMapError("Карта загружается слишком долго. Проверьте интернет и откройте экран снова.");},16000);
     let map:InstanceType<MapLibrary["Map"]>|null=null;
     void loadLibrary().then(lib=>{
       if(disposed||!node.current)return;
@@ -71,6 +103,9 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       const el=document.createElement("div");
       el.style.cssText="width:22px;height:22px;border-radius:50%;background:#009B8F;border:5px solid white;box-shadow:0 0 0 12px #009B8F24,0 4px 15px #004E4855";
       new lib.Marker({element:el,anchor:"center"}).setLngLat([longitude,latitude]).addTo(map);
+      map.on("idle",()=>{if(!disposed&&map&&map.queryRenderedFeatures().length>0){mapReadyRef.current=true;setMapReady(true);setMapError("");window.clearTimeout(timeout);}});
+      map.on("error",()=>{if(!disposed&&!mapReadyRef.current)setMapError("Не удалось загрузить картографические данные.");});
+      window.setTimeout(()=>{if(!disposed)map?.resize();},350);
       map.on("style.load",()=>{
         for(const layer of map?.getStyle().layers??[]){
           const id=layer.id.toLowerCase();
@@ -82,15 +117,15 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
           }catch{/* optional layer */}
         }
       });
-    }).catch(()=>{if(!disposed)setMapError(true);});
-    return()=>{disposed=true;map?.remove();};
+    }).catch(error=>{if(!disposed)setMapError(error instanceof Error?error.message:"Не удалось загрузить карту");});
+    return()=>{disposed=true;window.clearTimeout(timeout);map?.remove();};
   },[latitude,longitude]);
 
   const title=isPending?"Ищем клинера":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":"Поиск завершён";
   const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":"Статус подтверждён сервером CleanGo";
   return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F5FAF8] text-[#152535] cleango-map-viewport">
     <div ref={node} className="absolute inset-0" aria-label="Карта адреса уборки" />
-    {mapError&&<div className="absolute inset-0 grid place-items-center bg-[#F0F8F5] text-sm text-[#6D8880]">Не удалось загрузить карту</div>}
+    {!mapReady&&<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#F0F8F5]/70 px-8 text-center text-sm text-[#6D8880]">{mapError || "Загружаем карту района…"}</div>}
     <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-white/95 via-white/70 to-transparent px-4 pb-8 cleango-tracking-header">
       <div className="flex items-center justify-between">
         <Link href="/client/orders" className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-white shadow-md" aria-label="Мои заказы"><ArrowLeft size={20}/></Link>
