@@ -13,28 +13,6 @@ declare global { interface Window { L?: LeafletLibrary } }
 const KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const SEMEY: [number, number] = [80.2275, 50.4111];
 const LEAFLET_VERSION = "1.9.4";
-const VECTOR_STYLE = "https://tiles.openfreemap.org/styles/liberty";
-const MAPLIBRE_VERSION = "5.9.0";
-type VectorMap = {getCenter(): {lat:number;lng:number}; flyTo(options:Record<string,unknown>):void; resize():void; remove():void; on(event:string,cb:()=>void):void; getStyle():{layers?:Array<{id:string;type:string}>}; setPaintProperty(id:string,name:string,value:string):void};
-type VectorApi = {Map:new(options:Record<string,unknown>)=>VectorMap};
-type VectorWindow = Window & {maplibregl?:VectorApi};
-async function loadVector():Promise<VectorApi>{
-  if(!document.getElementById("cg-vector-css")){const l=document.createElement("link");l.id="cg-vector-css";l.rel="stylesheet";l.href=`https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;document.head.appendChild(l);}
-  if((window as VectorWindow).maplibregl?.Map)return (window as VectorWindow).maplibregl!;
-  await new Promise<void>((resolve,reject)=>{const s=document.createElement("script");s.src=`https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;s.onload=()=>resolve();s.onerror=()=>reject(new Error("Векторная карта недоступна"));document.head.appendChild(s);});
-  const lib=(window as VectorWindow).maplibregl;if(!lib?.Map)throw new Error("Карта не загрузилась");return lib;
-}
-function themeVector(map:VectorMap){
- const colors={background:"#F7F9F6",building:"#E5EAE6",park:"#E5F2E9",water:"#DCEFED",road:"#FFFFFF",edge:"#DCE4E0"};
- for(const layer of map.getStyle().layers??[]){const id=layer.id.toLowerCase();try{
- if(layer.type==="background")map.setPaintProperty(layer.id,"background-color",colors.background);
- if(layer.type==="fill"&&/building/.test(id))map.setPaintProperty(layer.id,"fill-color",colors.building);
- if(layer.type==="fill"&&/park|grass|wood|landcover|landuse/.test(id))map.setPaintProperty(layer.id,"fill-color",colors.park);
- if(layer.type==="fill"&&/water/.test(id))map.setPaintProperty(layer.id,"fill-color",colors.water);
- if(layer.type==="line"&&/road|street|highway|transportation/.test(id))map.setPaintProperty(layer.id,"line-color",/casing|outline/.test(id)?colors.edge:colors.road);
- }catch{}}
-}
-
 export default function AddressPicker({ address, onChange }: {
   address: string;
   onChange: (address: string, coordinates: Coordinates | null) => void;
@@ -51,16 +29,11 @@ export default function AddressPicker({ address, onChange }: {
   const [mapLocating, setMapLocating] = useState(false);
   const [mapMoving, setMapMoving] = useState(false);
   const [pickedAddress, setPickedAddress] = useState("Переместите карту для выбора адреса");
-  const [diagnostics, setDiagnostics] = useState<string[]>([]);
-  const [diagnosing, setDiagnosing] = useState(false);
   const [point, setPoint] = useState<[number, number]>(SEMEY);
   const [locationBusy, setLocationBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [mapNode, setMapNode] = useState<HTMLDivElement | null>(null);
   const mapRef = useRef<MapHandle | null>(null);
-  const vectorRef = useRef<VectorMap | null>(null);
-  const [vectorActive,setVectorActive] = useState(false);
-  const [vectorFallback,setVectorFallback] = useState(false);
   const [detailsOpen,setDetailsOpen] = useState(false);
   const [sheetOpen,setSheetOpen] = useState(true);
   const [entrance,setEntrance]=useState("");
@@ -133,7 +106,7 @@ export default function AddressPicker({ address, onChange }: {
   }
 
   useEffect(() => {
-    if (!mapOpen || !mapNode || !vectorFallback) return;
+    if (!mapOpen || !mapNode) return;
     let disposed = false;
     let map: MapHandle | null = null;
     setMapReady(false);
@@ -187,7 +160,7 @@ export default function AddressPicker({ address, onChange }: {
           setMapError("");
         });
         tiles.on("tileerror", () => {
-          if (!disposed) setMapError("Не удалось загрузить изображения карты.");
+          if (!disposed) setMapError("Не удалось загрузить изображения карты. Проверьте интернет и повторите попытку.");
         });
         tiles.addTo(map);
         window.setTimeout(() => { if (!disposed) map?.invalidateSize(); }, 250);
@@ -198,30 +171,9 @@ export default function AddressPicker({ address, onChange }: {
     };
     void load();
     return () => { disposed = true; window.clearTimeout(timeout); map?.remove(); mapRef.current = null; };
-    // The initial coordinates are captured when opening the picker.
+    // A single Leaflet instance owns the map container for its entire lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapOpen,mapNode]);
-
-  useEffect(()=>{
-    if(!mapOpen||!mapNode)return;
-    let cancelled=false;let instance:VectorMap|null=null;let verified=false;
-    const fallback=()=>{if(cancelled||verified)return;instance?.remove();instance=null;vectorRef.current=null;setVectorActive(false);setVectorFallback(true);};
-    const timeout=window.setTimeout(fallback,9000);
-    void (async()=>{try{
-      const lib=await loadVector();if(cancelled||!mapNode)return;
-      instance=new lib.Map({container:mapNode,center:point,zoom:16,style:VECTOR_STYLE,attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
-      vectorRef.current=instance;
-      instance.on("style.load",()=>{if(instance&&!cancelled)themeVector(instance);});
-      instance.on("movestart",()=>{if(!cancelled)setMapMoving(true);});
-      instance.on("moveend",()=>{if(cancelled||!instance)return;const c=instance.getCenter();setPoint([c.lng,c.lat]);setPickedAddress("Уточняем адрес...");setMapMoving(false);});
-      instance.on("idle",()=>{if(cancelled||!instance)return;const layers=(instance.getStyle().layers??[]).filter(l=>["fill","line","symbol"].includes(l.type)).map(l=>l.id);if(layers.length){verified=true;clearTimeout(timeout);setVectorActive(true);setMapReady(true);setMapError("");}});
-      instance.on("error",()=>{if(!verified&&!cancelled){clearTimeout(timeout);fallback();}});
-      window.setTimeout(()=>{if(!cancelled)instance?.resize();},350);
-    }catch{if(!cancelled){clearTimeout(timeout);fallback();}}})();
-    return()=>{cancelled=true;clearTimeout(timeout);instance?.remove();vectorRef.current=null;};
-  // Initialize once on opening.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[mapOpen]);
 
   useEffect(()=>{
     if(!mapOpen)return;let cancelled=false;
@@ -235,20 +187,14 @@ export default function AddressPicker({ address, onChange }: {
     return()=>{cancelled=true;clearTimeout(timer);};
   },[mapOpen,point]);
 
-  async function runDiagnostics() {
-    setDiagnosing(true);
-    const lines = ["Диагностика CG-LEAFLET-01", "Leaflet: " + (window.L ? "загружен" : "не загружен"), "Первый тайл: " + (mapReady ? "загружен" : "ожидается"), "Ключ геокодирования: " + (KEY ? "есть" : "нет")];
-    setDiagnostics(lines);
-    setDiagnosing(false);
-  }
   function locateOnMap() {
-    if (!mapReady || (!mapRef.current && !vectorRef.current) || !navigator.geolocation) return;
+    if (!mapReady || !mapRef.current || !navigator.geolocation) return;
     setMapLocating(true);
     navigator.geolocation.getCurrentPosition(
       ({coords}) => {
         setMapLocating(false);
         if (coords.accuracy > 500) { setMapError("Местоположение определено недостаточно точно."); return; }
-        if(vectorActive)vectorRef.current?.flyTo({center:[coords.longitude,coords.latitude],zoom:16});else mapRef.current?.flyTo([coords.latitude,coords.longitude],16);
+        mapRef.current?.flyTo([coords.latitude,coords.longitude],16);
       },
       () => {setMapLocating(false);setMapError("Разрешите геолокацию в настройках Telegram.");},
       {enableHighAccuracy:true,timeout:15000,maximumAge:0}
@@ -256,11 +202,11 @@ export default function AddressPicker({ address, onChange }: {
   }
 
   async function confirmMap() {
-    if (!mapReady || (!mapRef.current && !vectorRef.current)) return;
+    if (!mapReady || !mapRef.current) return;
     setMapBusy(true);
     setMapError("");
     try {
-      const center = vectorActive ? vectorRef.current!.getCenter() : mapRef.current!.getCenter();
+      const center = mapRef.current!.getCenter();
       const longitude = center.lng;
       const latitude = center.lat;
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=ru&lat=${latitude}&lon=${longitude}`);
@@ -270,7 +216,7 @@ export default function AddressPicker({ address, onChange }: {
       choose(road?`${city}, ${road}${a.house_number?", "+a.house_number:""}`:(data.display_name?.split(",").slice(0,3).join(",")||"Выбранная точка"), { latitude, longitude });
       setMapOpen(false);
     } catch {
-      const center = vectorActive ? vectorRef.current?.getCenter() : mapRef.current?.getCenter();
+      const center = mapRef.current?.getCenter();
       if (center) {
         choose(`Точка: ${center.lat.toFixed(5)}, ${center.lng.toFixed(5)}`, { latitude: center.lat, longitude: center.lng });
         setMapOpen(false);
@@ -310,7 +256,7 @@ export default function AddressPicker({ address, onChange }: {
         )}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => { setMapError(""); setVectorFallback(false); setVectorActive(false); setMapOpen(true); }}
+        <button type="button" onClick={() => { setMapError(""); setMapOpen(true); }}
           className="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-2 py-2 text-sm font-semibold text-teal-800 disabled:opacity-50">
           <MapPinned className="h-4 w-4 shrink-0" /> На карте
         </button>
