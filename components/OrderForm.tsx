@@ -259,26 +259,38 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
 
   if (confirming) {
     return (
-      <section className="space-y-5">
-        <div className="rounded-[26px] bg-gradient-to-br from-[#DDFBF5] via-[#F0FFFC] to-white p-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#0A9A89] shadow-sm"><Sparkles className="h-6 w-6" /></div>
-          <p className="mt-4 text-xs font-bold uppercase tracking-widest text-[#168675]">Шаг 2 из 2</p>
-          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-[#152535]">Подтверждение заказа</h2>
-          <p className="mt-2 text-sm leading-6 text-[#66837D]">Проверьте данные перед поиском исполнителя.</p>
+      <section className="mx-auto max-w-xl overflow-hidden rounded-[30px] bg-white text-[#152535] shadow-[0_16px_50px_rgba(20,67,59,0.06)]">
+        <div className="bg-gradient-to-b from-[#E8F9F4] to-white px-5 pb-5 pt-7">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0A9A89]">CleanGo / Шаг 2 из 2</p>
+          <h2 className="mt-3 text-[28px] font-extrabold leading-tight tracking-tight">Подтверждение</h2>
+          <p className="mt-2 text-sm text-[#6B857E]">Проверьте детали перед поиском клинера.</p>
         </div>
-        <div className="space-y-4 rounded-[24px] border border-[#E1F0EC] bg-white p-5">
-          <div><p className="text-xs text-[#829792]">Услуга</p><p className="mt-1 font-bold text-[#152535]">{cleaningTypeNames[cleaningType]}</p></div>
-          <div className="border-t border-[#EDF3F1] pt-4"><p className="text-xs text-[#829792]">Адрес</p><p className="mt-1 font-medium text-[#152535]">{address || "Не указан"}</p></div>
-          {(entrance || floor || apartment || intercom || addressNote) && <div className="border-t border-[#EDF3F1] pt-4"><p className="text-xs text-[#829792]">Детали входа</p><p className="mt-1 text-sm text-[#152535]">{[entrance && `Подъезд ${entrance}`, floor && `Этаж ${floor}`, apartment && `Квартира/офис ${apartment}`, intercom && `Домофон ${intercom}`, addressNote].filter(Boolean).join(" · ")}</p></div>}
-          <div className="border-t border-[#EDF3F1] pt-4"><p className="text-xs text-[#829792]">Площадь</p><p className="mt-1 font-medium text-[#152535]">{area || "Не указана"} м²</p></div>
-          <div className="rounded-[20px] bg-[#E6FAF5] p-4"><p className="text-sm text-[#527A72]">Стоимость по тарифу CleanGo</p><p className="mt-1 text-3xl font-extrabold text-[#087F71]">{hasCurrentQuote ? `${priceQuote!.totalPrice.toLocaleString("ru-RU")} ₸` : "Уточняется"}</p></div>
+        <div className="px-5 pb-6">
+          <div className="divide-y divide-[#E9F0ED] rounded-[22px] border border-[#E6EFEB] bg-white px-4">
+            {([
+              ["Услуга", cleaningTypeNames[cleaningType]],
+              ["Адрес", address],
+              ["Площадь", `${area} м²`],
+              ["Оплата", "После принятия заказа клинером"],
+            ] as const).map(([label,value])=>(
+              <div key={label} className="flex items-start justify-between gap-4 py-4">
+                <span className="shrink-0 text-sm text-[#7B908A]">{label}</span>
+                <span className="text-right text-sm font-semibold text-[#152535]">{value}</span>
+              </div>
+            ))}
+          </div>
+          {(entrance || floor || apartment || intercom || addressNote) && <p className="mt-3 text-xs leading-5 text-[#708B83]">{[entrance && `Подъезд ${entrance}`,floor && `Этаж ${floor}`,apartment && `Кв./офис ${apartment}`,intercom && `Домофон ${intercom}`,addressNote].filter(Boolean).join(" · ")}</p>}
+          <div className="mt-4 rounded-[22px] bg-[#E4F8F2] p-4">
+            <p className="text-xs font-medium text-[#547E74]">Стоимость уборки</p>
+            <p className="mt-1 text-[32px] font-extrabold tracking-tight text-[#087E72]">{hasCurrentQuote ? `${priceQuote!.totalPrice.toLocaleString("ru-RU")} ₸` : "Уточняется"}</p>
+          </div>
+          {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+          <form onSubmit={handleSubmit} className="mt-5 space-y-3">
+            <button type="submit" disabled={loading || priceLoading || !hasCurrentQuote || !address.trim() || !coordinates} className="h-14 w-full rounded-[19px] bg-[#079B8D] text-base font-bold text-white disabled:opacity-50">{loading ? "Создаём заказ..." : "Подтвердить и найти клинера"}</button>
+            <button type="button" onClick={()=>{setConfirming(false);setError("");}} className="h-12 w-full rounded-[19px] border border-[#D8EAE4] text-sm font-semibold text-[#168675]">Изменить данные</button>
+          </form>
+          <p className="mt-3 text-center text-xs text-[#8A9D98]">Оплата сейчас не списывается.</p>
         </div>
-        {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <button type="submit" disabled={loading || priceLoading || !hasCurrentQuote || !address.trim() || !coordinates} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#079B8D] text-base font-bold text-white disabled:opacity-50"><CheckCircle2 className="h-5 w-5" />{loading ? "Создаём заказ..." : "Подтвердить и найти клинера"}</button>
-          <button type="button" onClick={() => { setConfirming(false); setError(""); }} className="h-12 w-full rounded-2xl border border-[#CFE9E2] font-semibold text-[#168675]">Изменить данные</button>
-        </form>
-        <p className="text-center text-xs text-[#849B94]">Оплата на этом шаге не производится.</p>
       </section>
     );
   }
