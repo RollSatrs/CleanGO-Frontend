@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 
@@ -32,6 +32,24 @@ export default function CleanerJobs() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [sharingOrderId,setSharingOrderId]=useState<string|null>(null);
+  const watchId=useRef<number|null>(null);
+  const lastSent=useRef(0);
+  const sendTripLocation=useCallback(async (orderId:string,coords:{latitude:number;longitude:number}|null)=>{
+    if(!token)return;
+    const response=await fetch(`${API_URL}/orders/${encodeURIComponent(orderId)}/trip-location`,{method:"PATCH",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify(coords??{latitude:null,longitude:null})});
+    if(!response.ok)throw new Error("Не удалось обновить передачу геопозиции");
+  },[token]);
+  useEffect(()=>{
+    if(!sharingOrderId)return;
+    if(!navigator.geolocation){setError("Геолокация недоступна");setSharingOrderId(null);return;}
+    watchId.current=navigator.geolocation.watchPosition(position=>{
+      if(Date.now()-lastSent.current<10000)return;
+      lastSent.current=Date.now();
+      void sendTripLocation(sharingOrderId,{latitude:position.coords.latitude,longitude:position.coords.longitude}).catch(()=>setError("Не удалось отправить геопозицию"));
+    },()=>{setError("Разрешите геолокацию для передачи местоположения");setSharingOrderId(null);},{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+    return()=>{if(watchId.current!==null)navigator.geolocation.clearWatch(watchId.current);watchId.current=null;void sendTripLocation(sharingOrderId,null).catch(()=>{});};
+  },[sharingOrderId,sendTripLocation]);
 
   const load = useCallback(async () => {
     if (!token || user?.role !== "cleaner" || !user.phoneVerifiedAt) {
@@ -100,6 +118,7 @@ export default function CleanerJobs() {
   async function transition(orderId: string, action: "en-route" | "arrived" | "start" | "complete") {
     if (!token || busyId) return;
     if (action === "complete" && !window.confirm("Подтвердить завершение уборки?")) return;
+    if(sharingOrderId===orderId)setSharingOrderId(null);
     setBusyId(orderId);
     setError("");
     setMessage("");
@@ -152,6 +171,8 @@ export default function CleanerJobs() {
             {job.clientPhone&&<a href={`tel:${job.clientPhone}`} className="mt-1 inline-block text-sm font-medium text-teal-700">Позвонить клиенту</a>}
           </div>
           <p className="mt-2 text-sm font-medium text-teal-700">{({accepted:"Заказ принят",en_route:"Направляетесь к клиенту",arrived:"Вы прибыли",in_progress:"Уборка выполняется"} as Record<string,string>)[job.status] ?? job.status}</p>
+          {job.status==="en_route"&&<button type="button" onClick={()=>{setError("");setSharingOrderId(current=>current===job.id?null:job.id);}} className="mt-3 w-full rounded-xl border border-teal-600 px-4 py-3 text-sm font-semibold text-teal-800">{sharingOrderId===job.id?"Остановить передачу геопозиции":"Поделиться геопозицией с клиентом"}</button>}
+          {sharingOrderId===job.id&&<p className="mt-2 text-xs text-teal-700">Геопозиция передаётся только во время поездки, пока этот экран открыт. Можно отключить в любой момент.</p>}
           <button type="button" disabled={busyId !== null}
             onClick={() => void transition(job.id, job.status === "accepted" ? "en-route" : job.status === "en_route" ? "arrived" : job.status === "arrived" ? "start" : "complete")}
             className="mt-4 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
