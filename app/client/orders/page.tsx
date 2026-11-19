@@ -131,6 +131,12 @@ export default function ClientOrders() {
               {order.price == null ? "Цена уточняется" : `${Number(order.price).toLocaleString("ru-RU")} ₸`}
             </p>
             <p className="mt-1 text-xs text-slate-500">{new Date(order.createdAt).toLocaleString("ru-RU")}</p>
+            {["pending", "accepted", "in_progress"].includes(order.status) && (
+              <Link href={`/client/orders/${encodeURIComponent(order.id)}`}
+                className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white">
+                {order.status === "pending" ? "Посмотреть поиск на карте" : "Посмотреть заказ на карте"}
+              </Link>
+            )}
             {order.status === "pending" && <button type="button" disabled={cancellingId !== null} onClick={() => void cancelOrder(order)} className="mt-3 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">{cancellingId === order.id ? "Отменяем…" : "Отменить заказ"}</button>}
           </AppCard>
         ))}
