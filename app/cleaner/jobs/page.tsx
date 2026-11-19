@@ -65,8 +65,12 @@ export default function CleanerJobs() {
   useEffect(() => {
     void load();
     if (!token || user?.role !== "cleaner") return;
-    const timer = setInterval(() => void load(), 15000);
-    return () => clearInterval(timer);
+    const timer = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 5000);
+    const refreshOnReturn = () => { if (document.visibilityState === "visible") void load(); };
+    document.addEventListener("visibilitychange", refreshOnReturn);
+    window.addEventListener("focus", refreshOnReturn);
+    window.addEventListener("pageshow", refreshOnReturn);
+    return () => { clearInterval(timer); document.removeEventListener("visibilitychange", refreshOnReturn); window.removeEventListener("focus", refreshOnReturn); window.removeEventListener("pageshow", refreshOnReturn); };
   }, [load, token, user?.role]);
 
   async function respond(orderId: string, action: "accept" | "decline") {
@@ -128,7 +132,7 @@ export default function CleanerJobs() {
       {!loading && user?.role === "cleaner" && user.phoneVerifiedAt && offers.length === 0 && jobs.length === 0 && !error && (
         <AppCard className="py-8 text-center">
           <h2 className="text-lg font-bold">Пока нет предложений</h2>
-          <p className="mt-2 text-sm text-slate-500">Новые предложения появятся здесь автоматически. Обновление каждые 15 секунд.</p>
+          <p className="mt-2 text-sm text-slate-500">Новые предложения появятся здесь автоматически. Обновление каждые 5 секунд, пока приложение открыто.</p>
         </AppCard>
       )}
       {jobs.length > 0 && <section className="mb-6 space-y-3">
