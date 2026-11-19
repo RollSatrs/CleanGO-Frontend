@@ -64,7 +64,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const {token}=useAuth();
   const [order,setOrder]=useState(initialOrder);
   const [networkError,setNetworkError]=useState(false);
-  const [progress,setProgress]=useState<{sent:number;awaiting:number;declined:number;cleaner:{name:string;phone:string|null}|null}|null>(null);
+  const [progress,setProgress]=useState<{sent:number;awaiting:number;declined:number;cleaner:{name:string;phone:string|null}|null;tripLocation?:{latitude:number;longitude:number}|null}|null>(null);
   const [mapError,setMapError]=useState("");
   const [progressError,setProgressError]=useState(false);
   const [mapReady,setMapReady]=useState(false);
@@ -92,6 +92,8 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const [statsExpanded,setStatsExpanded]=useState(false);
   const [mapNode,setMapNode]=useState<HTMLDivElement|null>(null);
   const mapReadyRef=useRef(false);
+  const liveMapRef=useRef<InstanceType<MapLibrary["Map"]>|null>(null);
+  const cleanerMarkerRef=useRef<ReturnType<MapLibrary["Marker"]["addTo"]>|null>(null);
   const isPending=order.status==="pending";
   const isAccepted=["accepted","en_route","arrived","in_progress","completed"].includes(order.status);
 
@@ -141,6 +143,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
     void loadLibrary().then(lib=>{
       if(disposed)return;
       map=new lib.Map({container:mapNode,style,center:[longitude,latitude],zoom:15,attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
+      liveMapRef.current=map;
       const el=document.createElement("div");
       el.style.cssText="width:22px;height:22px;border-radius:50%;background:#009B8F;border:5px solid white;box-shadow:0 0 0 12px #009B8F24,0 4px 15px #004E4855";
       new lib.Marker({element:el,anchor:"center"}).setLngLat([longitude,latitude]).addTo(map);
@@ -152,8 +155,24 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       map.on("load",()=>{if(!disposed){mapReadyRef.current=true;setMapReady(true);setMapError("");window.clearTimeout(timeout);map?.resize();}});
 
     }).catch(error=>{if(!disposed)setMapError(error instanceof Error?error.message:"Не удалось загрузить карту");});
-    return()=>{disposed=true;window.clearTimeout(timeout);map?.remove();};
+    return()=>{disposed=true;window.clearTimeout(timeout);cleanerMarkerRef.current?.remove();cleanerMarkerRef.current=null;liveMapRef.current=null;map?.remove();};
   },[latitude,longitude,mapNode]);
+
+  useEffect(()=>{
+    const map=liveMapRef.current;
+    if(!map || !mapReady)return;
+    const coords=order.status==="en_route"?progress?.tripLocation:null;
+    if(!coords || !Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude)){
+      cleanerMarkerRef.current?.remove();cleanerMarkerRef.current=null;return;
+    }
+    if(cleanerMarkerRef.current){cleanerMarkerRef.current.setLngLat([coords.longitude,coords.latitude]);return;}
+    const lib=window.maplibregl;
+    if(!lib)return;
+    const marker=document.createElement("div");
+    marker.style.cssText="height:30px;width:30px;border-radius:50%;background:#152535;border:4px solid white;box-shadow:0 2px 12px #15253566;display:grid;place-items:center;color:white;font-size:15px";
+    marker.textContent="●";
+    cleanerMarkerRef.current=new lib.Marker({element:marker,anchor:"center"}).setLngLat([coords.longitude,coords.latitude]).addTo(map);
+  },[progress?.tripLocation?.latitude,progress?.tripLocation?.longitude,order.status,mapReady]);
 
   const title=isPending?"Ищем клинера":order.status==="en_route"?"Клинер направляется к вам":order.status==="arrived"?"Клинер прибыл":order.status==="in_progress"?"Уборка выполняется":order.status==="completed"?"Уборка завершена":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
   const searchStage=isPending?(progress===null?"Подбираем исполнителей":progress.awaiting>0?"Ожидаем подтверждения клинера":progress.sent>0?"Продолжаем поиск исполнителя":"Подбираем исполнителей"):"";
@@ -195,6 +214,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       {!collapsed&&isAccepted&&progress?.cleaner&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
         <p className="text-xs font-semibold text-[#578078]">Ваш исполнитель</p>
         <p className="mt-1 text-lg font-extrabold">{progress.cleaner.name}</p>
+        <p className="mt-2 text-xs text-[#58796F]">{order.status==="accepted"?"Ожидаем начала поездки":order.status==="en_route"?(progress.tripLocation?"Клинер делится геопозицией на карте":"Клинер направляется к вам. Геопозиция не передаётся.") :order.status==="arrived"?"Клинер сообщил о прибытии":order.status==="in_progress"?"Уборка выполняется":"Статус заказа обновляется"}</p>
         {progress.cleaner.phone&&<a className="mt-2 inline-block text-sm font-semibold text-[#087F71]" href={`tel:${progress.cleaner.phone}`}>Позвонить исполнителю</a>}
       </div>}
       {!collapsed&&<div className="mt-5 flex items-center gap-2 text-sm text-[#617B74]"><MapPin size={16} className="shrink-0 text-[#079B8D]"/><span className="truncate">{order.address}</span></div>}
