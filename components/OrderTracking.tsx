@@ -93,7 +93,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const [mapNode,setMapNode]=useState<HTMLDivElement|null>(null);
   const mapReadyRef=useRef(false);
   const liveMapRef=useRef<InstanceType<MapLibrary["Map"]>|null>(null);
-  const cleanerMarkerRef=useRef<ReturnType<MapLibrary["Marker"]["addTo"]>|null>(null);
+  const cleanerMarkerRef=useRef<InstanceType<MapLibrary["Marker"]>|null>(null);
   const isPending=order.status==="pending";
   const isAccepted=["accepted","en_route","arrived","in_progress","completed"].includes(order.status);
 
