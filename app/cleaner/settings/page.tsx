@@ -49,21 +49,132 @@ export default function CleanerSettings() {
     return () => { cancelled = true; };
   }, [token, user?.role, user?.phoneVerifiedAt]);
 
-  function requestLocation() {
+  const [locationPending, setLocationPending] = useState(false);
+  const [telegramLocationSettingsAvailable, setTelegramLocationSettingsAvailable] = useState(false);
+
+  type TelegramLocation = { latitude: number; longitude: number };
+  type TelegramLocationManager = {
+    isInited: boolean;
+    isLocationAvailable: boolean;
+    isAccessRequested: boolean;
+    isAccessGranted: boolean;
+    init: (callback: () => void) => void;
+    getLocation: (callback: (data: TelegramLocation | null) => void) => void;
+    openSettings: () => void;
+  };
+  type TelegramWebAppLocation = {
+    isVersionAtLeast?: (version: string) => boolean;
+    LocationManager?: TelegramLocationManager;
+  };
+
+  function getTelegramLocationManager(): TelegramLocationManager | null {
+    const webApp = (window as Window & { Telegram?: { WebApp?: TelegramWebAppLocation } }).Telegram?.WebApp;
+    if (!webApp?.isVersionAtLeast?.("8.0")) return null;
+    return webApp.LocationManager ?? null;
+  }
+
+  function browserLocation(): Promise<TelegramLocation> {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Браузер не поддерживает геолокацию"));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        position => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+        error => reject(error),
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 },
+      );
+    });
+  }
+
+  function telegramLocation(manager: TelegramLocationManager): Promise<TelegramLocation> {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const timeout = window.setTimeout(() => {
+        if (!settled) { settled = true; reject(new Error("Telegram не ответил на запрос геолокации")); }
+      }, 16000);
+      const fail = (message: string) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        reject(new Error(message));
+      };
+      const request = () => {
+        if (settled) return;
+        if (!manager.isLocationAvailable) {
+          fail("Telegram не предоставляет геолокацию на этом устройстве");
+          return;
+        }
+        try {
+          manager.getLocation(data => {
+            if (settled) return;
+            if (!data || !Number.isFinite(data.latitude) || !Number.isFinite(data.longitude)) {
+              fail("Telegram не предоставил координаты. Проверьте разрешение для CleanGo.");
+              return;
+            }
+            settled = true;
+            window.clearTimeout(timeout);
+            resolve({ latitude: data.latitude, longitude: data.longitude });
+          });
+        } catch {
+          fail("Telegram не смог запросить геопозицию");
+        }
+      };
+      try {
+        if (manager.isInited) request();
+        else manager.init(request);
+      } catch {
+        fail("Не удалось инициализировать геолокацию Telegram");
+      }
+    });
+  }
+
+  async function requestLocation() {
+    if (locationPending) return;
+    setLocationPending(true);
     setError("");
-    if (!navigator.geolocation) {
-      setError("Геолокация не поддерживается устройством");
-      return;
+    setNotice("");
+    const manager = getTelegramLocationManager();
+    setTelegramLocationSettingsAvailable(Boolean(manager));
+    let telegramError = "";
+    try {
+      let coords: TelegramLocation | null = null;
+      if (manager) {
+        try { coords = await telegramLocation(manager); }
+        catch (error) { telegramError = error instanceof Error ? error.message : "Ошибка геолокации Telegram"; }
+      }
+      if (!coords) {
+        try { coords = await browserLocation(); }
+        catch (error) {
+          const code = typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
+          const browserError = code === 1
+            ? "Браузер отклонил запрос геолокации."
+            : code === 2 ? "Браузер не смог определить координаты."
+            : code === 3 ? "Время ожидания геолокации истекло."
+            : error instanceof Error ? error.message : "Геолокация недоступна.";
+          throw new Error([telegramError, browserError, "Проверьте разрешения CleanGo в Telegram и службы геолокации macOS."].filter(Boolean).join(" "));
+        }
+      }
+      if (!Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude)
+        || Math.abs(coords.latitude) > 90 || Math.abs(coords.longitude) > 180) {
+        throw new Error("Получены некорректные координаты");
+      }
+      setLocation(coords);
+      setLocationSaved(false);
+      setNotice("Геопозиция получена. Нажмите «Сохранить настройки».");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Не удалось определить геопозицию");
+    } finally {
+      setLocationPending(false);
     }
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        setLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
-        setLocationSaved(false);
-        setNotice("Геопозиция получена. Нажмите «Сохранить настройки».");
-      },
-      err => setError(err.code === 1 ? "Доступ к геопозиции запрещён. Проверьте разрешения Telegram и телефона." : err.code === 2 ? "Местоположение сейчас недоступно. Попробуйте ещё раз в месте с хорошим сигналом." : "Не удалось определить местоположение вовремя. Попробуйте ещё раз."),
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
-    );
+  }
+
+  function openTelegramLocationSettings() {
+    try {
+      getTelegramLocationManager()?.openSettings();
+    } catch {
+      setError("Не удалось открыть настройки Telegram. Проверьте разрешения Mini App вручную.");
+    }
   }
 
   async function save() {
@@ -132,10 +243,16 @@ export default function CleanerSettings() {
             <input id="radius" type="range" min={1} max={30} value={radius}
               onChange={event => setRadius(Number(event.target.value))}
               className="mt-4 w-full accent-teal-600" />
-            <button type="button" onClick={requestLocation}
+            <button type="button" onClick={() => void requestLocation()} disabled={locationPending}
               className="mt-5 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white">
-              Обновить геопозицию
+              {locationPending ? "Определяем геопозицию…" : "Обновить геопозицию"}
             </button>
+            {telegramLocationSettingsAvailable && error && (
+              <button type="button" onClick={openTelegramLocationSettings}
+                className="mt-3 w-full rounded-xl border border-teal-300 px-4 py-3 text-sm font-semibold text-teal-800">
+                Настройки геолокации CleanGo в Telegram
+              </button>
+            )}
             <p className="mt-2 text-xs text-slate-500">
               {location ? "Новая геопозиция получена" : locationSaved ? "Ранее сохранена геопозиция" : "Геопозиция ещё не указана"}
             </p>
