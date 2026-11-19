@@ -64,6 +64,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const {token}=useAuth();
   const [order,setOrder]=useState(initialOrder);
   const [networkError,setNetworkError]=useState(false);
+  const [progress,setProgress]=useState<{sent:number;awaiting:number;declined:number;cleaner:{name:string;phone:string|null}|null}|null>(null);
   const [mapError,setMapError]=useState("");
   const [mapReady,setMapReady]=useState(false);
   const [expanded,setExpanded]=useState(false);
@@ -88,6 +89,25 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
     const interval=window.setInterval(()=>void refresh(),5000);
     return()=>{active=false;window.clearInterval(interval);};
   },[token,initialOrder.id,order.status]);
+
+  useEffect(()=>{
+    if(!token)return;
+    let active=true;
+    const refresh=async()=>{
+      try {
+        const response=await fetch(`/api/backend/orders/${encodeURIComponent(initialOrder.id)}/progress`,{
+          headers:{Authorization:`Bearer ${token}`},cache:"no-store"
+        });
+        if(!response.ok)throw new Error("Progress unavailable");
+        const data=await response.json();
+        if(active)setProgress(data);
+      }catch{/* Keep the last confirmed progress; never invent counts. */}
+    };
+    void refresh();
+    if(!isPending)return()=>{active=false;};
+    const timer=window.setInterval(()=>void refresh(),5000);
+    return()=>{active=false;window.clearInterval(timer);};
+  },[token,initialOrder.id,isPending]);
 
   useEffect(()=>{
     if(!mapNode || !Number.isFinite(latitude) || !Number.isFinite(longitude))return;
@@ -134,6 +154,16 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         {isPending&&<span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0A9C8D] opacity-40"/><span className="relative inline-flex h-3 w-3 rounded-full bg-[#0A9C8D]"/></span>}
       </div>
       {isPending&&<div className="mt-5 flex items-center gap-2 text-xs text-[#66877E]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#079B8D]"/>Поиск выполняется — время ответа зависит от клинеров</div>}
+      {isPending&&progress&&<div className="mt-4 grid grid-cols-3 gap-2 text-center">
+        <div className="rounded-xl bg-[#F1F9F6] px-2 py-3"><div className="text-xl font-extrabold text-[#087F71]">{progress.sent}</div><div className="mt-1 text-[10px] text-[#6B8980]">Получили заказ</div></div>
+        <div className="rounded-xl bg-[#F1F9F6] px-2 py-3"><div className="text-xl font-extrabold text-[#087F71]">{progress.awaiting}</div><div className="mt-1 text-[10px] text-[#6B8980]">Ожидаем ответ</div></div>
+        <div className="rounded-xl bg-[#F1F9F6] px-2 py-3"><div className="text-xl font-extrabold text-[#087F71]">{progress.declined}</div><div className="mt-1 text-[10px] text-[#6B8980]">Отказались</div></div>
+      </div>}
+      {isAccepted&&progress?.cleaner&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
+        <p className="text-xs font-semibold text-[#578078]">Ваш исполнитель</p>
+        <p className="mt-1 text-lg font-extrabold">{progress.cleaner.name}</p>
+        {progress.cleaner.phone&&<a className="mt-2 inline-block text-sm font-semibold text-[#087F71]" href={`tel:${progress.cleaner.phone}`}>Позвонить исполнителю</a>}
+      </div>}
       <div className="mt-5 flex items-center gap-2 text-sm text-[#617B74]"><MapPin size={16} className="shrink-0 text-[#079B8D]"/><span className="truncate">{order.address}</span></div>
       {expanded&&<div className="mt-4 space-y-3 border-t border-[#EDF3F0] pt-4">
         <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Уборка</span><strong className="text-right">{names[order.cleaningType]}</strong></div>
