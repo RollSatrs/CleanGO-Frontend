@@ -68,7 +68,27 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const [mapError,setMapError]=useState("");
   const [progressError,setProgressError]=useState(false);
   const [mapReady,setMapReady]=useState(false);
-  const [expanded,setExpanded]=useState(false);
+  const [sheetPosition,setSheetPosition]=useState<"collapsed"|"normal"|"expanded">("normal");
+  const skipHandleClick=useRef(false);
+  const gestureStart=useRef<{y:number;position:"collapsed"|"normal"|"expanded"}|null>(null);
+  const expanded=sheetPosition==="expanded";
+  const collapsed=sheetPosition==="collapsed";
+  const handleSheetStart=(event:React.PointerEvent<HTMLButtonElement>)=>{
+    if(event.pointerType==="mouse"&&event.button!==0)return;
+    gestureStart.current={y:event.clientY,position:sheetPosition};
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const handleSheetEnd=(event:React.PointerEvent<HTMLButtonElement>)=>{
+    const start=gestureStart.current;
+    gestureStart.current=null;
+    if(!start)return;
+    const delta=event.clientY-start.y;
+    if(Math.abs(delta)<35)return;
+    skipHandleClick.current=true;
+    const positions=["collapsed","normal","expanded"] as const;
+    const index=positions.indexOf(start.position);
+    setSheetPosition(positions[Math.max(0,Math.min(2,index+(delta<0?1:-1)))]);
+  };
   const [statsExpanded,setStatsExpanded]=useState(false);
   const [mapNode,setMapNode]=useState<HTMLDivElement|null>(null);
   const mapReadyRef=useRef(false);
@@ -147,21 +167,21 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         <span className="rounded-full bg-white px-4 py-2 text-xs font-bold tracking-wide text-[#087F71] shadow-sm">CleanGo · Заказ</span>
       </div>
     </div>
-    <div className="absolute inset-x-0 bottom-0 z-20 flex max-h-[min(80%,650px)] flex-col rounded-t-[28px] bg-white shadow-[0_-12px_50px_rgba(20,65,57,0.12)] cleango-tracking-sheet">
-      <div className="min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5">
-      <button type="button" onClick={()=>setExpanded(value=>!value)} aria-expanded={expanded} aria-label="Показать подробности заказа" className="flex w-full justify-center py-3"><span className="h-1.5 w-12 rounded-full bg-[#D9E8E4]"/></button>
+    <div className={`absolute inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_-12px_50px_rgba(20,65,57,0.12)] transition-[height] duration-300 ease-out cleango-tracking-sheet ${collapsed?"h-[154px]":expanded?"h-[min(90dvh,850px)]":"h-[min(66dvh,530px)]"}`}>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5">
+      <button type="button" onPointerDown={handleSheetStart} onPointerUp={handleSheetEnd} onPointerCancel={()=>{gestureStart.current=null;}} onClick={()=>{if(skipHandleClick.current){skipHandleClick.current=false;return;}setSheetPosition(value=>value==="expanded"?"normal":"expanded");}} aria-label="Потяните вверх или вниз, чтобы изменить размер панели" aria-expanded={expanded} className="flex w-full cursor-grab touch-none select-none justify-center py-4 active:cursor-grabbing"><span className="h-1.5 w-12 rounded-full bg-[#D9E8E4]"/></button>
       <div className="flex items-center gap-3">
         <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#E3F8F2] text-[#079B8D]">{isAccepted?<CheckCircle2 size={25}/>:<Sparkles size={25} className={isPending?"animate-pulse":""}/>}</div>
         <div className="min-w-0 flex-1"><h1 className="text-xl font-extrabold tracking-tight">{title}</h1><p className="mt-1 text-xs leading-5 text-[#738C84]">{subtitle}</p></div>
         {isPending&&<span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0A9C8D] opacity-40"/><span className="relative inline-flex h-3 w-3 rounded-full bg-[#0A9C8D]"/></span>}
       </div>
-      {isPending&&<div className="mt-5 flex items-center gap-2 text-xs text-[#66877E]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#079B8D]"/>Поиск выполняется — время ответа зависит от клинеров</div>}
-      {isPending&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4" aria-live="polite">
+      {!collapsed&&isPending&&<div className="mt-5 flex items-center gap-2 text-xs text-[#66877E]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#079B8D]"/>Поиск выполняется — время ответа зависит от клинеров</div>}
+      {!collapsed&&isPending&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4" aria-live="polite">
         <div className="flex items-center gap-2 text-sm font-semibold text-[#174E45]"><CheckCircle2 size={17} className="text-[#079B8D]"/>Заказ оформлен</div>
         <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#174E45]">{progress&&progress.sent>0?<CheckCircle2 size={17} className="text-[#079B8D]"/>:<Clock3 size={17} className="text-[#079B8D]"/>}Предложения клинерам {progress&&progress.sent>0?"отправлены":"подбираются"}</div>
         <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#174E45]"><span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-[#079B8D]"/>{searchStage}</div>
       </div>}
-      {isPending&&<div className="mt-3 rounded-2xl border border-[#E2EEE9]">
+      {!collapsed&&isPending&&<div className="mt-3 rounded-2xl border border-[#E2EEE9]">
         <button type="button" onClick={()=>setStatsExpanded(value=>!value)} aria-expanded={statsExpanded} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[#174E45]">
           <span>Подробности поиска</span><span className="text-xs text-[#60827A]">{statsExpanded?"Скрыть −":"Показать +"}</span>
         </button>
@@ -171,23 +191,23 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
           {progressError&&<p role="status" className="col-span-3 text-left text-xs text-amber-700">Не удалось обновить статистику. Показываем последние подтверждённые данные.</p>}
         </div>}
       </div>}
-      {isAccepted&&progressError&&!progress?.cleaner&&<p role="status" className="mt-3 text-xs text-amber-700">Не удалось загрузить данные исполнителя. Повторяем запрос автоматически.</p>}
-      {isAccepted&&progress?.cleaner&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
+      {!collapsed&&isAccepted&&progressError&&!progress?.cleaner&&<p role="status" className="mt-3 text-xs text-amber-700">Не удалось загрузить данные исполнителя. Повторяем запрос автоматически.</p>}
+      {!collapsed&&isAccepted&&progress?.cleaner&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
         <p className="text-xs font-semibold text-[#578078]">Ваш исполнитель</p>
         <p className="mt-1 text-lg font-extrabold">{progress.cleaner.name}</p>
         {progress.cleaner.phone&&<a className="mt-2 inline-block text-sm font-semibold text-[#087F71]" href={`tel:${progress.cleaner.phone}`}>Позвонить исполнителю</a>}
       </div>}
-      <div className="mt-5 flex items-center gap-2 text-sm text-[#617B74]"><MapPin size={16} className="shrink-0 text-[#079B8D]"/><span className="truncate">{order.address}</span></div>
+      {!collapsed&&<div className="mt-5 flex items-center gap-2 text-sm text-[#617B74]"><MapPin size={16} className="shrink-0 text-[#079B8D]"/><span className="truncate">{order.address}</span></div>}
       {expanded&&<div className="mt-4 space-y-3 border-t border-[#EDF3F0] pt-4">
         <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Уборка</span><strong className="text-right">{names[order.cleaningType]}</strong></div>
         <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Площадь</span><strong>{order.area} м²</strong></div>
         <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Стоимость</span><strong>{order.price==null?"Уточняется":`${Number(order.price).toLocaleString("ru-RU")} ₸`}</strong></div>
         <p className="flex items-start gap-2 text-xs leading-5 text-[#6B8980]"><ShieldCheck size={16} className="shrink-0 text-[#079B8D]"/>Точный адрес доступен исполнителю только после принятия заказа.</p>
       </div>}
-      {networkError&&<p role="status" className="mt-3 text-xs text-amber-700">Нет связи с сервером. Показываем последний подтверждённый статус.</p>}
-      {isPending&&<p className="mt-3 flex items-center gap-2 text-xs text-[#79918B]"><Clock3 size={14}/>Статус обновляется каждые 5 секунд</p>}
+      {!collapsed&&networkError&&<p role="status" className="mt-3 text-xs text-amber-700">Нет связи с сервером. Показываем последний подтверждённый статус.</p>}
+      {!collapsed&&isPending&&<p className="mt-3 flex items-center gap-2 text-xs text-[#79918B]"><Clock3 size={14}/>Статус обновляется каждые 5 секунд</p>}
       </div>
-      <div className="shrink-0 px-4 pt-3 sm:px-5"><Link href="/client/orders" className="flex min-h-12 items-center justify-center rounded-2xl bg-[#079B8D] px-4 font-bold text-white">Мои заказы</Link></div>
+      {!collapsed&&<div className="shrink-0 px-4 pt-3 pb-3 sm:px-5"><Link href="/client/orders" className="flex min-h-12 items-center justify-center rounded-2xl bg-[#079B8D] px-4 font-bold text-white">Мои заказы</Link></div>}
     </div>
   </section>;
 }
