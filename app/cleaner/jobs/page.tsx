@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 
-type AssignedJob = { id: string; status: string; cleaningType: string; area: number; price: number | null; address: string; createdAt: string; clientFirstName: string | null; clientLastName: string | null; clientPhone: string | null };
+type AssignedJob = { id: string; status: string; cleaningType: string; area: number; price: number | null; address: string; latitude: string | number | null; longitude: string | number | null; createdAt: string; clientFirstName: string | null; clientLastName: string | null; clientPhone: string | null };
 
 type Offer = {
   offerId: string;
@@ -140,6 +140,12 @@ export default function CleanerJobs() {
         {jobs.map(job => <AppCard key={job.id}>
           <p className="text-sm font-semibold">{typeLabels[job.cleaningType] ?? job.cleaningType}</p>
           <p className="mt-2 text-sm text-slate-600">{job.area} м² · {job.address}</p>
+          <div className="mt-3 rounded-2xl border border-teal-100 bg-teal-50 p-3">
+            <p className="text-sm font-semibold text-teal-900">Адрес уборки на карте</p>
+            <p className="mt-1 text-xs text-teal-800">Маршрут откроется в навигаторе от вашего текущего местоположения.</p>
+            <a href={job.latitude != null && job.longitude != null && Number.isFinite(Number(job.latitude)) && Number.isFinite(Number(job.longitude)) ? `https://www.google.com/maps/dir/?api=1&destination=${Number(job.latitude)},${Number(job.longitude)}&travelmode=driving` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`} target="_blank" rel="noopener noreferrer" className="mt-3 flex min-h-11 items-center justify-center rounded-xl bg-teal-600 px-4 text-sm font-bold text-white">Открыть маршрут на карте</a>
+            <p className="mt-2 text-[11px] text-teal-700">Проверьте адрес и маршрут в навигаторе перед поездкой.</p>
+          </div>
           <div className="mt-3 rounded-xl bg-emerald-50 p-3">
             <p className="text-xs font-semibold text-emerald-800">Клиент после принятия заказа</p>
             <p className="mt-1 text-sm font-semibold">{[job.clientFirstName,job.clientLastName].filter(Boolean).join(" ") || "Клиент CleanGo"}</p>
