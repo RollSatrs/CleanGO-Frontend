@@ -79,10 +79,9 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
     let active=true;
     const refresh=async()=>{
       try {
-        const response=await fetch("/api/backend/orders",{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
+        const response=await fetch(`/api/backend/orders/${encodeURIComponent(initialOrder.id)}`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
         if(!response.ok)throw new Error("Request failed");
-        const orders:Order[]=await response.json();
-        const current=orders.find(item=>item.id===initialOrder.id);
+        const current:Order=await response.json();
         if(active){if(current)setOrder(current);setNetworkError(false);}
       } catch {if(active)setNetworkError(true);}
     };
