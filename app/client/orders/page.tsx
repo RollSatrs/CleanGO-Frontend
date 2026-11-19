@@ -135,11 +135,11 @@ export default function ClientOrders() {
           </AppCard>
         ))}
       </div>
-      {user?.role === "client" && user.phoneVerifiedAt && total > 20 && (
+      {user?.role === "client" && user.phoneVerifiedAt && total > 10 && (
         <div className="flex items-center justify-between gap-3 py-3">
           <button type="button" disabled={page === 1} onClick={() => { setPage(p => p - 1); setLoading(true); }} className="rounded-xl border px-3 py-2 disabled:opacity-40">Назад</button>
-          <span className="text-sm text-slate-500">Страница {page} из {Math.ceil(total / 20)}</span>
-          <button type="button" disabled={page * 20 >= total} onClick={() => { setPage(p => p + 1); setLoading(true); }} className="rounded-xl border px-3 py-2 disabled:opacity-40">Далее</button>
+          <span className="text-sm text-slate-500">Страница {page} из {Math.ceil(total / 10)}</span>
+          <button type="button" disabled={page * 10 >= total} onClick={() => { setPage(p => p + 1); setLoading(true); }} className="rounded-xl border px-3 py-2 disabled:opacity-40">Далее</button>
         </div>
       )}
       {user?.role === "client" && user.phoneVerifiedAt && (
