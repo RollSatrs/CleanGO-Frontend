@@ -34,6 +34,9 @@ const statuses: Record<string, string> = {
 export default function ClientOrders() {
   const { token, user, status } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [section, setSection] = useState<"active" | "archive">("active");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -44,7 +47,7 @@ export default function ClientOrders() {
       return;
     }
     try {
-      const response = await fetch("/api/backend/orders", {
+      const response = await fetch(`/api/backend/orders/history?section=${section}&page=${page}`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       });
@@ -52,15 +55,17 @@ export default function ClientOrders() {
         ? "Сессия истекла. Откройте приложение заново."
         : `Не удалось загрузить заказы (HTTP ${response.status})`);
       const data: unknown = await response.json();
-      if (!Array.isArray(data)) throw new Error("Некорректный ответ сервера");
-      setOrders(data as Order[]);
+      if (!data || typeof data !== "object" || !("items" in data) || !Array.isArray(data.items)) throw new Error("Некорректный ответ сервера");
+      const result = data as { items: Order[]; total: number };
+      setOrders(result.items);
+      setTotal(result.total);
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки заказов");
     } finally {
       setLoading(false);
     }
-  }, [token, user?.role, user?.phoneVerifiedAt]);
+  }, [token, user?.role, user?.phoneVerifiedAt, section, page]);
 
   useEffect(() => {
     void load();
@@ -95,19 +100,20 @@ export default function ClientOrders() {
 
   return (
     <AppPageShell role="client" eyebrow="CleanGo" title="Мои заказы"
-      description="Текущие и предыдущие заказы. Статусы обновляются каждые 15 секунд.">
+      description="Активные заказы и история уборок. Статусы обновляются каждые 15 секунд.">
       {status === "authenticated" && user?.role !== "client" && (
         <AppCard><p className="text-sm">Раздел доступен клиентам.</p></AppCard>
       )}
       {user?.role === "client" && !user.phoneVerifiedAt && (
         <AppCard><p className="text-sm">Подтвердите телефон, чтобы увидеть заказы.</p></AppCard>
       )}
+      <div className="flex gap-2" role="group" aria-label="Раздел заказов">{(["active", "archive"] as const).map(value => <button key={value} type="button" aria-pressed={section === value} onClick={() => { setSection(value); setPage(1); setLoading(true); }} className={`flex-1 rounded-xl px-3 py-3 text-sm font-semibold ${section === value ? "bg-teal-600 text-white" : "bg-teal-50 text-teal-800"}`}>{value === "active" ? "Активные" : "Архив"}</button>)}</div>
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {loading && <p className="text-sm text-slate-500">Загружаем заказы…</p>}
       {!loading && !error && user?.role === "client" && user.phoneVerifiedAt && orders.length === 0 && (
         <AppCard>
-          <h2 className="text-lg font-bold">Заказов пока нет</h2>
-          <p className="mt-2 text-sm text-slate-500">Выберите уборку, чтобы оформить первый заказ.</p>
+          <h2 className="text-lg font-bold">{section === "archive" ? "Архив пока пуст" : "Активных заказов нет"}</h2>
+          <p className="mt-2 text-sm text-slate-500">{section === "archive" ? "Завершённые, отменённые и неназначенные заказы появятся здесь." : "Выберите уборку, чтобы оформить заказ."}</p>
           <Link href="/" className="mt-4 inline-block font-semibold text-teal-700">Выбрать уборку</Link>
         </AppCard>
       )}
@@ -129,6 +135,13 @@ export default function ClientOrders() {
           </AppCard>
         ))}
       </div>
+      {user?.role === "client" && user.phoneVerifiedAt && total > 20 && (
+        <div className="flex items-center justify-between gap-3 py-3">
+          <button type="button" disabled={page === 1} onClick={() => { setPage(p => p - 1); setLoading(true); }} className="rounded-xl border px-3 py-2 disabled:opacity-40">Назад</button>
+          <span className="text-sm text-slate-500">Страница {page} из {Math.ceil(total / 20)}</span>
+          <button type="button" disabled={page * 20 >= total} onClick={() => { setPage(p => p + 1); setLoading(true); }} className="rounded-xl border px-3 py-2 disabled:opacity-40">Далее</button>
+        </div>
+      )}
       {user?.role === "client" && user.phoneVerifiedAt && (
         <button type="button" onClick={() => void load()}
           className="mt-4 w-full rounded-xl border border-teal-200 px-4 py-3 font-semibold text-teal-700">
