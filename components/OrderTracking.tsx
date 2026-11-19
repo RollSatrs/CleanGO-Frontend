@@ -11,7 +11,7 @@ type Order = {
   price: number | null; latitude?: string | number | null; longitude?: string | number | null;
 };
 const names = { regular: "Поддерживающая уборка", general: "Генеральная уборка", renovation: "После ремонта" };
-const terminal = new Set(["accepted", "in_progress", "completed", "cancelled", "unassigned", "expired", "failed", "no_cleaner"]);
+const terminal = new Set(["completed", "cancelled", "unassigned", "expired", "failed", "no_cleaner"]);
 const style = "https://tiles.openfreemap.org/styles/liberty";
 const cdn = "https://unpkg.com/maplibre-gl@5.9.0/dist/";
 type MapInstance = { on(event:string,cb:()=>void):void; getStyle():{layers?:{id:string;type:string}[]}; setPaintProperty(id:string,property:string,value:string):void; remove():void };
@@ -66,6 +66,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const [networkError,setNetworkError]=useState(false);
   const [progress,setProgress]=useState<{sent:number;awaiting:number;declined:number;cleaner:{name:string;phone:string|null}|null}|null>(null);
   const [mapError,setMapError]=useState("");
+  const [progressError,setProgressError]=useState(false);
   const [mapReady,setMapReady]=useState(false);
   const [expanded,setExpanded]=useState(false);
   const [mapNode,setMapNode]=useState<HTMLDivElement|null>(null);
@@ -100,14 +101,14 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         });
         if(!response.ok)throw new Error("Progress unavailable");
         const data=await response.json();
-        if(active)setProgress(data);
-      }catch{/* Keep the last confirmed progress; never invent counts. */}
+        if(active){setProgress(data);setProgressError(false);}
+      }catch{if(active)setProgressError(true);/* Keep last confirmed progress. */}
     };
     void refresh();
-    if(!isPending)return()=>{active=false;};
+    if(!["pending","accepted","in_progress"].includes(order.status))return()=>{active=false;};
     const timer=window.setInterval(()=>void refresh(),5000);
     return()=>{active=false;window.clearInterval(timer);};
-  },[token,initialOrder.id,isPending]);
+  },[token,initialOrder.id,order.status]);
 
   useEffect(()=>{
     if(!mapNode || !Number.isFinite(latitude) || !Number.isFinite(longitude))return;
@@ -159,6 +160,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         <div className="rounded-xl bg-[#F1F9F6] px-2 py-3"><div className="text-xl font-extrabold text-[#087F71]">{progress.awaiting}</div><div className="mt-1 text-[10px] text-[#6B8980]">Ожидаем ответ</div></div>
         <div className="rounded-xl bg-[#F1F9F6] px-2 py-3"><div className="text-xl font-extrabold text-[#087F71]">{progress.declined}</div><div className="mt-1 text-[10px] text-[#6B8980]">Отказались</div></div>
       </div>}
+      {isAccepted&&progressError&&!progress?.cleaner&&<p role="status" className="mt-3 text-xs text-amber-700">Не удалось загрузить данные исполнителя. Повторяем запрос автоматически.</p>}
       {isAccepted&&progress?.cleaner&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
         <p className="text-xs font-semibold text-[#578078]">Ваш исполнитель</p>
         <p className="mt-1 text-lg font-extrabold">{progress.cleaner.name}</p>
