@@ -97,7 +97,7 @@ export default function CleanerJobs() {
     }
   }
 
-  async function transition(orderId: string, action: "start" | "complete") {
+  async function transition(orderId: string, action: "en-route" | "arrived" | "start" | "complete") {
     if (!token || busyId) return;
     if (action === "complete" && !window.confirm("Подтвердить завершение уборки?")) return;
     setBusyId(orderId);
@@ -111,7 +111,7 @@ export default function CleanerJobs() {
         const body = await response.json().catch(() => null);
         throw new Error(typeof body?.message === "string" ? body.message : "Не удалось обновить заказ");
       }
-      setMessage(action === "start" ? "Уборка начата." : "Уборка завершена. Вы снова можете получать предложения, если смена и GPS актуальны.");
+      setMessage(({ "en-route":"Вы отметили, что направляетесь к клиенту.", arrived:"Прибытие подтверждено.", start:"Уборка начата.", complete:"Уборка завершена. Вы снова можете получать предложения, если смена и GPS актуальны." })[action]);
       await load();
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка соединения"); }
     finally { setBusyId(null); }
@@ -151,11 +151,11 @@ export default function CleanerJobs() {
             <p className="mt-1 text-sm font-semibold">{[job.clientFirstName,job.clientLastName].filter(Boolean).join(" ") || "Клиент CleanGo"}</p>
             {job.clientPhone&&<a href={`tel:${job.clientPhone}`} className="mt-1 inline-block text-sm font-medium text-teal-700">Позвонить клиенту</a>}
           </div>
-          <p className="mt-2 text-sm font-medium text-teal-700">{job.status === "accepted" ? "Заказ принят" : "Уборка выполняется"}</p>
+          <p className="mt-2 text-sm font-medium text-teal-700">{({accepted:"Заказ принят",en_route:"Направляетесь к клиенту",arrived:"Вы прибыли",in_progress:"Уборка выполняется"} as Record<string,string>)[job.status] ?? job.status}</p>
           <button type="button" disabled={busyId !== null}
-            onClick={() => void transition(job.id, job.status === "accepted" ? "start" : "complete")}
+            onClick={() => void transition(job.id, job.status === "accepted" ? "en-route" : job.status === "en_route" ? "arrived" : job.status === "arrived" ? "start" : "complete")}
             className="mt-4 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
-            {job.status === "accepted" ? "Начать уборку" : "Завершить уборку"}
+            {({accepted:"Я выехал к клиенту",en_route:"Я прибыл",arrived:"Начать уборку",in_progress:"Завершить уборку"} as Record<string,string>)[job.status] ?? "Обновить статус"}
           </button>
         </AppCard>)}
       </section>}
