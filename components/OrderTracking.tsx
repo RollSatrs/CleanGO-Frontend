@@ -65,6 +65,8 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const [order,setOrder]=useState(initialOrder);
   const [networkError,setNetworkError]=useState(false);
   const [progress,setProgress]=useState<{sent:number;awaiting:number;declined:number;cleaner:{name:string;phone:string|null}|null;tripLocation?:{latitude:number;longitude:number}|null}|null>(null);
+  const [arrivalEstimate,setArrivalEstimate]=useState<{km:number;minutes:number}|null>(null);
+  const [arrivalBusy,setArrivalBusy]=useState(false);
   const [mapError,setMapError]=useState("");
   const [progressError,setProgressError]=useState(false);
   const [mapReady,setMapReady]=useState(false);
@@ -174,6 +176,23 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
     cleanerMarkerRef.current=new lib.Marker({element:marker,anchor:"center"}).setLngLat([coords.longitude,coords.latitude]).addTo(map);
   },[progress?.tripLocation?.latitude,progress?.tripLocation?.longitude,order.status,mapReady]);
 
+  const calculateArrival=async()=>{
+    const coords=progress?.tripLocation;
+    if(!coords || arrivalBusy)return;
+    setArrivalBusy(true);
+    try {
+      const url=`https://router.project-osrm.org/route/v1/driving/${coords.longitude},${coords.latitude};${longitude},${latitude}?overview=false`;
+      const response=await fetch(url,{signal:AbortSignal.timeout(12000)});
+      if(!response.ok)throw new Error("Routing unavailable");
+      const data=await response.json() as {routes?:{distance:number;duration:number}[]};
+      const route=data.routes?.[0];
+      if(!route)throw new Error("No route");
+      setArrivalEstimate({km:Math.round(route.distance/100)/10,minutes:Math.max(1,Math.ceil(route.duration/60))});
+    }catch{setArrivalEstimate(null);}
+    finally{setArrivalBusy(false);}
+  };
+  useEffect(()=>{setArrivalEstimate(null);},[progress?.tripLocation?.latitude,progress?.tripLocation?.longitude]);
+
   const title=isPending?"Ищем клинера":order.status==="en_route"?"Клинер направляется к вам":order.status==="arrived"?"Клинер прибыл":order.status==="in_progress"?"Уборка выполняется":order.status==="completed"?"Уборка завершена":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
   const searchStage=isPending?(progress===null?"Подбираем исполнителей":progress.awaiting>0?"Ожидаем подтверждения клинера":progress.sent>0?"Продолжаем поиск исполнителя":"Подбираем исполнителей"):"";
   const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="accepted"?"Исполнитель подтвердил заказ. Ожидаем начала поездки.":order.status==="en_route"?"Исполнитель сообщил, что направляется по адресу. Точное местоположение не передаётся.":order.status==="arrived"?"Исполнитель отметил прибытие по адресу.":order.status==="in_progress"?"Исполнитель начал уборку.":order.status==="completed"?"Исполнитель завершил уборку.":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
@@ -215,6 +234,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         <p className="text-xs font-semibold text-[#578078]">Ваш исполнитель</p>
         <p className="mt-1 text-lg font-extrabold">{progress.cleaner.name}</p>
         <p className="mt-2 text-xs text-[#58796F]">{order.status==="accepted"?"Ожидаем начала поездки":order.status==="en_route"?(progress.tripLocation?"Клинер делится геопозицией на карте":"Клинер направляется к вам. Геопозиция не передаётся.") :order.status==="arrived"?"Клинер сообщил о прибытии":order.status==="in_progress"?"Уборка выполняется":"Статус заказа обновляется"}</p>
+        {order.status==="en_route"&&progress.tripLocation&&<div className="mt-3"><button type="button" onClick={()=>void calculateArrival()} disabled={arrivalBusy} className="rounded-xl border border-[#80CFC1] px-3 py-2 text-xs font-bold text-[#087F71] disabled:opacity-50">{arrivalBusy?"Рассчитываем…":"Узнать примерное время прибытия"}</button>{arrivalEstimate&&<p className="mt-2 text-xs text-[#58796F]">По дорогам: {arrivalEstimate.km} км · около {arrivalEstimate.minutes} мин без учёта пробок. Для расчёта координаты передаются сервису OSRM.</p>}</div>}
         {progress.cleaner.phone&&<a className="mt-2 inline-block text-sm font-semibold text-[#087F71]" href={`tel:${progress.cleaner.phone}`}>Позвонить исполнителю</a>}
       </div>}
       {!collapsed&&<div className="mt-5 flex items-center gap-2 text-sm text-[#617B74]"><MapPin size={16} className="shrink-0 text-[#079B8D]"/><span className="truncate">{order.address}</span></div>}
