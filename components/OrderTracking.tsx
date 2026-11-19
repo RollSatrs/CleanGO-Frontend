@@ -69,6 +69,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const [progressError,setProgressError]=useState(false);
   const [mapReady,setMapReady]=useState(false);
   const [expanded,setExpanded]=useState(false);
+  const [statsExpanded,setStatsExpanded]=useState(false);
   const [mapNode,setMapNode]=useState<HTMLDivElement|null>(null);
   const mapReadyRef=useRef(false);
   const isPending=order.status==="pending";
@@ -135,6 +136,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   },[latitude,longitude,mapNode]);
 
   const title=isPending?"Ищем клинера":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
+  const searchStage=isPending?(progress===null?"Подбираем исполнителей":progress.awaiting>0?"Ожидаем подтверждения клинера":progress.sent>0?"Продолжаем поиск исполнителя":"Подбираем исполнителей"):"";
   const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
   return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F5FAF8] text-[#152535] cleango-map-viewport">
     <div ref={setMapNode} className="absolute inset-0 min-h-full w-full" style={{minHeight:"100%"}} aria-label="Карта адреса уборки" />
@@ -154,10 +156,20 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         {isPending&&<span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0A9C8D] opacity-40"/><span className="relative inline-flex h-3 w-3 rounded-full bg-[#0A9C8D]"/></span>}
       </div>
       {isPending&&<div className="mt-5 flex items-center gap-2 text-xs text-[#66877E]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#079B8D]"/>Поиск выполняется — время ответа зависит от клинеров</div>}
-      {isPending&&progress&&<div className="mt-4 grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-xl bg-[#F1F9F6] px-2 py-3"><div className="text-xl font-extrabold text-[#087F71]">{progress.sent}</div><div className="mt-1 text-[10px] text-[#6B8980]">Получили заказ</div></div>
-        <div className="rounded-xl bg-[#F1F9F6] px-2 py-3"><div className="text-xl font-extrabold text-[#087F71]">{progress.awaiting}</div><div className="mt-1 text-[10px] text-[#6B8980]">Ожидаем ответ</div></div>
-        <div className="rounded-xl bg-[#F1F9F6] px-2 py-3"><div className="text-xl font-extrabold text-[#087F71]">{progress.declined}</div><div className="mt-1 text-[10px] text-[#6B8980]">Отказались</div></div>
+      {isPending&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4" aria-live="polite">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#174E45]"><CheckCircle2 size={17} className="text-[#079B8D]"/>Заказ оформлен</div>
+        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#174E45]">{progress&&progress.sent>0?<CheckCircle2 size={17} className="text-[#079B8D]"/>:<Clock3 size={17} className="text-[#079B8D]"/>}Предложения клинерам {progress&&progress.sent>0?"отправлены":"подбираются"}</div>
+        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#174E45]"><span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-[#079B8D]"/>{searchStage}</div>
+      </div>}
+      {isPending&&<div className="mt-3 rounded-2xl border border-[#E2EEE9]">
+        <button type="button" onClick={()=>setStatsExpanded(value=>!value)} aria-expanded={statsExpanded} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[#174E45]">
+          <span>Подробности поиска</span><span className="text-xs text-[#60827A]">{statsExpanded?"Скрыть −":"Показать +"}</span>
+        </button>
+        {statsExpanded&&<div className="grid grid-cols-3 gap-2 border-t border-[#E2EEE9] p-3 text-center">
+          {([{value:progress?.sent,label:"Отправлено"},{value:progress?.awaiting,label:"Ожидают"},{value:progress?.declined,label:"Отказались"}]).map(item=><div key={item.label} className="rounded-xl bg-[#F1F9F6] px-1 py-3"><div className="text-xl font-extrabold text-[#087F71]">{item.value??"—"}</div><div className="mt-1 text-[10px] text-[#6B8980]">{item.label}</div></div>)}
+          <p className="col-span-3 text-left text-[11px] leading-4 text-[#708981]">Отправленные предложения не означают, что клинеры их просмотрели.</p>
+          {progressError&&<p role="status" className="col-span-3 text-left text-xs text-amber-700">Не удалось обновить статистику. Показываем последние подтверждённые данные.</p>}
+        </div>}
       </div>}
       {isAccepted&&progressError&&!progress?.cleaner&&<p role="status" className="mt-3 text-xs text-amber-700">Не удалось загрузить данные исполнителя. Повторяем запрос автоматически.</p>}
       {isAccepted&&progress?.cleaner&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
