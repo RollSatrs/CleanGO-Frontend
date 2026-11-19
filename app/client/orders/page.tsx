@@ -25,6 +25,10 @@ const statuses: Record<string, string> = {
   in_progress: "Уборка выполняется",
   completed: "Завершён",
   cancelled: "Отменён",
+  unassigned: "Клинер не найден",
+  expired: "Поиск завершён",
+  failed: "Не удалось найти клинера",
+  no_cleaner: "Клинер не найден",
 };
 
 export default function ClientOrders() {
@@ -32,6 +36,7 @@ export default function ClientOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!token || user?.role !== "client" || !user.phoneVerifiedAt) {
@@ -63,6 +68,30 @@ export default function ClientOrders() {
     const interval = setInterval(() => void load(), 15000);
     return () => clearInterval(interval);
   }, [load, token, user?.role]);
+
+  const cancelOrder = async (order: Order) => {
+    if (!token || cancellingId || order.status !== "pending") return;
+    if (!window.confirm("Отменить заказ? Поиск клинера будет остановлен.")) return;
+    setCancellingId(order.id);
+    setError("");
+    try {
+      const response = await fetch(`/api/backend/orders/${encodeURIComponent(order.id)}/cancel`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(response.status === 409
+          ? "Заказ уже принят или недоступен для отмены. Обновите список."
+          : result?.message || `Не удалось отменить заказ (HTTP ${response.status})`);
+      }
+      await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Ошибка отмены заказа");
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   return (
     <AppPageShell role="client" eyebrow="CleanGo" title="Мои заказы"
@@ -96,6 +125,7 @@ export default function ClientOrders() {
               {order.price == null ? "Цена уточняется" : `${Number(order.price).toLocaleString("ru-RU")} ₸`}
             </p>
             <p className="mt-1 text-xs text-slate-500">{new Date(order.createdAt).toLocaleString("ru-RU")}</p>
+            {order.status === "pending" && <button type="button" disabled={cancellingId !== null} onClick={() => void cancelOrder(order)} className="mt-3 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">{cancellingId === order.id ? "Отменяем…" : "Отменить заказ"}</button>}
           </AppCard>
         ))}
       </div>
