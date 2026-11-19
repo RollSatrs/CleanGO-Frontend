@@ -22,6 +22,8 @@ const labels: Record<string, string> = {
 const statuses: Record<string, string> = {
   pending: "Ищем клинера",
   accepted: "Клинер принял заказ",
+  en_route: "Клинер в пути",
+  arrived: "Клинер прибыл",
   in_progress: "Уборка выполняется",
   completed: "Завершён",
   cancelled: "Отменён",
@@ -131,7 +133,7 @@ export default function ClientOrders() {
               {order.price == null ? "Цена уточняется" : `${Number(order.price).toLocaleString("ru-RU")} ₸`}
             </p>
             <p className="mt-1 text-xs text-slate-500">{new Date(order.createdAt).toLocaleString("ru-RU")}</p>
-            {["pending", "accepted", "in_progress"].includes(order.status) && (
+            {["pending", "accepted", "en_route", "arrived", "in_progress"].includes(order.status) && (
               <Link href={`/client/orders/${encodeURIComponent(order.id)}`}
                 className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white">
                 {order.status === "pending" ? "Посмотреть поиск на карте" : "Посмотреть заказ на карте"}
