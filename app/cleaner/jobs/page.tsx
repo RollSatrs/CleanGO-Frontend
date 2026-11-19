@@ -32,6 +32,8 @@ export default function CleanerJobs() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [routeEstimate,setRouteEstimate]=useState<Record<string,{km:number;minutes:number}|null>>({});
+  const [routeBusy,setRouteBusy]=useState<string|null>(null);
   const [sharingOrderId,setSharingOrderId]=useState<string|null>(null);
   const watchId=useRef<number|null>(null);
   const lastSent=useRef(0);
@@ -90,6 +92,28 @@ export default function CleanerJobs() {
     window.addEventListener("pageshow", refreshOnReturn);
     return () => { clearInterval(timer); document.removeEventListener("visibilitychange", refreshOnReturn); window.removeEventListener("focus", refreshOnReturn); window.removeEventListener("pageshow", refreshOnReturn); };
   }, [load, token, user?.role]);
+
+  async function calculateRoute(job:AssignedJob) {
+    if(routeBusy)return;
+    if(job.latitude==null || job.longitude==null || !Number.isFinite(Number(job.latitude)) || !Number.isFinite(Number(job.longitude))){
+      setError("Для расчёта маршрута нужны точные координаты адреса.");return;
+    }
+    if(!navigator.geolocation){setError("Геолокация недоступна");return;}
+    setRouteBusy(job.id);setError("");
+    navigator.geolocation.getCurrentPosition(async position=>{
+      try {
+        // Explicit action: OSRM receives only origin/destination coordinates to calculate a route.
+        const url=`https://router.project-osrm.org/route/v1/driving/${position.coords.longitude},${position.coords.latitude};${Number(job.longitude)},${Number(job.latitude)}?overview=false`;
+        const response=await fetch(url,{signal:AbortSignal.timeout(12000)});
+        if(!response.ok)throw new Error("Сервис маршрутов недоступен");
+        const data=await response.json() as {routes?:{distance:number;duration:number}[]};
+        const route=data.routes?.[0];
+        if(!route)throw new Error("Не удалось построить маршрут");
+        setRouteEstimate(current=>({...current,[job.id]:{km:Math.round(route.distance/100)/10,minutes:Math.max(1,Math.ceil(route.duration/60))}}));
+      }catch(e){setError(e instanceof Error?e.message:"Ошибка маршрута");}
+      finally{setRouteBusy(null);}
+    },()=>{setError("Для расчёта маршрута разрешите доступ к геопозиции");setRouteBusy(null);},{enableHighAccuracy:true,timeout:12000,maximumAge:15000});
+  }
 
   async function respond(orderId: string, action: "accept" | "decline") {
     if (!token || busyId) return;
@@ -163,7 +187,9 @@ export default function CleanerJobs() {
             <p className="text-sm font-semibold text-teal-900">Адрес уборки на карте</p>
             <p className="mt-1 text-xs text-teal-800">Маршрут откроется в навигаторе от вашего текущего местоположения.</p>
             <a href={job.latitude != null && job.longitude != null && Number.isFinite(Number(job.latitude)) && Number.isFinite(Number(job.longitude)) ? `https://www.google.com/maps/dir/?api=1&destination=${Number(job.latitude)},${Number(job.longitude)}&travelmode=driving` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`} target="_blank" rel="noopener noreferrer" className="mt-3 flex min-h-11 items-center justify-center rounded-xl bg-teal-600 px-4 text-sm font-bold text-white">Открыть маршрут на карте</a>
-            <p className="mt-2 text-[11px] text-teal-700">Проверьте адрес и маршрут в навигаторе перед поездкой.</p>
+            <button type="button" disabled={routeBusy!==null} onClick={()=>void calculateRoute(job)} className="mt-2 w-full rounded-xl border border-teal-600 px-4 py-2 text-sm font-semibold text-teal-800 disabled:opacity-50">{routeBusy===job.id?"Рассчитываем маршрут…":"Рассчитать расстояние и время"}</button>
+            {routeEstimate[job.id]&&<p className="mt-2 text-sm font-bold text-teal-900">По дорогам: {routeEstimate[job.id]?.km} км · примерно {routeEstimate[job.id]?.minutes} мин</p>}
+            <p className="mt-2 text-[11px] text-teal-700">Расчёт приблизительный, без учёта пробок. При нажатии координаты передаются внешнему сервису маршрутов OSRM. Проверьте маршрут в навигаторе перед поездкой.</p>
           </div>
           <div className="mt-3 rounded-xl bg-emerald-50 p-3">
             <p className="text-xs font-semibold text-emerald-800">Клиент после принятия заказа</p>
