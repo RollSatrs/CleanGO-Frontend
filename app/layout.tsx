@@ -1,6 +1,7 @@
 
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Suspense } from "react";
 import { Manrope, Geist_Mono } from "next/font/google";
 
 import TelegramProvider from "@/components/providers/TelegramProvider";
@@ -51,9 +52,11 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
-        <TelegramProvider>
-          {children}
-        </TelegramProvider>
+        <Suspense fallback={<main className="flex min-h-dvh items-center justify-center bg-[#EFF8FC]"><p className="text-sm text-[#7891A3]">Запускаем CleanGo...</p></main>}>
+          <TelegramProvider>
+            {children}
+          </TelegramProvider>
+        </Suspense>
       </body>
     </html>
   );
