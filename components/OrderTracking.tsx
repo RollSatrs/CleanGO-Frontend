@@ -93,7 +93,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const [mapNode,setMapNode]=useState<HTMLDivElement|null>(null);
   const mapReadyRef=useRef(false);
   const isPending=order.status==="pending";
-  const isAccepted=["accepted","in_progress","completed"].includes(order.status);
+  const isAccepted=["accepted","en_route","arrived","in_progress","completed"].includes(order.status);
 
   useEffect(()=>{
     if(!token || terminal.has(order.status))return;
@@ -125,7 +125,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       }catch{if(active)setProgressError(true);/* Keep last confirmed progress. */}
     };
     void refresh();
-    if(!["pending","accepted","in_progress"].includes(order.status))return()=>{active=false;};
+    if(!["pending","accepted","en_route","arrived","in_progress"].includes(order.status))return()=>{active=false;};
     const timer=window.setInterval(()=>void refresh(),5000);
     return()=>{active=false;window.clearInterval(timer);};
   },[token,initialOrder.id,order.status]);
@@ -155,9 +155,9 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
     return()=>{disposed=true;window.clearTimeout(timeout);map?.remove();};
   },[latitude,longitude,mapNode]);
 
-  const title=isPending?"Ищем клинера":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
+  const title=isPending?"Ищем клинера":order.status==="en_route"?"Клинер направляется к вам":order.status==="arrived"?"Клинер прибыл":order.status==="in_progress"?"Уборка выполняется":order.status==="completed"?"Уборка завершена":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
   const searchStage=isPending?(progress===null?"Подбираем исполнителей":progress.awaiting>0?"Ожидаем подтверждения клинера":progress.sent>0?"Продолжаем поиск исполнителя":"Подбираем исполнителей"):"";
-  const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
+  const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="accepted"?"Исполнитель подтвердил заказ. Ожидаем начала поездки.":order.status==="en_route"?"Исполнитель сообщил, что направляется по адресу. Точное местоположение не передаётся.":order.status==="arrived"?"Исполнитель отметил прибытие по адресу.":order.status==="in_progress"?"Исполнитель начал уборку.":order.status==="completed"?"Исполнитель завершил уборку.":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
   return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F5FAF8] text-[#152535] cleango-map-viewport">
     <div ref={setMapNode} className="absolute inset-0 min-h-full w-full" style={{minHeight:"100%"}} aria-label="Карта адреса уборки" />
     {!mapReady&&<div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-[#6D8880]">{mapError || "Загружаем карту района…"}</div>}
