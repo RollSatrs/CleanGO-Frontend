@@ -19,6 +19,7 @@ export default function CleanerSettings() {
   const [availableUntil, setAvailableUntil] = useState<string | null>(null);
   const [clock, setClock] = useState(Date.now());
   const [locationNeedsRefresh, setLocationNeedsRefresh] = useState(false);
+  const [effectiveAvailable, setEffectiveAvailable] = useState(false);
   const [radius, setRadius] = useState(5);
   const [types, setTypes] = useState<string[]>(TYPES.map(t => t.id));
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -42,6 +43,7 @@ export default function CleanerSettings() {
       setAvailable(Boolean(profile.isAvailable));
       setAvailableUntil(profile.availableUntil ?? null);
       setLocationNeedsRefresh(Boolean(profile.locationNeedsRefresh));
+      setEffectiveAvailable(Boolean(profile.effectiveAvailable));
       setRadius(profile.serviceRadiusKm ?? 5);
       setTypes(profile.serviceTypes ?? []);
       setLocationSaved(Boolean(profile.hasLocation));
@@ -200,6 +202,7 @@ export default function CleanerSettings() {
       const profile = await response.json();
       setAvailableUntil(profile.availableUntil ?? null);
       setLocationNeedsRefresh(Boolean(profile.locationNeedsRefresh));
+      setEffectiveAvailable(Boolean(profile.effectiveAvailable));
       setLocationSaved(Boolean(profile.hasLocation));
       setNotice(available ? "Вы на линии! Предложения будут приходить при совпадении условий." : "Настройки сохранены. Вы не на линии.");
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка сохранения"); }
@@ -222,6 +225,7 @@ export default function CleanerSettings() {
             <p className="mt-2 text-xs text-slate-500">Включите смену на выбранное время. Геопозиция должна оставаться актуальной (до 30 минут).</p>
             <div className="mt-4 flex gap-2">{([1, 2, 4] as const).map(value => <button key={value} type="button" onClick={() => setHours(value)} aria-pressed={hours === value} className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${hours === value ? "bg-teal-600 text-white" : "bg-teal-50 text-teal-800"}`}>{value} ч</button>)}</div>
             {availableUntil && available && <p className="mt-3 text-sm font-semibold text-teal-800" aria-live="off">{Math.max(0, Math.ceil((new Date(availableUntil).getTime() - clock) / 60000)) > 0 ? `Осталось ${Math.max(0, Math.ceil((new Date(availableUntil).getTime() - clock) / 60000))} мин` : "Смена закончилась — включите доступность снова"}</p>}
+            {available && !effectiveAvailable && <p role="status" className="mt-2 rounded-xl bg-amber-50 p-3 text-xs font-semibold text-amber-800">Смена включена, но вы сейчас не участвуете в подборе. Проверьте срок смены и обновите геопозицию.</p>}
             {locationNeedsRefresh && <p className="mt-2 text-xs font-medium text-amber-700">Для новых предложений обновите геопозицию.</p>}
           </AppCard>
           <AppCard>
