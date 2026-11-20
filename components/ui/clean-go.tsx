@@ -1,6 +1,7 @@
 "use client";
 
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
+import { useEffect, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from "react";
+import { useAuth } from "@/components/providers/AuthProvider";
 import Link from "next/link";
 import { Bell, LoaderCircle } from "lucide-react";
 import CleanGoLogo from "@/components/branding/CleanGoLogo";
@@ -28,10 +29,84 @@ export function AppCard({ className = "", children, ...props }: HTMLAttributes<H
   return <div {...props} className={`rounded-[24px] border border-[#E6F1EF] bg-white p-5 ${className}`}>{children}</div>;
 }
 
+type Notice = { id: string; orderId: string; type: string; createdAt: string };
+const noticeLabels: Record<string, string> = {
+  new_offer: "🔔 Вам предложен новый заказ",
+  order_accepted: "✅ Заказ принят клинером",
+  cleaner_en_route: "🚗 Клинер выехал",
+  cleaner_arrived: "📍 Клинер прибыл",
+  cleaning_started: "🧽 Уборка началась",
+  cleaning_completed: "✨ Уборка завершена",
+  matching_timeout: "⌛ Клинер не найден",
+  order_cancelled: "❌ Заказ отменён",
+};
+
 export function NotificationBell() {
-  return <span role="img" aria-label="Уведомления — скоро" title="Уведомления скоро появятся" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#E4F1EE] bg-white">
-    <Bell className="h-5 w-5 text-[#20B4A4]" aria-hidden="true" />
-  </span>;
+  const { token, user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<Notice[]>([]);
+  const [readIds, setReadIds] = useState<string[]>([]);
+  const [error, setError] = useState("");
+  const storageKey = user?.id ? `cleango-notifications-read:${user.id}` : "";
+  useEffect(() => {
+    if (!storageKey) return;
+    try { setReadIds(JSON.parse(localStorage.getItem(storageKey) ?? "[]") as string[]); }
+    catch { setReadIds([]); }
+  }, [storageKey]);
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    const load = async () => {
+      try {
+        const response = await fetch("/api/backend/orders/notifications", {
+          headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+        });
+        if (!response.ok) throw new Error("Не удалось загрузить уведомления");
+        const data: unknown = await response.json();
+        if (active && Array.isArray(data)) {
+          setItems(data as Notice[]);
+          setError("");
+        }
+      } catch {
+        if (active) setError("Не удалось обновить уведомления");
+      }
+    };
+    void load();
+    const timer = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 15000);
+    return () => { active = false; clearInterval(timer); };
+  }, [token]);
+  const unread = items.filter(item => !readIds.includes(item.id)).length;
+  const markRead = () => {
+    const ids = [...new Set([...readIds, ...items.map(item => item.id)])].slice(-300);
+    setReadIds(ids);
+    if (storageKey) localStorage.setItem(storageKey, JSON.stringify(ids));
+  };
+  return <div className="relative">
+    <button type="button" onClick={() => setOpen(value => !value)}
+      aria-label={`Уведомления, непрочитанных: ${unread}`}
+      className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#E4F1EE] bg-white">
+      <Bell className="h-5 w-5 text-[#20B4A4]" aria-hidden="true" />
+      {unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">{unread > 99 ? "99+" : unread}</span>}
+    </button>
+    {open && <div className="absolute right-0 top-12 z-50 w-[min(85vw,340px)] rounded-2xl border border-[#DDEFEA] bg-white p-3 shadow-xl">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <strong className="text-sm">Уведомления</strong>
+        <button type="button" onClick={markRead} className="text-xs font-semibold text-[#177E76]">Прочитать все</button>
+      </div>
+      {error && <p role="status" className="mb-2 text-xs text-rose-600">{error}</p>}
+      <div className="max-h-80 space-y-1 overflow-y-auto">
+        {items.length === 0 && <p className="py-5 text-center text-sm text-slate-500">Пока нет уведомлений</p>}
+        {items.map(item => <Link key={item.id}
+          href={user?.role === "cleaner" ? "/cleaner/jobs" : "/client/orders"}
+          onClick={() => { markRead(); setOpen(false); }}
+          className={`block rounded-xl p-3 text-sm hover:bg-[#F0FAF8] ${readIds.includes(item.id) ? "bg-white" : "bg-[#EAF8F5]"}`}>
+          <span className="font-semibold">{noticeLabels[item.type] ?? "Обновление заказа"}</span>
+          <span className="mt-1 block text-xs text-slate-500">{new Date(item.createdAt).toLocaleString("ru-RU")}</span>
+        </Link>)}
+      </div>
+      <p className="mt-2 text-[10px] text-slate-400">Отметки о прочтении хранятся на этом устройстве.</p>
+    </div>}
+  </div>;
 }
 
 export function AppHeader({ role, subtitle, className = "" }: { role: "client" | "cleaner"; subtitle?: string; className?: string }) {
