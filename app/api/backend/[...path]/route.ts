@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Explicit route allowlist: this endpoint must never become an open proxy.
 function permitted(path: string, method: string): boolean {
-  if (method === "GET" && (path === "" || path === "pricing/quote" || path === "orders/offers/mine" || path === "orders/cleaner/profile" || path === "orders/cleaner/jobs" || path === "orders" || path === "orders/history")) return true;
+  if (method === "GET" && (path === "" || path === "pricing/quote" || path === "orders/offers/mine" || path === "orders/cleaner/profile" || path === "orders/cleaner/jobs" || path === "orders" || path === "orders/history" || path === "orders/notifications")) return true;
   if (method === "GET" && /^orders\/[0-9a-f-]{36}(?:\/progress)?$/i.test(path)) return true;
   if (method === "PATCH" && path === "orders/cleaner/profile") return true;
   if (method === "POST" && path === "orders") return true;
