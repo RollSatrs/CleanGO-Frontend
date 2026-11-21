@@ -39,7 +39,10 @@ const noticeLabels: Record<string, string> = {
   cleaner_en_route: "🚗 Клинер выехал",
   cleaner_arrived: "📍 Клинер прибыл",
   cleaning_started: "🧽 Уборка началась",
-  cleaning_completed: "✨ Уборка завершена",
+  cleaning_completed: "✨ Клинер передал результат — подтвердите уборку",
+  completion_reminder_sent: "🔔 Подтвердите выполненную уборку",
+  completion_confirmed: "✅ Уборка подтверждена",
+  completion_issue_reported: "⚠️ Заявлена проблема с уборкой",
   matching_timeout: "⌛ Клинер не найден",
   order_cancelled: "❌ Заказ отменён",
 };
