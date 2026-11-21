@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { requestCleanGoLocation } from "@/lib/geo-location";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 
@@ -33,7 +34,6 @@ export default function CleanerJobs() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [sharingOrderId,setSharingOrderId]=useState<string|null>(null);
-  const watchId=useRef<number|null>(null);
   const lastSent=useRef(0);
   const sendTripLocation=useCallback(async (orderId:string,coords:{latitude:number;longitude:number}|null)=>{
     if(!token)return;
@@ -42,13 +42,32 @@ export default function CleanerJobs() {
   },[token]);
   useEffect(()=>{
     if(!sharingOrderId)return;
-    if(!navigator.geolocation){setError("Геолокация недоступна");setSharingOrderId(null);return;}
-    watchId.current=navigator.geolocation.watchPosition(position=>{
-      if(Date.now()-lastSent.current<10000)return;
-      lastSent.current=Date.now();
-      void sendTripLocation(sharingOrderId,{latitude:position.coords.latitude,longitude:position.coords.longitude}).catch(()=>setError("Не удалось отправить геопозицию"));
-    },()=>{setError("Разрешите геолокацию для передачи местоположения");setSharingOrderId(null);},{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
-    return()=>{if(watchId.current!==null)navigator.geolocation.clearWatch(watchId.current);watchId.current=null;void sendTripLocation(sharingOrderId,null).catch(()=>{});};
+    let stopped=false;
+    let inFlight=false;
+    lastSent.current=0;
+    const update=async()=>{
+      if(stopped || inFlight || document.visibilityState!=="visible")return;
+      inFlight=true;
+      try {
+        const coords=await requestCleanGoLocation();
+        if(stopped)return;
+        if(Date.now()-lastSent.current<9000)return;
+        await sendTripLocation(sharingOrderId,coords);
+        if(!stopped){lastSent.current=Date.now();setError("");}
+      }catch(err){
+        if(!stopped)setError(err instanceof Error ? err.message : "Не удалось передать геопозицию");
+      }finally{inFlight=false;}
+    };
+    void update();
+    const timer=window.setInterval(()=>void update(),10000);
+    const onVisible=()=>{if(document.visibilityState==="visible")void update();};
+    document.addEventListener("visibilitychange",onVisible);
+    return()=>{
+      stopped=true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange",onVisible);
+      void sendTripLocation(sharingOrderId,null).catch(()=>{});
+    };
   },[sharingOrderId,sendTripLocation]);
 
   const load = useCallback(async () => {
