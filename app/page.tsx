@@ -12,10 +12,11 @@ import {
   ChevronRight,
   Clock3,
   Home,
-  Paintbrush,
+  BrushCleaning,
+  BroomSparkles,
+  Mop,
   ShieldCheck,
   Sparkles,
-  SprayCan,
 } from "lucide-react";
 
 type CleaningType = "regular" | "general" | "renovation";
@@ -35,7 +36,7 @@ const services: Service[] = [
     title: "Поддерживающая уборка",
     description: "Чистота и порядок на каждый день",
     price: 8000,
-    icon: SprayCan,
+    icon: Mop,
     features: [
       "Влажная уборка",
       "Удаление пыли",
@@ -47,7 +48,7 @@ const services: Service[] = [
     title: "Генеральная уборка",
     description: "Тщательная уборка вашего дома",
     price: 15000,
-    icon: Sparkles,
+    icon: BroomSparkles,
     features: [
       "Глубокая уборка",
       "Очистка поверхностей",
@@ -59,7 +60,7 @@ const services: Service[] = [
     title: "Уборка после ремонта",
     description: "Уберём пыль и следы ремонта",
     price: 20000,
-    icon: Paintbrush,
+    icon: BrushCleaning,
     features: [
       "Строительная пыль",
       "Очистка полов",
