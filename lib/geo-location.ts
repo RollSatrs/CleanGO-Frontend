@@ -29,7 +29,7 @@ function telegramPosition(manager: LocationManager): Promise<Coordinates> {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      if (coords && valid(coords)) resolve(coords);
+      if (coords && valid(coords)) resolve({ latitude: coords.latitude, longitude: coords.longitude });
       else reject(new Error(reason ?? "Telegram не предоставил координаты. Проверьте разрешения CleanGo."));
     };
     const timer = setTimeout(() => finish(null, "Telegram не ответил на запрос геолокации"), 16000);
