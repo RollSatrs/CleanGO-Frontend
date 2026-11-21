@@ -6,7 +6,8 @@ function permitted(path: string, method: string): boolean {
   if (method === "GET" && /^orders\/[0-9a-f-]{36}(?:\/progress)?$/i.test(path)) return true;
   if (method === "PATCH" && path === "orders/cleaner/profile") return true;
   if (method === "POST" && path === "orders") return true;
-  if (method === "PATCH" && /^orders\/[0-9a-f-]{36}\/(accept|decline|en-route|arrived|trip-location|start|complete|cancel)$/i.test(path)) return true;
+  if (method === "PATCH" && /^orders\/[0-9a-f-]{36}\/(accept|decline|en-route|arrived|trip-location|start|complete|cancel|inspection|confirm-completion|completion-issue)$/i.test(path)) return true;
+  if (method === "POST" && /^orders\\/[0-9a-f-]{36}\\/review$/i.test(path)) return true;
   return false;
 }
 
