@@ -9,9 +9,11 @@ type Order = {
   id: string; status: string; address: string; area: number;
   cleaningType: "regular" | "general" | "renovation";
   price: number | null; latitude?: string | number | null; longitude?: string | number | null;
+  inspectionMethod?: "personal"|"photos"; completionPhotos?: string[]|null;
+  completionSubmittedAt?: string|null; rating?:number|null;
 };
 const names = { regular: "Поддерживающая уборка", general: "Генеральная уборка", renovation: "После ремонта" };
-const terminal = new Set(["completed", "cancelled", "unassigned", "expired", "failed", "no_cleaner"]);
+const terminal = new Set(["completed", "cancelled", "unassigned", "expired", "failed", "no_cleaner", "disputed"]);
 const style = "https://tiles.openfreemap.org/styles/liberty";
 const cdn = "https://unpkg.com/maplibre-gl@5.9.0/dist/";
 type MapInstance = { on(event:string,cb:()=>void):void; getStyle():{layers?:{id:string;type:string}[]}; setPaintProperty(id:string,property:string,value:string):void; remove():void };
@@ -63,6 +65,13 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
 }) {
   const {token}=useAuth();
   const [order,setOrder]=useState(initialOrder);
+  const [completionBusy,setCompletionBusy]=useState(false);
+  const [completionError,setCompletionError]=useState("");
+  const [rating,setRating]=useState(0);
+  const [reviewText,setReviewText]=useState("");
+  const [reviewDone,setReviewDone]=useState(false);
+  const [reputation,setReputation]=useState<{completedOrders:number;reviewCount:number;rating:number|null;reviews:{rating:number|null;reviewText:string|null}[]}|null>(null);
+  const [reputationOpen,setReputationOpen]=useState(false);
   const [networkError,setNetworkError]=useState(false);
   const [progress,setProgress]=useState<{sent:number;awaiting:number;declined:number;cleaner:{name:string;phone:string|null}|null;tripLocation?:{latitude:number;longitude:number}|null;travelMode?:string|null;etaMinutes?:number|null;etaCalculatedAt?:string|null}|null>(null);
   const [arrivalEstimate,setArrivalEstimate]=useState<{km:number;minutes:number}|null>(null);
@@ -97,7 +106,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const liveMapRef=useRef<InstanceType<MapLibrary["Map"]>|null>(null);
   const cleanerMarkerRef=useRef<{ remove():void; setLngLat(point:[number,number]):void }|null>(null);
   const isPending=order.status==="pending";
-  const isAccepted=["accepted","en_route","arrived","in_progress","completed"].includes(order.status);
+  const isAccepted=["accepted","en_route","arrived","in_progress","pending_confirmation","completed","disputed"].includes(order.status);
 
   useEffect(()=>{
     if(!token || terminal.has(order.status))return;
@@ -193,9 +202,35 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   };
   useEffect(()=>{setArrivalEstimate(null);},[progress?.tripLocation?.latitude,progress?.tripLocation?.longitude]);
 
-  const title=isPending?"Ищем клинера":order.status==="en_route"?"Клинер направляется к вам":order.status==="arrived"?"Клинер прибыл":order.status==="in_progress"?"Уборка выполняется":order.status==="completed"?"Уборка завершена":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
+
+  async function orderAction(path:string, body?:object) {
+    if(!token||completionBusy)return;
+    setCompletionBusy(true);setCompletionError("");
+    try{
+      const response=await fetch(`/api/backend/orders/${encodeURIComponent(order.id)}/${path}`,{
+        method:path==="review"?"POST":"PATCH",
+        headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},
+        body:JSON.stringify(body??{}),
+      });
+      if(!response.ok){const error=await response.json().catch(()=>null);throw new Error(typeof error?.message==="string"?error.message:"Не удалось сохранить действие");}
+      if(path==="review"){setReviewDone(true);}else{
+        const refreshed=await fetch(`/api/backend/orders/${encodeURIComponent(order.id)}`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
+        if(refreshed.ok)setOrder(await refreshed.json() as Order);
+      }
+    }catch(error){setCompletionError(error instanceof Error?error.message:"Ошибка соединения");}
+    finally{setCompletionBusy(false);}
+  }
+  async function loadReputation(){
+    if(!token)return;
+    setReputationOpen(v=>!v);
+    try{
+      const response=await fetch(`/api/backend/orders/${encodeURIComponent(order.id)}/cleaner-reputation`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
+      if(response.ok)setReputation(await response.json());
+    }catch{}
+  }
+  const title=isPending?"Ищем клинера":order.status==="en_route"?"Клинер направляется к вам":order.status==="arrived"?"Клинер прибыл":order.status==="in_progress"?"Уборка выполняется":order.status==="pending_confirmation"?"Подтвердите уборку":order.status==="disputed"?"Обращение в поддержку":order.status==="completed"?"Уборка завершена":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
   const searchStage=isPending?(progress===null?"Подбираем исполнителей":progress.awaiting>0?"Ожидаем подтверждения клинера":progress.sent>0?"Продолжаем поиск исполнителя":"Подбираем исполнителей"):"";
-  const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="accepted"?"Исполнитель подтвердил заказ. Ожидаем начала поездки.":order.status==="en_route"?"Исполнитель сообщил, что направляется по адресу. Точное местоположение не передаётся.":order.status==="arrived"?"Исполнитель отметил прибытие по адресу.":order.status==="in_progress"?"Исполнитель начал уборку.":order.status==="completed"?"Исполнитель завершил уборку.":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
+  const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="accepted"?"Исполнитель подтвердил заказ. Ожидаем начала поездки.":order.status==="en_route"?"Исполнитель сообщил, что направляется по адресу. Точное местоположение не передаётся.":order.status==="arrived"?"Исполнитель отметил прибытие по адресу.":order.status==="in_progress"?"Исполнитель начал уборку.":order.status==="pending_confirmation"?"Клинер завершил работу. Подтвердите результат или сообщите о проблеме.":order.status==="disputed"?"Заказ ожидает рассмотрения поддержкой.":order.status==="completed"?"Вы подтвердили выполнение уборки.":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
   return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F5FAF8] text-[#152535] cleango-map-viewport">
     <div ref={setMapNode} className="absolute inset-0 min-h-full w-full" style={{minHeight:"100%"}} aria-label="Карта адреса уборки" />
     {!mapReady&&<div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-[#6D8880]">{mapError || "Загружаем карту района…"}</div>}
@@ -232,7 +267,8 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       {!collapsed&&isAccepted&&progressError&&!progress?.cleaner&&<p role="status" className="mt-3 text-xs text-amber-700">Не удалось загрузить данные исполнителя. Повторяем запрос автоматически.</p>}
       {!collapsed&&isAccepted&&progress?.cleaner&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
         <p className="text-xs font-semibold text-[#578078]">Ваш исполнитель</p>
-        <p className="mt-1 text-lg font-extrabold">{progress.cleaner.name}</p>
+        <button type="button" onClick={()=>void loadReputation()} className="mt-1 text-left text-lg font-extrabold underline decoration-teal-300 underline-offset-4">{progress.cleaner.name} · профиль</button>
+        {reputationOpen&&<div className="mt-3 rounded-xl bg-white p-3 text-sm"><p className="font-semibold">Заказов: {reputation?.completedOrders??"—"} · Рейтинг: {reputation?.rating??"Нет оценок"} · Отзывов: {reputation?.reviewCount??"—"}</p>{reputation?.reviews.map((item,index)=><p key={index} className="mt-2 border-t pt-2">{item.rating} ★ — {item.reviewText}</p>)}</div>}
         <p className="mt-2 text-xs text-[#58796F]">{order.status==="accepted"?"Ожидаем начала поездки":order.status==="en_route"?(progress.tripLocation?"Клинер делится геопозицией на карте":"Клинер направляется к вам. Геопозиция не передаётся.") :order.status==="arrived"?"Клинер сообщил о прибытии":order.status==="in_progress"?"Уборка выполняется":"Статус заказа обновляется"}</p>
         {order.status==="en_route"&&<div className="mt-3 rounded-xl bg-[#F0FAF7] p-3">
           <p className="text-xs font-semibold text-[#58796F]">Ориентировочное прибытие</p>
@@ -248,6 +284,30 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         </div>}
         {progress.cleaner.phone&&<a className="mt-2 inline-block text-sm font-semibold text-[#087F71]" href={`tel:${progress.cleaner.phone}`}>Позвонить исполнителю</a>}
       </div>}
+
+      {!collapsed&&["accepted","en_route","arrived","in_progress"].includes(order.status)&&<div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50 p-4">
+        <p className="text-sm font-bold text-[#174E45]">Как проверите уборку?</p>
+        <p className="mt-1 text-xs text-[#66877E]">Выбираете вы. По умолчанию — фотоотчёт.</p>
+        <div className="mt-3 flex gap-2">
+          <button disabled={completionBusy} type="button" onClick={()=>void orderAction("inspection",{method:"personal"})} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod==="personal"?"border-teal-600 bg-teal-600 text-white":"bg-white text-teal-800"}`}>Проверю лично</button>
+          <button disabled={completionBusy} type="button" onClick={()=>void orderAction("inspection",{method:"photos"})} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod!=="personal"?"border-teal-600 bg-teal-600 text-white":"bg-white text-teal-800"}`}>По фотографиям</button>
+        </div>
+      </div>}
+      {!collapsed&&order.status==="pending_confirmation"&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
+        <p className="text-sm font-bold text-[#174E45]">Проверьте результат уборки</p>
+        {order.completionPhotos?.length ? <div className="mt-3 grid grid-cols-3 gap-2">{order.completionPhotos.map((src,index)=><a key={index} href={src} target="_blank" rel="noreferrer"><img src={src} alt={`Фото результата ${index+1}`} className="h-24 w-full rounded-lg object-cover"/></a>)}</div>:<p className="mt-2 text-xs text-[#66877E]">Выбрана личная проверка, фотоотчёт необязателен.</p>}
+        <p className="mt-3 text-xs text-[#66877E]">Клинеру не нужно ждать на месте. Если вы забыли подтвердить, система напомнит через 15 минут.</p>
+        <button type="button" disabled={completionBusy} onClick={()=>void orderAction("confirm-completion")} className="mt-3 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">Подтвердить уборку</button>
+        <button type="button" disabled={completionBusy} onClick={()=>void orderAction("completion-issue")} className="mt-2 w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 disabled:opacity-50">Есть проблема</button>
+      </div>}
+      {!collapsed&&order.status==="disputed"&&<p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Обращение зарегистрировано. Поддержка должна рассмотреть заказ; автоматической выплаты нет.</p>}
+      {!collapsed&&order.status==="completed"&&order.rating==null&&!reviewDone&&<div className="mt-4 rounded-2xl border border-teal-100 p-4">
+        <p className="text-sm font-bold">Оцените клинера — по желанию</p>
+        <div className="mt-2 flex gap-2">{[1,2,3,4,5].map(n=><button key={n} type="button" onClick={()=>setRating(n)} className={`text-3xl ${n<=rating?"text-amber-500":"text-slate-300"}`} aria-label={`${n} звёзд`}>★</button>)}</div>
+        <textarea value={reviewText} onChange={e=>setReviewText(e.target.value)} maxLength={1000} placeholder="Отзыв (необязательно)" className="mt-3 w-full rounded-xl border p-3 text-sm" rows={2}/>
+        <div className="mt-2 flex gap-2"><button type="button" disabled={!rating||completionBusy} onClick={()=>void orderAction("review",{rating,reviewText})} className="flex-1 rounded-xl bg-teal-600 p-3 text-sm font-bold text-white disabled:opacity-50">Отправить</button><button type="button" onClick={()=>setReviewDone(true)} className="rounded-xl border px-4 text-sm">Пропустить</button></div>
+      </div>}
+      {!collapsed&&completionError&&<p role="alert" className="mt-3 text-sm text-red-700">{completionError}</p>}
       {!collapsed&&<div className="mt-5 flex items-center gap-2 text-sm text-[#617B74]"><MapPin size={16} className="shrink-0 text-[#079B8D]"/><span className="truncate">{order.address}</span></div>}
       {expanded&&<div className="mt-4 space-y-3 border-t border-[#EDF3F0] pt-4">
         <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Уборка</span><strong className="text-right">{names[order.cleaningType]}</strong></div>
