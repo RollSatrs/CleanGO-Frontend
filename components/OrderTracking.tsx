@@ -64,7 +64,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const {token}=useAuth();
   const [order,setOrder]=useState(initialOrder);
   const [networkError,setNetworkError]=useState(false);
-  const [progress,setProgress]=useState<{sent:number;awaiting:number;declined:number;cleaner:{name:string;phone:string|null}|null;tripLocation?:{latitude:number;longitude:number}|null}|null>(null);
+  const [progress,setProgress]=useState<{sent:number;awaiting:number;declined:number;cleaner:{name:string;phone:string|null}|null;tripLocation?:{latitude:number;longitude:number}|null;travelMode?:string|null;etaMinutes?:number|null;etaCalculatedAt?:string|null}|null>(null);
   const [arrivalEstimate,setArrivalEstimate]=useState<{km:number;minutes:number}|null>(null);
   const [arrivalBusy,setArrivalBusy]=useState(false);
   const [mapError,setMapError]=useState("");
@@ -234,7 +234,18 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         <p className="text-xs font-semibold text-[#578078]">Ваш исполнитель</p>
         <p className="mt-1 text-lg font-extrabold">{progress.cleaner.name}</p>
         <p className="mt-2 text-xs text-[#58796F]">{order.status==="accepted"?"Ожидаем начала поездки":order.status==="en_route"?(progress.tripLocation?"Клинер делится геопозицией на карте":"Клинер направляется к вам. Геопозиция не передаётся.") :order.status==="arrived"?"Клинер сообщил о прибытии":order.status==="in_progress"?"Уборка выполняется":"Статус заказа обновляется"}</p>
-        {order.status==="en_route"&&progress.tripLocation&&<div className="mt-3"><button type="button" onClick={()=>void calculateArrival()} disabled={arrivalBusy} className="rounded-xl border border-[#80CFC1] px-3 py-2 text-xs font-bold text-[#087F71] disabled:opacity-50">{arrivalBusy?"Рассчитываем…":"Узнать примерное время прибытия"}</button>{arrivalEstimate&&<p className="mt-2 text-xs text-[#58796F]">По дорогам: {arrivalEstimate.km} км · около {arrivalEstimate.minutes} мин без учёта пробок. Для расчёта координаты передаются сервису OSRM.</p>}</div>}
+        {order.status==="en_route"&&<div className="mt-3 rounded-xl bg-[#F0FAF7] p-3">
+          <p className="text-xs font-semibold text-[#58796F]">Ориентировочное прибытие</p>
+          {progress.etaMinutes!=null&&progress.etaCalculatedAt?(()=>{
+            const ageMinutes=Math.max(0,Math.floor((Date.now()-new Date(progress.etaCalculatedAt).getTime())/60000));
+            const remaining=progress.etaMinutes-ageMinutes;
+            if(remaining<=0)return <p className="mt-1 text-sm font-bold text-[#1B5C54]">Время прибытия уточняется</p>;
+            const low=Math.max(1,Math.floor(remaining*0.85));
+            const high=Math.max(low+5,Math.ceil(remaining*1.35)+5);
+            return <p className="mt-1 text-lg font-extrabold text-[#1B5C54]">{low}–{high} мин</p>;
+          })():<p className="mt-1 text-sm font-bold text-[#1B5C54]">Время прибытия уточняется</p>}
+          <p className="mt-1 text-xs text-[#78928B]">{progress.travelMode==="walking"?"Пеший маршрут":progress.travelMode==="transit"?"Общественный транспорт":"Маршрут по дорогам"} · без учёта пробок и задержек</p>
+        </div>}
         {progress.cleaner.phone&&<a className="mt-2 inline-block text-sm font-semibold text-[#087F71]" href={`tel:${progress.cleaner.phone}`}>Позвонить исполнителю</a>}
       </div>}
       {!collapsed&&<div className="mt-5 flex items-center gap-2 text-sm text-[#617B74]"><MapPin size={16} className="shrink-0 text-[#079B8D]"/><span className="truncate">{order.address}</span></div>}
