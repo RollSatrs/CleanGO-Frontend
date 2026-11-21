@@ -75,6 +75,16 @@ export function NotificationBell() {
     const timer = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 15000);
     return () => { active = false; clearInterval(timer); };
   }, [token]);
+  const roleLabels: Record<string, string> = user?.role === "cleaner"
+    ? {
+        order_accepted: "✅ Вы приняли заказ",
+        cleaner_en_route: "🚗 Вы выехали к клиенту",
+        cleaner_arrived: "📍 Вы прибыли к клиенту",
+        cleaning_started: "🧽 Вы начали уборку",
+        cleaning_completed: "✨ Вы завершили уборку",
+        order_cancelled: "❌ Заказ отменён",
+      }
+    : {};
   const unread = items.filter(item => !readIds.includes(item.id)).length;
   const markRead = () => {
     const ids = [...new Set([...readIds, ...items.map(item => item.id)])].slice(-300);
@@ -100,7 +110,7 @@ export function NotificationBell() {
           href={user?.role === "cleaner" ? "/cleaner/jobs" : "/client/orders"}
           onClick={() => { markRead(); setOpen(false); }}
           className={`block rounded-xl p-3 text-sm hover:bg-[#F0FAF8] ${readIds.includes(item.id) ? "bg-white" : "bg-[#EAF8F5]"}`}>
-          <span className="font-semibold">{noticeLabels[item.type] ?? "Обновление заказа"}</span>
+          <span className="font-semibold">{roleLabels[item.type] ?? noticeLabels[item.type] ?? "Обновление заказа"}</span>
           <span className="mt-1 block text-xs text-slate-500">{new Date(item.createdAt).toLocaleString("ru-RU")}</span>
         </Link>)}
       </div>
