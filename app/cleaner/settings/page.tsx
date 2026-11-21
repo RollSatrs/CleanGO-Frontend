@@ -100,13 +100,15 @@ export default function CleanerSettings() {
       });
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        throw new Error(typeof data?.message === "string" ? data.message : "Не удалось сохранить настройки");
+        const detail = Array.isArray(data?.message) ? data.message.join("; ") : typeof data?.message === "string" ? data.message : `HTTP ${response.status}`;
+        throw new Error(`Настройки не сохранены: ${detail}`);
       }
       const profile = await response.json();
       setAvailableUntil(profile.availableUntil ?? null);
       setLocationNeedsRefresh(Boolean(profile.locationNeedsRefresh));
       setEffectiveAvailable(Boolean(profile.effectiveAvailable));
       setLocationSaved(Boolean(profile.hasLocation));
+      setLocation(null);
       setNotice(available ? "Вы на линии! Предложения будут приходить при совпадении условий." : "Настройки сохранены. Вы не на линии.");
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка сохранения"); }
     finally { setBusy(false); }
