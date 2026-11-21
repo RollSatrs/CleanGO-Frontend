@@ -1,5 +1,6 @@
-import { getTelegramLocationManager, requestCleanGoLocation } from "@/lib/geo-location";
 "use client";
+
+import { getTelegramLocationManager, requestCleanGoLocation } from "@/lib/geo-location";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
