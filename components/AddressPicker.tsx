@@ -164,7 +164,7 @@ export default function AddressPicker({ address, initialCoordinates = null, onCh
           attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
         mapRef.current=map;
         if(immersive){const el=document.createElement("div");el.style.cssText="width:27px;height:27px;border:6px solid white;border-radius:50%;background:#079F91;box-shadow:0 3px 14px #087F7166;";markerRef.current=new lib.Marker({element:el,anchor:"center"}).setLngLat(selectedPointRef.current??point).addTo(map);}
-        map.on("click",(event)=>{if(disposed||!event?.lngLat)return; const next:[number,number]=[event.lngLat.lng,event.lngLat.lat]; selectedPointRef.current=next; skipInitialReverse.current=false; setPoint(next); setPickedAddress("Уточняем адрес..."); setMapError("");});
+        map.on("click",(event)=>{if(disposed||!event?.lngLat)return; const next:[number,number]=[event.lngLat.lng,event.lngLat.lat]; selectedPointRef.current=next; skipInitialReverse.current=false; setPoint(next); setPickedAddress("Уточняем адрес..."); setMapError(""); if(immersive){setCoordinates({latitude:next[1],longitude:next[0]});onChange(`Точка: ${next[1].toFixed(5)}, ${next[0].toFixed(5)}`,{latitude:next[1],longitude:next[0]});}});
         map.on("movestart",()=>{if(!disposed)setMapMoving(true);});
         map.on("moveend",()=>{
           if(disposed||!map)return;
@@ -218,7 +218,7 @@ export default function AddressPicker({ address, initialCoordinates = null, onCh
       ({coords}) => {
         setMapLocating(false);
         if (coords.accuracy > 500) { setMapError("Местоположение определено недостаточно точно."); return; }
-        selectedPointRef.current=[coords.longitude,coords.latitude];setPoint([coords.longitude,coords.latitude]);setPickedAddress("Уточняем адрес...");mapRef.current?.flyTo({center:[coords.longitude,coords.latitude],zoom:16,essential:true});
+        selectedPointRef.current=[coords.longitude,coords.latitude];setPoint([coords.longitude,coords.latitude]);setPickedAddress("Уточняем адрес...");if(immersive){setCoordinates({latitude:coords.latitude,longitude:coords.longitude});onChange(`Точка: ${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`,{latitude:coords.latitude,longitude:coords.longitude});}mapRef.current?.flyTo({center:[coords.longitude,coords.latitude],zoom:16,essential:true});
       },
       () => {setMapLocating(false);setMapError("Разрешите геолокацию в настройках Telegram.");},
       {enableHighAccuracy:true,timeout:15000,maximumAge:0}
