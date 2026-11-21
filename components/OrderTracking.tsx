@@ -244,7 +244,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
             const high=Math.max(low+5,Math.ceil(remaining*1.35)+5);
             return <p className="mt-1 text-lg font-extrabold text-[#1B5C54]">{low}–{high} мин</p>;
           })():<p className="mt-1 text-sm font-bold text-[#1B5C54]">Время прибытия уточняется</p>}
-          <p className="mt-1 text-xs text-[#78928B]">{progress.travelMode==="walking"?"Пеший маршрут":progress.travelMode==="transit"?"Общественный транспорт":"Маршрут по дорогам"} · без учёта пробок и задержек</p>
+          <p className="mt-1 text-xs text-[#78928B]">{progress.travelMode==="walking"?"Оценка пешком по расстоянию":progress.travelMode==="transit"?"Приблизительная оценка на автобусе, без расписания и ожидания конкретного рейса":"Оценка автомобильного маршрута"} · без данных о пробках</p>
         </div>}
         {progress.cleaner.phone&&<a className="mt-2 inline-block text-sm font-semibold text-[#087F71]" href={`tel:${progress.cleaner.phone}`}>Позвонить исполнителю</a>}
       </div>}
