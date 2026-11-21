@@ -1,3 +1,4 @@
+import { requestCleanGoLocation } from "@/lib/geo-location";
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -100,30 +101,12 @@ export default function CleanerJobs() {
     if(job.latitude==null || job.longitude==null || !Number.isFinite(destinationLat) || !Number.isFinite(destinationLon)){
       setError("Для расчёта маршрута нужны точные координаты адреса.");return;
     }
-    if(!navigator.geolocation){setError("Геолокация недоступна в этом браузере. Откройте маршрут в навигаторе.");return;}
     setRouteBusy(job.id);setError("");
-    const getPosition=(highAccuracy:boolean,timeout:number,maximumAge:number)=>new Promise<GeolocationPosition>((resolve,reject)=>{
-      navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:highAccuracy,timeout,maximumAge});
-    });
     try {
-      let position:GeolocationPosition;
-      try {
-        // Cached fixes avoid needless GPS warm-up when returning to Telegram.
-        position=await getPosition(false,12000,120000);
-      }catch(firstError){
-        const error=firstError as GeolocationPositionError;
-        if(error.code===1)throw new Error("Доступ к геопозиции запрещён. Разрешите его в настройках Telegram или браузера.");
-        try {
-          position=await getPosition(true,20000,300000);
-        }catch(secondError){
-          const fallback=secondError as GeolocationPositionError;
-          if(fallback.code===1)throw new Error("Доступ к геопозиции запрещён. Проверьте разрешения Telegram и телефона.");
-          if(fallback.code===3)throw new Error("Не удалось получить координаты вовремя. Проверьте GPS и интернет, затем повторите попытку.");
-          throw new Error("Не удалось определить геопозицию. Попробуйте открыть маршрут в навигаторе.");
-        }
-      }
+      // Telegram LocationManager first, browser geolocation only as fallback.
+      const position = await requestCleanGoLocation();
       // Coordinates are sent to a third-party router only after pressing this button.
-      const url=`https://router.project-osrm.org/route/v1/driving/${position.coords.longitude},${position.coords.latitude};${destinationLon},${destinationLat}?overview=false`;
+      const url=`https://router.project-osrm.org/route/v1/driving/${position.longitude},${position.latitude};${destinationLon},${destinationLat}?overview=false`;
       const response=await fetch(url,{signal:AbortSignal.timeout(15000)});
       if(!response.ok)throw new Error("Сервис расчёта маршрутов временно недоступен. Откройте Google Maps.");
       const data=await response.json() as {routes?:{distance:number;duration:number}[]};
