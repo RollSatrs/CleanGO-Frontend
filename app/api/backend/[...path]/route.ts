@@ -34,7 +34,7 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
       headers,
       body: ["POST", "PATCH"].includes(request.method) ? await request.text() : undefined,
       cache: "no-store",
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(path.endsWith("/complete") ? 45000 : 12000),
     });
     const responseHeaders = new Headers({
       "Content-Type": upstream.headers.get("content-type") ?? "application/json",
