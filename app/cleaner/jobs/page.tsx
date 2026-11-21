@@ -5,7 +5,7 @@ import { requestCleanGoLocation } from "@/lib/geo-location";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 
-type AssignedJob = { id: string; status: string; cleaningType: string; area: number; price: number | null; address: string; latitude: string | number | null; longitude: string | number | null; createdAt: string; clientFirstName: string | null; clientLastName: string | null; clientPhone: string | null };
+type AssignedJob = { id: string; status: string; cleaningType: string; area: number; price: number | null; address: string; latitude: string | number | null; longitude: string | number | null; createdAt: string; clientFirstName: string | null; clientLastName: string | null; clientPhone: string | null; inspectionMethod?:"personal"|"photos" };
 
 type Offer = {
   offerId: string;
@@ -34,6 +34,8 @@ export default function CleanerJobs() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [sharingOrderId,setSharingOrderId]=useState<string|null>(null);
+  const [photoFiles,setPhotoFiles]=useState<Record<string,string[]>>({});
+  const [photoBusy,setPhotoBusy]=useState<string|null>(null);
   const [travelMode,setTravelMode]=useState<"car"|"walking"|"transit">("car");
   const lastSent=useRef(0);
   const sendTripLocation=useCallback(async (orderId:string,coords:{latitude:number;longitude:number}|null)=>{
@@ -135,9 +137,40 @@ export default function CleanerJobs() {
     }
   }
 
+
+  async function preparePhotos(orderId:string,files:FileList|null) {
+    if(!files)return;
+    if(files.length<3||files.length>5){setError("Нужно выбрать от 3 до 5 фотографий");return;}
+    setPhotoBusy(orderId);setError("");
+    try{
+      const results:string[]=[];
+      for(const file of Array.from(files)){
+        if(!file.type.startsWith("image/")||file.size>10*1024*1024)throw new Error("Файл должен быть изображением до 10 МБ");
+        const img=await new Promise<HTMLImageElement>((resolve,reject)=>{
+          const url=URL.createObjectURL(file);const image=new Image();
+          image.onload=()=>{URL.revokeObjectURL(url);resolve(image);};
+          image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("Фото не открылось"));};
+          image.src=url;
+        });
+        const canvas=document.createElement("canvas");const factor=Math.min(1,900/Math.max(img.width,img.height));
+        canvas.width=Math.max(1,Math.round(img.width*factor));canvas.height=Math.max(1,Math.round(img.height*factor));
+        const context=canvas.getContext("2d");if(!context)throw new Error("Ошибка обработки фото");
+        context.drawImage(img,0,0,canvas.width,canvas.height);
+        const data=canvas.toDataURL("image/jpeg",0.58);
+        if(data.length>450000)throw new Error("Фото слишком большое, выберите изображение меньшего размера");
+        results.push(data);
+      }
+      setPhotoFiles(old=>({...old,[orderId]:results}));
+    }catch(error){setError(error instanceof Error?error.message:"Не удалось загрузить фото");}
+    finally{setPhotoBusy(null);}
+  }
   async function transition(orderId: string, action: "en-route" | "arrived" | "start" | "complete") {
     if (!token || busyId) return;
-    if (action === "complete" && !window.confirm("Подтвердить завершение уборки?")) return;
+    if (action === "complete") {
+      const job=jobs.find(item=>item.id===orderId);
+      if(job?.inspectionMethod!=="personal" && (photoFiles[orderId]?.length??0)<3){setError("Клиент выбрал проверку по фото: загрузите 3–5 фотографий.");return;}
+      if(!window.confirm("Отправить результат клиенту? Вы сможете уйти, не ожидая подтверждения в приложении."))return;
+    }
     if(sharingOrderId===orderId)setSharingOrderId(null);
     setBusyId(orderId);
     setError("");
@@ -152,14 +185,14 @@ export default function CleanerJobs() {
         } catch { setMessage("Не удалось получить свежую геопозицию. Попробуем последние сохранённые координаты."); }
       }
       const response = await fetch(`${API_URL}/orders/${encodeURIComponent(orderId)}/${action}`, {
-        method: "PATCH", headers: { Authorization: `Bearer ${token}`, ...(departure?{"Content-Type":"application/json"}:{}) },
-        ...(departure?{body:JSON.stringify(departure)}:{}),
+        method: "PATCH", headers: { Authorization: `Bearer ${token}`, ...(departure||action==="complete"?{"Content-Type":"application/json"}:{}) },
+        ...(departure?{body:JSON.stringify(departure)}:action==="complete"?{body:JSON.stringify({photos:photoFiles[orderId]??[]})}:{}),
       });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
         throw new Error(typeof body?.message === "string" ? body.message : "Не удалось обновить заказ");
       }
-      setMessage(({ "en-route":"Вы отметили, что направляетесь к клиенту.", arrived:"Прибытие подтверждено.", start:"Уборка начата.", complete:"Уборка завершена. Вы снова можете получать предложения, если смена и GPS актуальны." })[action]);
+      setMessage(({ "en-route":"Вы отметили, что направляетесь к клиенту.", arrived:"Прибытие подтверждено.", start:"Уборка начата.", complete:"Результат передан клиенту. Можно уходить: подтверждение он сделает в приложении." })[action]);
       await load();
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка соединения"); }
     finally { setBusyId(null); }
@@ -208,7 +241,13 @@ export default function CleanerJobs() {
               <option value="transit">Общественный транспорт</option>
             </select>
           </label>}
-          <button type="button" disabled={busyId !== null}
+          {job.status==="in_progress"&&<div className="mt-3 rounded-xl bg-teal-50 p-3">
+            <p className="text-sm font-semibold text-teal-900">Проверка: {job.inspectionMethod==="personal"?"лично":"по фотографиям"}</p>
+            {job.inspectionMethod!=="personal"&&<><p className="mt-1 text-xs text-teal-800">Клиент выбрал проверку по фото. Загрузите 3–5 фотографий результата.</p>
+              <input type="file" accept="image/*" multiple disabled={photoBusy===job.id} onChange={event=>void preparePhotos(job.id,event.target.files)} className="mt-2 block w-full text-xs"/>
+              <p className="mt-1 text-xs text-teal-800">Подготовлено: {photoFiles[job.id]?.length??0} фото</p></>}
+          </div>}
+          <button type="button" disabled={busyId !== null || photoBusy===job.id}
             onClick={() => void transition(job.id, job.status === "accepted" ? "en-route" : job.status === "en_route" ? "arrived" : job.status === "arrived" ? "start" : "complete")}
             className="mt-4 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
             {({accepted:"Я выехал к клиенту",en_route:"Я прибыл",arrived:"Начать уборку",in_progress:"Завершить уборку"} as Record<string,string>)[job.status] ?? "Обновить статус"}
