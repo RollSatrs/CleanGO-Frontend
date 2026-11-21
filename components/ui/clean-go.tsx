@@ -32,6 +32,9 @@ export function AppCard({ className = "", children, ...props }: HTMLAttributes<H
 type Notice = { id: string; orderId: string; type: string; createdAt: string };
 const noticeLabels: Record<string, string> = {
   new_offer: "🔔 Вам предложен новый заказ",
+  cleaner_order_accepted: "✅ Вы приняли заказ",
+  cleaner_job_completed: "✨ Вы завершили уборку",
+  cleaner_order_cancelled: "❌ Ваш заказ отменён",
   order_accepted: "✅ Заказ принят клинером",
   cleaner_en_route: "🚗 Клинер выехал",
   cleaner_arrived: "📍 Клинер прибыл",
@@ -111,6 +114,7 @@ export function NotificationBell() {
           onClick={() => { markRead(); setOpen(false); }}
           className={`block rounded-xl p-3 text-sm hover:bg-[#F0FAF8] ${readIds.includes(item.id) ? "bg-white" : "bg-[#EAF8F5]"}`}>
           <span className="font-semibold">{roleLabels[item.type] ?? noticeLabels[item.type] ?? "Обновление заказа"}</span>
+          <span className="mt-1 block text-xs font-medium text-[#177E76]">Заказ №{item.orderId.slice(0, 8).toUpperCase()}</span>
           <span className="mt-1 block text-xs text-slate-500">{new Date(item.createdAt).toLocaleString("ru-RU")}</span>
         </Link>)}
       </div>
