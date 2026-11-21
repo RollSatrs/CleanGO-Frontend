@@ -56,8 +56,9 @@ function applyCleanGoLightStyle(map:MapHandle){
     }catch{/* Optional vector layer */}
   }
 }
-export default function AddressPicker({ address, onChange, immersive = false, searchVisible = true }: {
+export default function AddressPicker({ address, initialCoordinates = null, onChange, immersive = false, searchVisible = true }: {
   address: string;
+  initialCoordinates?: Coordinates | null;
   immersive?: boolean;
   searchVisible?: boolean;
   onChange: (address: string, coordinates: Coordinates | null) => void;
@@ -73,9 +74,10 @@ export default function AddressPicker({ address, onChange, immersive = false, se
   const [mapReady, setMapReady] = useState(false);
   const [mapLocating, setMapLocating] = useState(false);
   const [mapMoving, setMapMoving] = useState(false);
-  const selectedPointRef = useRef<[number,number] | null>(null);
+  const selectedPointRef = useRef<[number,number] | null>(initialCoordinates ? [initialCoordinates.longitude, initialCoordinates.latitude] : null);
+  const skipInitialReverse = useRef(Boolean(initialCoordinates));
   const [pickedAddress, setPickedAddress] = useState("Переместите карту для выбора адреса");
-  const [point, setPoint] = useState<[number, number]>(SEMEY);
+  const [point, setPoint] = useState<[number, number]>(() => initialCoordinates ? [initialCoordinates.longitude, initialCoordinates.latitude] : SEMEY);
   const [locationBusy, setLocationBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [mapNode, setMapNode] = useState<HTMLDivElement | null>(null);
@@ -109,6 +111,9 @@ export default function AddressPicker({ address, onChange, immersive = false, se
   }, [address, focused, selected]);
 
   function choose(name: string, next: Coordinates) {
+    skipInitialReverse.current = false;
+    selectedPointRef.current = [next.longitude, next.latitude];
+    mapRef.current?.flyTo({ center: [next.longitude, next.latitude], zoom: 16, essential: true });
     searchVersion.current++;
     setCoordinates(next);
     setSelected(true);
@@ -159,13 +164,13 @@ export default function AddressPicker({ address, onChange, immersive = false, se
           attributionControl:false,dragRotate:false,pitchWithRotate:false,touchPitch:false});
         mapRef.current=map;
         if(immersive){const el=document.createElement("div");el.style.cssText="width:27px;height:27px;border:6px solid white;border-radius:50%;background:#079F91;box-shadow:0 3px 14px #087F7166;";markerRef.current=new lib.Marker({element:el,anchor:"center"}).setLngLat(selectedPointRef.current??point).addTo(map);}
-        map.on("click",(event)=>{if(disposed||!event?.lngLat)return; const next:[number,number]=[event.lngLat.lng,event.lngLat.lat]; selectedPointRef.current=next; setPoint(next); setPickedAddress("Уточняем адрес..."); setMapError("");});
+        map.on("click",(event)=>{if(disposed||!event?.lngLat)return; const next:[number,number]=[event.lngLat.lng,event.lngLat.lat]; selectedPointRef.current=next; skipInitialReverse.current=false; setPoint(next); setPickedAddress("Уточняем адрес..."); setMapError("");});
         map.on("movestart",()=>{if(!disposed)setMapMoving(true);});
         map.on("moveend",()=>{
           if(disposed||!map)return;
           setMapMoving(false);
           const center=map.getCenter();
-          if(!selectedPointRef.current){setPoint([center.lng,center.lat]);setPickedAddress("Уточняем адрес...");}
+          if(!selectedPointRef.current){skipInitialReverse.current=false;setPoint([center.lng,center.lat]);setPickedAddress("Уточняем адрес...");}
         });
         map.on("style.load",()=>{if(!disposed&&map)applyCleanGoLightStyle(map);});
         map.on("idle",()=>{
@@ -193,7 +198,9 @@ export default function AddressPicker({ address, onChange, immersive = false, se
   },[mapOpen,mapExpanded]);
 
   useEffect(()=>{
-    if(!mapOpen)return;let cancelled=false;
+    if(!mapOpen)return;
+    if(skipInitialReverse.current){skipInitialReverse.current=false;return;}
+    let cancelled=false;
     const timer=window.setTimeout(async()=>{try{
       const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=ru&lat=${point[1]}&lon=${point[0]}`;
       const response=await fetch(url);if(!response.ok)throw new Error("Geocode failed");
