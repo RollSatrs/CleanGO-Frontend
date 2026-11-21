@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import BottomNav from "@/components/navigation/BottomNav";
-import { ArrowRight, ClipboardList, ShieldCheck, Wallet, Clock3 } from "lucide-react";
+import { ArrowRight, ClipboardList, ShieldCheck, Wallet } from "lucide-react";
 import { AppHeader, AppCard, AppLinkButton } from "@/components/ui/clean-go";
 
 export default function CleanerPage() {
@@ -36,17 +36,13 @@ export default function CleanerPage() {
       <AppHeader role="cleaner" className="cleango-client-header min-h-[84px] px-5 pb-4 pt-6" />
       <div className="px-5">
       <div className="mt-9"><p className="text-sm text-[#82939C]">Здравствуйте{user?.firstName ? `, ${user.firstName}` : ""}!</p><h1 className="mt-2 text-[28px] font-extrabold leading-tight tracking-tight">Ваш рабочий день<br/>начинается здесь</h1></div>
-      <Link href="/cleaner/settings" className="mt-6 flex items-center gap-3 rounded-[24px] border border-[#CDEFE8] bg-white p-4 shadow-sm">
-        <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${receivingOffers ? "bg-emerald-100 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-          <Clock3 className="h-6 w-6" />
-        </span>
+      <Link href="/cleaner/settings" className="mt-5 flex items-center gap-3 rounded-2xl border border-[#DDECE8] bg-white px-4 py-3">
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${receivingOffers ? "bg-emerald-500" : activeShift ? "bg-amber-400" : "bg-slate-300"}`} aria-hidden="true" />
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-extrabold">{profileError ? "Не удалось обновить статус" : receivingOffers ? "🟢 Вы на линии" : activeShift ? "🟠 Смена включена, но заявки недоступны" : "⚪ Вы не на линии"}</span>
-          <span className="mt-1 block text-xs leading-5 text-[#748B8A]">
-            {profileError ? "Нажмите, чтобы проверить настройки" : receivingOffers ? `Осталось ${remaining} мин · предложения активны` : activeShift ? "Обновите геопозицию или проверьте профиль" : "Включите смену, чтобы получать заказы"}
-          </span>
+          <span className="block text-sm font-semibold">{profileError ? "Статус недоступен" : receivingOffers ? "На линии" : activeShift ? "Заявки приостановлены" : "Не на линии"}</span>
+          <span className="block text-xs text-[#748B8A]">{profileError ? "Проверьте подключение" : receivingOffers ? `Смена: ещё ${remaining} мин` : activeShift ? `Осталось ${remaining} мин · обновите геопозицию` : "Включить смену"}</span>
         </span>
-        <ArrowRight className="h-5 w-5 shrink-0 text-[#159A8E]"/>
+        <ArrowRight className="h-4 w-4 shrink-0 text-[#8CA7A0]" />
       </Link>
       <section className="relative mt-7 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#DDF9F3] to-[#F2FCF9] p-6">
         <div className="absolute -right-9 -top-10 h-40 w-40 rounded-full border-[24px] border-white/50" aria-hidden="true"/>
