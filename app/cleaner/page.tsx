@@ -10,7 +10,7 @@ export default function CleanerPage() {
   const { user, token } = useAuth();
   const [profile, setProfile] = useState<{ isAvailable: boolean; effectiveAvailable: boolean; locationNeedsRefresh: boolean; availableUntil: string | null } | null>(null);
   const [profileError, setProfileError] = useState(false);
-  const [now, setNow] = useState(0);
+  const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     if (!token || user?.role !== "cleaner") return;
     let active = true;
@@ -22,13 +22,14 @@ export default function CleanerPage() {
         if (active) { setProfile(data); setProfileError(false); }
       } catch { if (active) setProfileError(true); }
     };
+    setNow(Date.now());
     void refresh();
     const timer = window.setInterval(() => { setNow(Date.now()); if (document.visibilityState === "visible") void refresh(); }, 15000);
     const onFocus = () => void refresh();
     window.addEventListener("focus", onFocus);
     return () => { active = false; clearInterval(timer); window.removeEventListener("focus", onFocus); };
   }, [token, user?.role]);
-  const remaining = profile?.availableUntil ? Math.max(0, Math.ceil((new Date(profile.availableUntil).getTime() - now) / 60000)) : 0;
+  const remaining = profile?.availableUntil && now !== null ? Math.max(0, Math.ceil((new Date(profile.availableUntil).getTime() - now) / 60000)) : 0;
   const activeShift = Boolean(profile?.isAvailable && remaining > 0);
   const receivingOffers = Boolean(activeShift && profile?.effectiveAvailable && !profile?.locationNeedsRefresh);
   return <main className="min-h-dvh bg-[#F8FCFB] pb-28 text-[#152535]">
