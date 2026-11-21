@@ -286,7 +286,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
   return (
     <form onSubmit={handleSubmit} className="fixed inset-0 z-[1000] isolate overflow-hidden bg-[#F5F9F8] text-[#152535] cleango-map-viewport">
       <div className="absolute inset-0">
-        <AddressPicker immersive searchVisible={searchOpen} address={address} onChange={(nextAddress, nextCoordinates) => {
+        <AddressPicker immersive searchVisible={searchOpen} address={address} initialCoordinates={coordinates} onChange={(nextAddress, nextCoordinates) => {
           setAddress(nextAddress);
           setCoordinates(nextCoordinates);
           setError("");
