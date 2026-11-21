@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock3, MapPin, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock3, MapPin, ShieldCheck, Sparkles, Star, ChevronDown, Phone, UserRound } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 type Order = {
@@ -66,6 +66,8 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const {token}=useAuth();
   const [order,setOrder]=useState(initialOrder);
   const [completionBusy,setCompletionBusy]=useState(false);
+  const inspectionSavingRef=useRef(false);
+  const [inspectionSaving,setInspectionSaving]=useState(false);
   const [completionError,setCompletionError]=useState("");
   const [rating,setRating]=useState(0);
   const [reviewText,setReviewText]=useState("");
@@ -116,7 +118,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         const response=await fetch(`/api/backend/orders/${encodeURIComponent(initialOrder.id)}`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
         if(!response.ok)throw new Error("Request failed");
         const current:Order=await response.json();
-        if(active){if(current)setOrder(current);setNetworkError(false);}
+        if(active){if(current&&!inspectionSavingRef.current)setOrder(current);setNetworkError(false);}
       } catch {if(active)setNetworkError(true);}
     };
     void refresh();
@@ -203,6 +205,45 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   useEffect(()=>{setArrivalEstimate(null);},[progress?.tripLocation?.latitude,progress?.tripLocation?.longitude]);
 
 
+  async function selectInspection(method:"personal"|"photos") {
+    if(!token || inspectionSavingRef.current || order.inspectionMethod===method)return;
+    const previous=order.inspectionMethod;
+    inspectionSavingRef.current=true;
+    setInspectionSaving(true);
+    setCompletionError("");
+    setOrder(current=>({...current,inspectionMethod:method}));
+    try {
+      const response=await fetch(`/api/backend/orders/${encodeURIComponent(order.id)}/inspection`,{
+        method:"PATCH",
+        headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},
+        body:JSON.stringify({method}),
+      });
+      if(!response.ok){
+        const detail=await response.json().catch(()=>null);
+        throw new Error(typeof detail?.message==="string"?detail.message:"Не удалось сохранить способ проверки");
+      }
+      const result=await response.json() as {inspectionMethod?:"personal"|"photos"};
+      setOrder(current=>({...current,inspectionMethod:result.inspectionMethod??method}));
+    }catch(error){
+      setOrder(current=>({...current,inspectionMethod:previous}));
+      setCompletionError(error instanceof Error?error.message:"Не удалось сохранить выбор");
+    }finally{
+      inspectionSavingRef.current=false;
+      setInspectionSaving(false);
+    }
+  }
+  useEffect(()=>{
+    if(!token || !progress?.cleaner || !isAccepted)return;
+    let active=true;
+    void fetch(`/api/backend/orders/${encodeURIComponent(order.id)}/cleaner-reputation`,{
+      headers:{Authorization:`Bearer ${token}`},cache:"no-store",
+    }).then(async response=>{
+      if(!response.ok)throw new Error("rating unavailable");
+      const result=await response.json();
+      if(active)setReputation(result);
+    }).catch(()=>{});
+    return ()=>{active=false;};
+  },[token,order.id,progress?.cleaner?.name,isAccepted]);
   async function orderAction(path:string, body?:object) {
     if(!token||completionBusy)return;
     setCompletionBusy(true);setCompletionError("");
@@ -219,14 +260,6 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       }
     }catch(error){setCompletionError(error instanceof Error?error.message:"Ошибка соединения");}
     finally{setCompletionBusy(false);}
-  }
-  async function loadReputation(){
-    if(!token)return;
-    setReputationOpen(v=>!v);
-    try{
-      const response=await fetch(`/api/backend/orders/${encodeURIComponent(order.id)}/cleaner-reputation`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
-      if(response.ok)setReputation(await response.json());
-    }catch{}
   }
   const title=isPending?"Ищем клинера":order.status==="en_route"?"Клинер направляется к вам":order.status==="arrived"?"Клинер прибыл":order.status==="in_progress"?"Уборка выполняется":order.status==="pending_confirmation"?"Подтвердите уборку":order.status==="disputed"?"Обращение в поддержку":order.status==="completed"?"Уборка завершена":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
   const searchStage=isPending?(progress===null?"Подбираем исполнителей":progress.awaiting>0?"Ожидаем подтверждения клинера":progress.sent>0?"Продолжаем поиск исполнителя":"Подбираем исполнителей"):"";
@@ -265,33 +298,64 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         </div>}
       </div>}
       {!collapsed&&isAccepted&&progressError&&!progress?.cleaner&&<p role="status" className="mt-3 text-xs text-amber-700">Не удалось загрузить данные исполнителя. Повторяем запрос автоматически.</p>}
-      {!collapsed&&isAccepted&&progress?.cleaner&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
-        <p className="text-xs font-semibold text-[#578078]">Ваш исполнитель</p>
-        <button type="button" onClick={()=>void loadReputation()} className="mt-1 text-left text-lg font-extrabold underline decoration-teal-300 underline-offset-4">{progress.cleaner.name} · профиль</button>
-        {reputationOpen&&<div className="mt-3 rounded-xl bg-white p-3 text-sm"><p className="font-semibold">Заказов: {reputation?.completedOrders??"—"} · Рейтинг: {reputation?.rating??"Нет оценок"} · Отзывов: {reputation?.reviewCount??"—"}</p>{reputation?.reviews.map((item,index)=><p key={index} className="mt-2 border-t pt-2">{item.rating} ★ — {item.reviewText}</p>)}</div>}
-        <p className="mt-2 text-xs text-[#58796F]">{order.status==="accepted"?"Ожидаем начала поездки":order.status==="en_route"?(progress.tripLocation?"Клинер делится геопозицией на карте":"Клинер направляется к вам. Геопозиция не передаётся.") :order.status==="arrived"?"Клинер сообщил о прибытии":order.status==="in_progress"?"Уборка выполняется":"Статус заказа обновляется"}</p>
-        {order.status==="en_route"&&<div className="mt-3 rounded-xl bg-[#F0FAF7] p-3">
-          <p className="text-xs font-semibold text-[#58796F]">Ориентировочное прибытие</p>
-          {progress.etaMinutes!=null&&progress.etaCalculatedAt?(()=>{
-            const ageMinutes=Math.max(0,Math.floor((Date.now()-new Date(progress.etaCalculatedAt).getTime())/60000));
-            const remaining=progress.etaMinutes-ageMinutes;
-            if(remaining<=0)return <p className="mt-1 text-sm font-bold text-[#1B5C54]">Время прибытия уточняется</p>;
-            const low=Math.max(1,Math.floor(remaining*0.85));
-            const high=Math.max(low+5,Math.ceil(remaining*1.35)+5);
-            return <p className="mt-1 text-lg font-extrabold text-[#1B5C54]">{low}–{high} мин</p>;
-          })():<p className="mt-1 text-sm font-bold text-[#1B5C54]">Время прибытия уточняется</p>}
-          <p className="mt-1 text-xs text-[#78928B]">{progress.travelMode==="walking"?"Оценка пешком по расстоянию":progress.travelMode==="transit"?"Приблизительная оценка на автобусе, без расписания и ожидания конкретного рейса":"Оценка автомобильного маршрута"} · без данных о пробках</p>
+      {!collapsed&&isAccepted&&progress?.cleaner&&<div className="mt-4 overflow-hidden rounded-[24px] border border-[#E4EFEA] bg-white shadow-[0_8px_30px_rgba(20,65,57,0.055)]">
+        <div className="px-4 pb-3 pt-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7C918B]">Ваш исполнитель</p>
+            <span className="rounded-full bg-[#E8F7F2] px-3 py-1 text-[11px] font-semibold text-[#148878]">Назначен на заказ</span>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-[18px] bg-[#DDF5ED] text-xl font-extrabold text-[#168B7D]" aria-hidden="true">
+              {progress.cleaner.name.trim().split(/\s+/).slice(0,2).map(part=>part[0]?.toUpperCase()).join("")||<UserRound size={24}/>}
+              <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-[#159D88] text-white"><CheckCircle2 size={12}/></span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[18px] font-extrabold tracking-tight text-[#152535]">{progress.cleaner.name}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#6B847C]">
+                <span className="inline-flex items-center gap-1 font-semibold text-[#285E52]"><Star size={13} className="fill-[#F5B942] text-[#F5B942]"/>{reputation?.rating!=null?reputation.rating.toFixed(1):"Нет оценок"}</span>
+                <span>{reputation? `${reputation.completedOrders} выполнено`:"История загружается"}</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 rounded-2xl bg-[#F3F9F7] px-3.5 py-3">
+            <div className="flex items-start gap-2"><span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-[#27B39D]"/><p className="text-xs leading-5 text-[#52756B]">{order.status==="accepted"?"Исполнитель принял заказ и готовится выехать":order.status==="en_route"?(progress.tripLocation?"Исполнитель направляется к вам · местоположение видно на карте":"Исполнитель в пути · геопозиция сейчас недоступна"):order.status==="arrived"?"Исполнитель прибыл по адресу":order.status==="in_progress"?"Сейчас выполняет уборку":order.status==="pending_confirmation"?"Уборка выполнена · ожидаем вашего подтверждения":order.status==="completed"?"Уборка подтверждена":"Статус заказа обновляется"}</p></div>
+            {order.status==="en_route"&&<div className="mt-3 border-t border-[#DBEAE4] pt-3">
+              <p className="text-[11px] font-medium text-[#728A82]">Ориентировочное прибытие</p>
+              <p className="mt-1 text-lg font-extrabold text-[#174E45]">{progress.etaMinutes!=null&&progress.etaCalculatedAt?(()=>{
+                const minutesLeft=progress.etaMinutes-Math.max(0,Math.floor((Date.now()-new Date(progress.etaCalculatedAt).getTime())/60000));
+                return minutesLeft<=0?"Время уточняется":`${Math.max(1,Math.floor(minutesLeft*.85))}–${Math.max(6,Math.ceil(minutesLeft*1.35)+5)} мин`;
+              })():"Время уточняется"}</p>
+              <p className="mt-1 text-[11px] text-[#81968D]">{progress.travelMode==="walking"?"Оценка пешком":progress.travelMode==="transit"?"Приблизительно на общественном транспорте":"По автомобильному маршруту"} · без пробок</p>
+            </div>}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button type="button" onClick={()=>setReputationOpen(open=>!open)} aria-expanded={reputationOpen} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[#DFEAE6] bg-white px-3 text-xs font-bold text-[#315F54]">
+              Профиль <ChevronDown size={15} className={reputationOpen?"rotate-180 transition-transform":"transition-transform"}/>
+            </button>
+            {progress.cleaner.phone?<a href={`tel:${progress.cleaner.phone}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0C9889] px-3 text-xs font-bold text-white"><Phone size={15}/>Позвонить</a>:
+            <div className="flex min-h-11 items-center justify-center rounded-xl bg-[#F0F5F3] px-2 text-center text-[11px] text-[#789087]">Телефон недоступен</div>}
+          </div>
+        </div>
+        {reputationOpen&&<div className="border-t border-[#E7F0ED] bg-[#FCFEFD] px-4 py-4">
+          <p className="text-sm font-bold text-[#152535]">Профиль исполнителя</p>
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl bg-[#F0F8F5] p-2"><p className="text-base font-extrabold text-[#174E45]">{reputation?.rating!=null?reputation.rating.toFixed(1):"—"}</p><p className="text-[10px] text-[#718A81]">Рейтинг</p></div>
+            <div className="rounded-xl bg-[#F0F8F5] p-2"><p className="text-base font-extrabold text-[#174E45]">{reputation?.completedOrders??"—"}</p><p className="text-[10px] text-[#718A81]">Уборок</p></div>
+            <div className="rounded-xl bg-[#F0F8F5] p-2"><p className="text-base font-extrabold text-[#174E45]">{reputation?.reviewCount??"—"}</p><p className="text-[10px] text-[#718A81]">Оценок</p></div>
+          </div>
+          {reputation?.reviews?.length?<div className="mt-3 space-y-2">{reputation.reviews.slice(0,3).map((review,index)=><div key={index} className="rounded-xl border border-[#E5EFEB] bg-white p-3"><span className="text-xs font-bold text-[#C49024]">{review.rating} ★</span><p className="mt-1 text-xs leading-5 text-[#52756B]">{review.reviewText}</p></div>)}</div>:<p className="mt-3 text-xs text-[#789087]">Пока нет опубликованных текстовых отзывов.</p>}
+          <p className="mt-3 text-[11px] leading-4 text-[#829790]">Оценки основаны на подтверждённых заказах CleanGo.</p>
         </div>}
-        {progress.cleaner.phone&&<a className="mt-2 inline-block text-sm font-semibold text-[#087F71]" href={`tel:${progress.cleaner.phone}`}>Позвонить исполнителю</a>}
       </div>}
 
       {!collapsed&&["accepted","en_route","arrived","in_progress"].includes(order.status)&&<div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50 p-4">
         <p className="text-sm font-bold text-[#174E45]">Как проверите уборку?</p>
         <p className="mt-1 text-xs text-[#66877E]">Выбираете вы. По умолчанию — фотоотчёт.</p>
         <div className="mt-3 flex gap-2">
-          <button disabled={completionBusy} type="button" onClick={()=>void orderAction("inspection",{method:"personal"})} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod==="personal"?"border-teal-600 bg-teal-600 text-white":"bg-white text-teal-800"}`}>Проверю лично</button>
-          <button disabled={completionBusy} type="button" onClick={()=>void orderAction("inspection",{method:"photos"})} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod!=="personal"?"border-teal-600 bg-teal-600 text-white":"bg-white text-teal-800"}`}>По фотографиям</button>
+          <button disabled={inspectionSaving} type="button" onClick={()=>void selectInspection("personal")} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod==="personal"?"border-teal-600 bg-teal-600 text-white":"bg-white text-teal-800"}`}>Проверю лично</button>
+          <button disabled={completionBusy} type="button" onClick={()=>void selectInspection("photos")} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod!=="personal"?"border-teal-600 bg-teal-600 text-white":"bg-white text-teal-800"}`}>По фотографиям</button>
         </div>
+        {inspectionSaving&&<p className="mt-2 text-[11px] text-teal-700" role="status">Сохраняем ваш выбор…</p>}
       </div>}
       {!collapsed&&order.status==="pending_confirmation"&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
         <p className="text-sm font-bold text-[#174E45]">Проверьте результат уборки</p>
