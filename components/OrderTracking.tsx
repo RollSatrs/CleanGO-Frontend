@@ -367,7 +367,18 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       {!collapsed&&order.status==="disputed"&&<p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Обращение зарегистрировано. Поддержка должна рассмотреть заказ; автоматической выплаты нет.</p>}
       {!collapsed&&order.status==="completed"&&order.rating==null&&!reviewDone&&<div className="mt-4 rounded-2xl border border-teal-100 p-4">
         <p className="text-sm font-bold">Оцените клинера — по желанию</p>
-        <div className="mt-2 flex gap-2">{[1,2,3,4,5].map(n=><button key={n} type="button" onClick={()=>setRating(n)} className={`text-3xl ${n<=rating?"text-amber-500":"text-slate-300"}`} aria-label={`${n} звёзд`}>★</button>)}</div>
+        <div className="mt-3 flex items-center gap-1" role="group" aria-label="Выберите оценку с шагом ползвезды">
+          {[1,2,3,4,5].map(n=><div key={n} className="relative h-11 w-11 shrink-0 select-none" aria-hidden={false}>
+            <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center text-[37px] leading-none text-[#D6E0DC]">★</span>
+            <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden text-[#F2B544]" style={{width:rating>=n?"100%":rating===n-0.5?"50%":"0%"}}>
+              <span className="flex h-full w-11 items-center justify-center text-[37px] leading-none">★</span>
+            </span>
+            <button type="button" className="absolute inset-y-0 left-0 w-1/2 rounded-l-md focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600" onClick={()=>setRating(n-0.5)} aria-label={`Оценить на ${(n-0.5).toLocaleString("ru-RU")} из 5`} aria-pressed={rating===n-0.5}/>
+            <button type="button" className="absolute inset-y-0 right-0 w-1/2 rounded-r-md focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600" onClick={()=>setRating(n)} aria-label={`Оценить на ${n} из 5`} aria-pressed={rating===n}/>
+          </div>)}
+          <span className="ml-2 min-w-9 text-sm font-extrabold tabular-nums text-[#92691D]" aria-live="polite">{rating?rating.toLocaleString("ru-RU"):"—"}</span>
+        </div>
+        <p className="mt-1 text-[11px] text-[#7E918A]">Нажмите на левую половину звезды, чтобы поставить 0,5.</p>
         <textarea value={reviewText} onChange={e=>setReviewText(e.target.value)} maxLength={1000} placeholder="Отзыв (необязательно)" className="mt-3 w-full rounded-xl border p-3 text-sm" rows={2}/>
         <div className="mt-2 flex gap-2"><button type="button" disabled={!rating||completionBusy} onClick={()=>void orderAction("review",{rating,reviewText})} className="flex-1 rounded-xl bg-teal-600 p-3 text-sm font-bold text-white disabled:opacity-50">Отправить</button><button type="button" onClick={()=>setReviewDone(true)} className="rounded-xl border px-4 text-sm">Пропустить</button></div>
       </div>}
