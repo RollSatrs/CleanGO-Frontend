@@ -34,6 +34,7 @@ export default function CleanerJobs() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [sharingOrderId,setSharingOrderId]=useState<string|null>(null);
+  const [travelMode,setTravelMode]=useState<"car"|"walking"|"transit">("car");
   const lastSent=useRef(0);
   const sendTripLocation=useCallback(async (orderId:string,coords:{latitude:number;longitude:number}|null)=>{
     if(!token)return;
@@ -142,8 +143,17 @@ export default function CleanerJobs() {
     setError("");
     setMessage("");
     try {
+      let departure: {travelMode:string;latitude?:number;longitude?:number}|undefined;
+      if(action==="en-route") {
+        departure={travelMode};
+        try {
+          const coords=await requestCleanGoLocation();
+          departure={...departure,latitude:coords.latitude,longitude:coords.longitude};
+        } catch { setMessage("Не удалось получить свежую геопозицию. Попробуем последние сохранённые координаты."); }
+      }
       const response = await fetch(`${API_URL}/orders/${encodeURIComponent(orderId)}/${action}`, {
-        method: "PATCH", headers: { Authorization: `Bearer ${token}` },
+        method: "PATCH", headers: { Authorization: `Bearer ${token}`, ...(departure?{"Content-Type":"application/json"}:{}) },
+        ...(departure?{body:JSON.stringify(departure)}:{}),
       });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
@@ -191,6 +201,13 @@ export default function CleanerJobs() {
           <p className="mt-2 text-sm font-medium text-teal-700">{({accepted:"Заказ принят",en_route:"Направляетесь к клиенту",arrived:"Вы прибыли",in_progress:"Уборка выполняется"} as Record<string,string>)[job.status] ?? job.status}</p>
           {job.status==="en_route"&&<button type="button" onClick={()=>{setError("");setSharingOrderId(current=>current===job.id?null:job.id);}} className="mt-3 w-full rounded-xl border border-teal-600 px-4 py-3 text-sm font-semibold text-teal-800">{sharingOrderId===job.id?"Остановить передачу геопозиции":"Поделиться геопозицией с клиентом"}</button>}
           {sharingOrderId===job.id&&<p className="mt-2 text-xs text-teal-700">Геопозиция передаётся только во время поездки, пока этот экран открыт. Можно отключить в любой момент.</p>}
+          {job.status==="accepted"&&<label className="mt-3 block text-xs font-semibold text-slate-600">Как доберётесь до клиента?
+            <select value={travelMode} onChange={event=>setTravelMode(event.target.value as "car"|"walking"|"transit")} className="mt-2 w-full rounded-xl border border-teal-200 bg-white px-3 py-3 text-sm text-slate-800">
+              <option value="car">На автомобиле</option>
+              <option value="walking">Пешком</option>
+              <option value="transit">Общественный транспорт</option>
+            </select>
+          </label>}
           <button type="button" disabled={busyId !== null}
             onClick={() => void transition(job.id, job.status === "accepted" ? "en-route" : job.status === "en_route" ? "arrived" : job.status === "arrived" ? "start" : "complete")}
             className="mt-4 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
