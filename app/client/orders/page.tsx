@@ -26,6 +26,8 @@ const statuses: Record<string, string> = {
   arrived: "Клинер прибыл",
   in_progress: "Уборка выполняется",
   completed: "Завершён",
+  pending_confirmation: "Ожидает вашего подтверждения",
+  disputed: "Обращение в поддержку",
   cancelled: "Отменён",
   unassigned: "Клинер не найден",
   expired: "Поиск завершён",
@@ -133,7 +135,7 @@ export default function ClientOrders() {
               {order.price == null ? "Цена уточняется" : `${Number(order.price).toLocaleString("ru-RU")} ₸`}
             </p>
             <p className="mt-1 text-xs text-slate-500">{new Date(order.createdAt).toLocaleString("ru-RU")}</p>
-            {["pending", "accepted", "en_route", "arrived", "in_progress"].includes(order.status) && (
+            {["pending", "accepted", "en_route", "arrived", "in_progress", "pending_confirmation", "disputed"].includes(order.status) && (
               <Link href={`/client/orders/${encodeURIComponent(order.id)}`}
                 className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white">
                 {order.status === "pending" ? "Посмотреть поиск на карте" : "Посмотреть заказ на карте"}
