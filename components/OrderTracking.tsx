@@ -120,7 +120,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       } catch {if(active)setNetworkError(true);}
     };
     void refresh();
-    const interval=window.setInterval(()=>void refresh(),5000);
+    const interval=window.setInterval(()=>void refresh(),order.status==="pending_confirmation"?30000:5000);
     return()=>{active=false;window.clearInterval(interval);};
   },[token,initialOrder.id,order.status]);
 
