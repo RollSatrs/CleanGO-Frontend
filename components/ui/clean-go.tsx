@@ -142,19 +142,20 @@ export function LoadingState({ label = "Загружаем...", rows = 2 }: { la
   </div>;
 }
 
-export function AppPageShell({ role, eyebrow, title, description, children }: { role: "client" | "cleaner"; eyebrow: string; title: string; description?: string; children: ReactNode }) {
+export function AppPageShell({ role, eyebrow, title, description, children, detailHeader, footer }: { role: "client" | "cleaner"; eyebrow: string; title: string; description?: string; children: ReactNode; detailHeader?: ReactNode; footer?: ReactNode }) {
   return <main className="cleango-page-frame">
-    <div className="cleango-page-scroll w-full">
-      <AppHeader role={role} className="cleango-client-header px-4 pb-3" />
+    {detailHeader&&<div className="cg-detail-header">{detailHeader}</div>}
+    <div key={detailHeader?"detail":"list"} className="cleango-page-scroll w-full">
+      {!detailHeader&&<AppHeader role={role} className="cleango-client-header px-4 pb-3" />}
       <div className="px-4">
-        <div className="mt-3">
+        {!detailHeader&&<div className="mt-3">
           <p className="sr-only">{eyebrow}</p>
           <h1 className="text-[25px] font-bold leading-tight tracking-[-0.035em]">{title}</h1>
           {description && <p className="mt-1.5 text-xs leading-5 text-[#697174]">{description}</p>}
-        </div>
-        <div className="mt-4 space-y-3">{children}</div>
+        </div>}
+        <div className={detailHeader?"space-y-2.5 pt-1":"mt-4 space-y-3"}>{children}</div>
       </div>
     </div>
-    <BottomNav role={role} />
+    {footer?<div className="cg-detail-footer">{footer}</div>:<BottomNav role={role} />}
   </main>;
 }
