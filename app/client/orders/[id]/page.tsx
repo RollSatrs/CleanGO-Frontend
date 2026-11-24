@@ -50,16 +50,8 @@ export default function ClientOrderTrackingPage() {
   if (order) {
     const latitude = Number(order.latitude);
     const longitude = Number(order.longitude);
-    if (order.latitude != null && order.longitude != null
-      && Number.isFinite(latitude) && Number.isFinite(longitude)
-      && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180) {
-      return <OrderTracking initialOrder={order} latitude={latitude} longitude={longitude} />;
-    }
-    return <main className="mx-auto max-w-md p-6 text-slate-800">
-      <h1 className="text-xl font-bold">Карта недоступна</h1>
-      <p className="mt-3 text-sm">Для этого заказа не сохранены координаты. Статус можно посмотреть в списке заказов.</p>
-      <Link className="mt-5 inline-block font-semibold text-teal-700" href="/client/orders">Вернуться к заказам</Link>
-    </main>;
+    const valid=order.latitude!=null&&order.longitude!=null&&Number.isFinite(latitude)&&Number.isFinite(longitude)&&Math.abs(latitude)<=90&&Math.abs(longitude)<=180;
+    return <OrderTracking initialOrder={order} latitude={valid?latitude:NaN} longitude={valid?longitude:NaN} />;
   }
   return <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 p-6 text-center text-slate-800">
     <h1 className="text-xl font-bold">Просмотр заказа</h1>
