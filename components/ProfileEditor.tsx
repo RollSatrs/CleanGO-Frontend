@@ -4,6 +4,7 @@ import { Camera, CheckCircle2, Pencil, ShieldCheck, Trash2 } from "lucide-react"
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard } from "@/components/ui/clean-go";
+import ProfileSkeleton from "@/components/ui/profile-skeleton";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 
 type Profile={firstName:string|null;lastName:string|null;avatar:string|null;reputation:{completedOrders:number;reviewCount:number;rating:number|null}|null};
@@ -27,8 +28,9 @@ async function prepareAvatar(file:File):Promise<string>{
 }
 
 export default function ProfileEditor({role}:{role:"client"|"cleaner"}){
-  const {token,user,refreshUser}=useAuth();
+  const {token,user,status,refreshUser}=useAuth();
   const [profile,setProfile]=useState<Profile|null>(null);
+  const [loadedUserId,setLoadedUserId]=useState<string|null>(null);
   const [editing,setEditing]=useState(false);
   const [first,setFirst]=useState("");
   const [last,setLast]=useState("");
@@ -43,12 +45,13 @@ export default function ProfileEditor({role}:{role:"client"|"cleaner"}){
   const userId=user?.id;
   useEffect(()=>{
     if(!token||!userId)return;
-    let active=true;
-    void fetch("/api/backend/auth/profile",{headers:{Authorization:`Bearer ${token}`},cache:"no-store"}).then(async response=>{
+    const controller=new AbortController();
+    setError("");
+    void fetch("/api/backend/auth/profile",{headers:{Authorization:`Bearer ${token}`},cache:"no-store",signal:controller.signal}).then(async response=>{
       if(!response.ok)throw new Error("Не удалось загрузить профиль");
-      const data=await response.json() as Profile;if(active){setProfile(data);setError("");}
-    }).catch(()=>{if(active)setError("Не удалось загрузить профиль. Попробуйте снова.");});
-    return()=>{active=false;};
+      const data=await response.json() as Profile;if(!controller.signal.aborted){setProfile(data);setLoadedUserId(userId);setError("");}
+    }).catch(()=>{if(!controller.signal.aborted)setError("Не удалось загрузить профиль. Попробуйте снова.");});
+    return()=>controller.abort();
   },[token,userId,attempt]);
 
   function edit(){
@@ -75,8 +78,14 @@ export default function ProfileEditor({role}:{role:"client"|"cleaner"}){
     }catch(e){setError(e instanceof Error?e.message:"Не удалось сохранить профиль");}
     finally{locked.current=false;setBusy(false);}
   }
+  if(status==="loading")return <ProfileSkeleton role={role}/>;
+  if(!token||!userId||user?.role!==role)return <AppCard><p className="text-sm cg-muted">Войдите в аккаунт, чтобы открыть профиль.</p></AppCard>;
+  if(!profile||loadedUserId!==userId){
+    if(error)return <AppCard className="cg-order-enter"><p role="alert" className="text-sm text-red-700">{error}</p><button type="button" onClick={()=>{setError("");setAttempt(i=>i+1);}} className="cg-press cg-primary mt-3 min-h-11 w-full rounded-xl text-sm font-semibold">Повторить</button></AppCard>;
+    return <ProfileSkeleton role={role} verified={Boolean(user.phoneVerifiedAt)}/>;
+  }
   const displayName=[profile?.firstName??user?.firstName,profile?profile.lastName:user?.lastName].filter(Boolean).join(" ");
-  return <div className="space-y-3">
+  return <div key={userId} className="cg-order-enter space-y-3">
     <AppCard className="!p-4">
       <div className="flex items-center gap-3">
         <div className="relative">
@@ -84,7 +93,7 @@ export default function ProfileEditor({role}:{role:"client"|"cleaner"}){
           {editing&&<button type="button" disabled={busy||photoBusy} onClick={()=>fileRef.current?.click()} aria-label="Выбрать фото" className="cg-primary absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full border-2 border-white"><Camera size={15}/></button>}
         </div>
         <div className="min-w-0 flex-1"><p className="break-words text-[19px] font-bold leading-tight">{displayName||"Пользователь CleanGo"}</p><p className="mt-1 text-xs cg-muted">{role==="cleaner"?"Клинер CleanGo":"Клиент CleanGo"}</p></div>
-        {!editing&&<button type="button" disabled={!profile||!user?.phoneVerifiedAt} onClick={edit} aria-label="Редактировать профиль" className="cg-icon-button disabled:opacity-40"><Pencil size={17}/></button>}
+        {!editing&&<button type="button" disabled={!profile||!user?.phoneVerifiedAt} onClick={edit} aria-label="Редактировать профиль" className="cg-icon-button cg-press disabled:opacity-40"><Pencil size={17}/></button>}
       </div>
       {editing&&<div className="mt-4 space-y-3 border-t border-[#E6E7E4] pt-4">
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value="";if(file)void choose(file);}}/>
@@ -92,12 +101,10 @@ export default function ProfileEditor({role}:{role:"client"|"cleaner"}){
         <p className="text-[11px] leading-4 cg-muted">Фото видно вам и второй стороне активного назначенного заказа. Кадр обрезается до квадрата.</p>
         <label className="block text-xs font-semibold">Имя<input value={first} onChange={e=>setFirst(e.target.value)} maxLength={60} autoComplete="given-name" className="cg-field mt-1.5 h-11 w-full px-3 text-base font-normal"/></label>
         <label className="block text-xs font-semibold">Фамилия<input value={last} onChange={e=>setLast(e.target.value)} maxLength={60} autoComplete="family-name" className="cg-field mt-1.5 h-11 w-full px-3 text-base font-normal"/></label>
-        <div className="flex gap-2"><button type="button" disabled={busy||photoBusy} onClick={()=>void save()} className="cg-primary min-h-11 flex-1 rounded-xl text-sm font-semibold disabled:opacity-50">{busy?"Сохранение…":"Сохранить"}</button><button type="button" disabled={busy||photoBusy} onClick={()=>{setEditing(false);setError("");}} className="min-h-11 rounded-xl border border-[#E6E7E4] px-4 text-sm font-medium">Отмена</button></div>
+        <div className="flex gap-2"><button type="button" disabled={busy||photoBusy} onClick={()=>void save()} className="cg-press cg-primary min-h-11 flex-1 rounded-xl text-sm font-semibold disabled:opacity-50">{busy?"Сохранение…":"Сохранить"}</button><button type="button" disabled={busy||photoBusy} onClick={()=>{setEditing(false);setError("");}} className="min-h-11 rounded-xl border border-[#E6E7E4] px-4 text-sm font-medium">Отмена</button></div>
       </div>}
-      {!editing&&profile&&<button type="button" onClick={edit} disabled={!user?.phoneVerifiedAt} className="mt-3 w-full rounded-xl border border-[#E6E7E4] py-2.5 text-xs font-semibold text-[#137D79] disabled:opacity-40">Редактировать профиль</button>}
-      {!profile&&!error&&<p className="mt-3 text-xs cg-muted">Загружаем профиль…</p>}
+      {!editing&&profile&&<button type="button" onClick={edit} disabled={!user?.phoneVerifiedAt} className="cg-press mt-3 w-full rounded-xl border border-[#E6E7E4] py-2.5 text-xs font-semibold text-[#137D79] disabled:opacity-40">Редактировать профиль</button>}
       {error&&<p role="alert" className="mt-3 text-xs text-red-700">{error}</p>}
-      {!profile&&error&&<button type="button" onClick={()=>{setError("");setAttempt(i=>i+1);}} className="mt-2 text-xs font-semibold text-[#137D79]">Повторить</button>}
       {notice&&<p role="status" className="mt-3 flex items-center gap-1.5 text-xs text-[#137D79]"><CheckCircle2 size={15}/>{notice}</p>}
     </AppCard>
     {role==="cleaner"&&profile?.reputation&&<AppCard><h2 className="text-sm font-semibold">Моя репутация</h2><div className="mt-3 grid grid-cols-3 gap-2 text-center">{[{value:profile.reputation.rating?.toFixed(1)??"—",label:"Рейтинг"},{value:profile.reputation.completedOrders,label:"Уборок"},{value:profile.reputation.reviewCount,label:"Оценок"}].map(item=><div key={item.label} className="rounded-xl bg-[#F4F5F2] p-2.5"><p className="text-lg font-bold">{item.value}</p><p className="text-[11px] cg-muted">{item.label}</p></div>)}</div></AppCard>}
