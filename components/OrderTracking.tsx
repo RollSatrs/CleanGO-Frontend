@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock3, MapPin, Sparkles, Star, ChevronDown, Phone, UserRound, CalendarDays, Camera, BrushCleaning, Navigation, ChevronsUpDown } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock3, MapPin, Sparkles, Star, ChevronDown, Phone, CalendarDays, Camera, BrushCleaning, Navigation, ChevronsUpDown } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { CounterpartAvatar } from "@/components/ProfileAvatar";
 import ServiceImage from "@/components/ServiceImage";
 import PhotoReport from "@/components/PhotoReport";
 
@@ -309,7 +310,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       <div className="p-3">
         <p className="mb-2.5 text-xs font-semibold cg-muted">Ваш исполнитель</p>
         <div className="flex items-center gap-2.5">
-          <div className="cg-soft grid h-11 w-11 shrink-0 place-items-center rounded-[13px] text-base font-bold" aria-hidden="true">{progress.cleaner.name.trim().split(/\s+/).slice(0,2).map(part=>part[0]?.toUpperCase()).join("")||<UserRound size={21}/>}</div>
+          <CounterpartAvatar orderId={order.id} name={progress.cleaner.name} enabled={["accepted","en_route","arrived","in_progress","pending_confirmation"].includes(order.status)} className="h-11 w-11 text-base"/>
           <button type="button" onClick={()=>setReputationOpen(open=>!open)} aria-expanded={reputationOpen} className="min-w-0 flex-1 text-left">
             <p className="flex items-center gap-1 text-[15px] font-bold"><span className="truncate">{progress.cleaner.name}</span><ChevronDown size={14} className={reputationOpen?"shrink-0 rotate-180":"shrink-0"}/></p>
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] cg-muted"><span className="inline-flex items-center gap-1"><Star size={12} className="fill-[#E9B54E] text-[#E9B54E]"/>{reputation?.rating!=null?reputation.rating.toFixed(1):"Нет оценок"}</span>{reputation&&<span>{reputation.completedOrders} уборок</span>}</p>
