@@ -21,7 +21,7 @@ export default function WelcomePage() {
   }
 
   return (
-    <main className="relative isolate min-h-[100dvh] overflow-hidden bg-[#70DED2] font-sans text-[#083D40]">
+    <main className="relative isolate cleango-screen overflow-hidden bg-[#70DED2] font-sans text-[#083D40]">
       {/* Основной мятный фон */}
       <div
         aria-hidden="true"
@@ -61,7 +61,7 @@ export default function WelcomePage() {
       </div>
 
       {/* Содержимое экрана */}
-      <div className="relative z-20 mx-auto flex min-h-[100dvh] w-full max-w-[520px] flex-col px-6">
+      <div className="relative z-20 mx-auto flex cleango-screen w-full max-w-[520px] flex-col px-6">
         {/* Логотип и название */}
         <motion.div
           initial={{
@@ -75,7 +75,7 @@ export default function WelcomePage() {
           transition={{
             duration: reduceMotion ? 0 : 0.65,
           }}
-          className="flex flex-col items-center pt-[clamp(65px,13dvh,135px)] text-center"
+          className="flex flex-col items-center cleango-welcome-intro text-center"
         >
           <CleanGoLogo
             size={118}
@@ -113,7 +113,7 @@ export default function WelcomePage() {
             duration: reduceMotion ? 0 : 0.6,
             delay: reduceMotion ? 0 : 0.2,
           }}
-          className="relative z-30 pb-[max(42px,calc(env(safe-area-inset-bottom)+28px))]"
+          className="relative z-30 cleango-welcome-actions"
         >
           <button
             type="button"
