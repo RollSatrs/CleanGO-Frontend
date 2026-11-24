@@ -166,3 +166,24 @@ body { background: var(--cg-bg); color: var(--cg-text); }
 .cg-soft { background: var(--cg-soft); color: #176E6B; }
 .cg-muted { color: var(--cg-muted); }
 html.telegram-mini-app.cleango-fullscreen body:has(.cleango-page-frame) { overflow: hidden; }
+
+/* Shared detail-screen controls; only the central region scrolls. */
+.cg-detail-header {
+  flex: none; padding: 8px 16px 12px; background: var(--cg-bg);
+}
+.cg-detail-footer {
+  flex: none; padding: 10px 16px max(12px, var(--cleango-safe-bottom-inset));
+  border-top: 1px solid var(--cg-line); background: var(--cg-bg);
+}
+.cg-icon-button {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%;
+  background: #EEEFEA; color: var(--cg-text);
+}
+.cg-icon-button:active { background: #E1E5E1; }
+.cg-photo-strip { display: flex; gap: 8px; overflow-x: auto; padding-block: 3px; scrollbar-width: none; }
+.cg-photo-strip::-webkit-scrollbar { display: none; }
+.cg-photo-strip > * { flex: 0 0 clamp(76px, 22vw, 104px); }
+.cg-photo-strip .cg-add-photo { aspect-ratio: 1; }
+.cg-field { background: #F4F5F2; border: 1px solid var(--cg-line); border-radius: 12px; }
+.cg-field:focus-within { border-color: var(--cg-accent); }
