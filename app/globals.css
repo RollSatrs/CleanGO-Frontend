@@ -193,3 +193,41 @@ html.telegram-mini-app.cleango-fullscreen body:has(.cleango-page-frame) { overfl
   max-height: max(100px, calc(var(--cleango-viewport) - var(--cleango-safe-top) - 72px));
 }
 .cg-tracking-panel .cg-card { margin-top: 0; }
+
+/* Floating booking card: content-sized snap points, never a blank fixed sheet. */
+.cg-booking {
+  --cg-booking-bottom: calc(var(--cleango-safe-bottom-inset) + 10px);
+  --cg-booking-sheet-height: 300px;
+}
+.cg-booking-top {
+  top: calc(var(--cleango-safe-top) + 10px);
+  padding-left: max(12px, calc(var(--cleango-safe-left) + 8px));
+  padding-right: max(12px, calc(var(--cleango-safe-right) + 8px));
+}
+.cg-booking-panel {
+  box-sizing: border-box;
+  left: max(10px, calc(var(--cleango-safe-left) + 6px));
+  right: max(10px, calc(var(--cleango-safe-right) + 6px));
+  bottom: var(--cg-booking-bottom);
+  max-width: 500px;
+  margin-inline: auto;
+  max-height: max(120px, calc(var(--cleango-viewport) - var(--cleango-safe-top) - var(--cg-booking-bottom) - 64px));
+  background: #fff;
+  border: 1px solid var(--cg-line);
+  border-radius: 22px;
+  box-shadow: 0 8px 28px rgba(21,25,29,.11);
+  transition: height 260ms cubic-bezier(.2,.8,.2,1);
+}
+.cg-booking-dragging { transition: none; }
+.cg-booking-handle { height: 28px; touch-action: none; user-select: none; cursor: grab; }
+.cg-booking-handle:active { cursor: grabbing; }
+.cg-booking-body { scrollbar-width: none; }
+.cg-booking-body::-webkit-scrollbar { display: none; }
+.cg-booking .cg-booking-locate {
+  bottom: calc(var(--cg-booking-sheet-height) + var(--cg-booking-bottom) + 12px);
+  right: max(16px, calc(var(--cleango-safe-right) + 12px));
+}
+.cg-booking .cg-booking-search { top: calc(var(--cleango-safe-top) + 62px); }
+@media (prefers-reduced-motion: reduce) {
+  .cg-booking-panel { transition: none; }
+}
