@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { ImageIcon, MapPin, CalendarDays, ChevronRight, RefreshCw } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 
@@ -103,15 +104,14 @@ export default function ClientOrders() {
   };
 
   return (
-    <AppPageShell role="client" eyebrow="CleanGo" title="Мои заказы"
-      description="Активные заказы и история уборок. Статусы обновляются каждые 15 секунд.">
+    <AppPageShell role="client" eyebrow="CleanGo" title="Заказы">
       {status === "authenticated" && user?.role !== "client" && (
         <AppCard><p className="text-sm">Раздел доступен клиентам.</p></AppCard>
       )}
       {user?.role === "client" && !user.phoneVerifiedAt && (
         <AppCard><p className="text-sm">Подтвердите телефон, чтобы увидеть заказы.</p></AppCard>
       )}
-      <div className="flex gap-2" role="group" aria-label="Раздел заказов">{(["active", "archive"] as const).map(value => <button key={value} type="button" aria-pressed={section === value} onClick={() => { setSection(value); setPage(1); setLoading(true); }} className={`flex-1 rounded-xl px-3 py-3 text-sm font-semibold ${section === value ? "bg-teal-600 text-white" : "bg-teal-50 text-teal-800"}`}>{value === "active" ? "Активные" : "Архив"}</button>)}</div>
+      <div className="flex gap-2" role="group" aria-label="Раздел заказов">{(["active", "archive"] as const).map(value => <button key={value} type="button" aria-pressed={section === value} onClick={() => { setSection(value); setPage(1); setLoading(true); }} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${section === value ? "cg-primary" : "bg-[#EDEEEB] text-[#51595A]"}`}>{value === "active" ? "Активные" : "Архив"}</button>)}</div>
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {loading && <p className="text-sm text-slate-500">Загружаем заказы…</p>}
       {!loading && !error && user?.role === "client" && user.phoneVerifiedAt && orders.length === 0 && (
@@ -123,25 +123,19 @@ export default function ClientOrders() {
       )}
       <div className="space-y-3">
         {orders.map(order => (
-          <AppCard key={order.id}>
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="font-bold">{labels[order.cleaningType] ?? order.cleaningType}</h2>
-              <span className="rounded-lg bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">
-                {statuses[order.status] ?? order.status}
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-slate-600">{order.area} м² · {order.address}</p>
-            <p className="mt-2 font-bold text-teal-700">
-              {order.price == null ? "Цена уточняется" : `${Number(order.price).toLocaleString("ru-RU")} ₸`}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">{new Date(order.createdAt).toLocaleString("ru-RU")}</p>
-            {["pending", "accepted", "en_route", "arrived", "in_progress", "pending_confirmation", "disputed"].includes(order.status) && (
-              <Link href={`/client/orders/${encodeURIComponent(order.id)}`}
-                className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white">
-                {order.status === "pending" ? "Посмотреть поиск на карте" : "Посмотреть заказ на карте"}
-              </Link>
-            )}
-            {order.status === "pending" && <button type="button" disabled={cancellingId !== null} onClick={() => void cancelOrder(order)} className="mt-3 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">{cancellingId === order.id ? "Отменяем…" : "Отменить заказ"}</button>}
+          <AppCard key={order.id} className="!p-2.5">
+            <Link href={`/client/orders/${encodeURIComponent(order.id)}`} className="flex items-stretch gap-3">
+              <div className="cg-placeholder grid min-h-[108px] w-[29%] shrink-0 place-items-center rounded-[11px]" aria-hidden="true"><ImageIcon size={24} strokeWidth={1.4}/></div>
+              <div className="min-w-0 flex-1 py-1">
+                <span className="cg-soft inline-flex rounded-full px-2 py-1 text-[10px] font-semibold leading-tight">{statuses[order.status] ?? order.status}</span>
+                <p className="mt-1.5 text-[19px] font-bold tracking-tight">{order.price==null?"Цена уточняется":`${Number(order.price).toLocaleString("ru-RU")} ₸`}</p>
+                <h2 className="mt-1 text-xs font-semibold">{labels[order.cleaningType]??order.cleaningType} · {order.area} м²</h2>
+                <p className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-4 cg-muted"><MapPin size={13} className="shrink-0"/><span className="line-clamp-2">{order.address}</span></p>
+                <p className="mt-1 flex items-center gap-1.5 text-[11px] cg-muted"><CalendarDays size={13} className="shrink-0"/>{new Date(order.createdAt).toLocaleString("ru-RU")}</p>
+              </div>
+              <ChevronRight size={16} className="shrink-0 self-center text-[#909895]"/>
+            </Link>
+            {order.status==="pending"&&<button type="button" disabled={cancellingId!==null} onClick={()=>void cancelOrder(order)} className="mt-2 w-full rounded-[10px] border border-[#E6E7E4] px-3 py-2 text-xs font-medium text-red-700 disabled:opacity-50">{cancellingId===order.id?"Отменяем…":"Отменить заказ"}</button>}
           </AppCard>
         ))}
       </div>
@@ -154,8 +148,8 @@ export default function ClientOrders() {
       )}
       {user?.role === "client" && user.phoneVerifiedAt && (
         <button type="button" onClick={() => void load()}
-          className="mt-4 w-full rounded-xl border border-teal-200 px-4 py-3 font-semibold text-teal-700">
-          Обновить заказы
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#E6E7E4] bg-white px-4 py-2.5 text-xs font-semibold text-[#137D79]">
+          <RefreshCw size={14}/> Обновить заказы
         </button>
       )}
     </AppPageShell>
