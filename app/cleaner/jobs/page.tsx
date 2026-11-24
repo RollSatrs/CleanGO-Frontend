@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { requestCleanGoLocation } from "@/lib/geo-location";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
+import PhotoReport from "@/components/PhotoReport";
 
 type AssignedJob = { id: string; status: string; cleaningType: string; area: number; price: number | null; address: string; latitude: string | number | null; longitude: string | number | null; createdAt: string; clientFirstName: string | null; clientLastName: string | null; clientPhone: string | null; inspectionMethod?:"personal"|"photos" };
 
@@ -36,6 +37,8 @@ export default function CleanerJobs() {
   const [sharingOrderId,setSharingOrderId]=useState<string|null>(null);
   const [photoFiles,setPhotoFiles]=useState<Record<string,string[]>>({});
   const [photoBusy,setPhotoBusy]=useState<string|null>(null);
+  const [photoErrors,setPhotoErrors]=useState<Record<string,string>>({});
+  const photoLock=useRef(false);
   const [travelMode,setTravelMode]=useState<"car"|"walking"|"transit">("car");
   const lastSent=useRef(0);
   const sendTripLocation=useCallback(async (orderId:string,coords:{latitude:number;longitude:number}|null)=>{
@@ -138,32 +141,43 @@ export default function CleanerJobs() {
   }
 
 
-  async function preparePhotos(orderId:string,files:FileList|null) {
-    if(!files)return;
-    if(files.length<3||files.length>5){setError("Нужно выбрать от 3 до 5 фотографий");return;}
-    setPhotoBusy(orderId);setError("");
+  async function preparePhotos(orderId:string,files:File[]) {
+    if(!files.length||photoLock.current||busyId)return;
+    const existing=photoFiles[orderId]??[];
+    if(files.length>5-existing.length){
+      setPhotoErrors(old=>({...old,[orderId]:`Можно добавить ещё не более ${5-existing.length} фото.`}));
+      return;
+    }
+    photoLock.current=true;
+    setPhotoBusy(orderId);
+    setPhotoErrors(old=>({...old,[orderId]:""}));
     try{
       const results:string[]=[];
-      for(const file of Array.from(files)){
-        if(!file.type.startsWith("image/")||file.size>10*1024*1024)throw new Error("Файл должен быть изображением до 10 МБ");
+      for(const file of files){
+        if((file.type&&!file.type.startsWith("image/"))||file.size>10*1024*1024)throw new Error("Выберите изображение размером до 10 МБ.");
         const img=await new Promise<HTMLImageElement>((resolve,reject)=>{
           const url=URL.createObjectURL(file);const image=new Image();
           image.onload=()=>{URL.revokeObjectURL(url);resolve(image);};
-          image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("Фото не открылось"));};
+          image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("Не удалось открыть фото. Попробуйте другой файл."));};
           image.src=url;
         });
-        const canvas=document.createElement("canvas");const factor=Math.min(1,900/Math.max(img.width,img.height));
+        const canvas=document.createElement("canvas");const factor=Math.min(1,1280/Math.max(img.width,img.height));
         canvas.width=Math.max(1,Math.round(img.width*factor));canvas.height=Math.max(1,Math.round(img.height*factor));
         const context=canvas.getContext("2d");if(!context)throw new Error("Ошибка обработки фото");
         context.drawImage(img,0,0,canvas.width,canvas.height);
-        const data=canvas.toDataURL("image/jpeg",0.58);
-        if(data.length>450000)throw new Error("Фото слишком большое, выберите изображение меньшего размера");
+        let data=canvas.toDataURL("image/jpeg",0.75);
+        for(const quality of [0.65,0.55,0.45,0.35]){
+          if(data.length<=420000)break;
+          data=canvas.toDataURL("image/jpeg",quality);
+        }
+        if(data.length>420000||!data.startsWith("data:image/jpeg;base64,"))throw new Error("Не удалось сжать фото. Выберите другое изображение.");
         results.push(data);
       }
-      setPhotoFiles(old=>({...old,[orderId]:results}));
-    }catch(error){setError(error instanceof Error?error.message:"Не удалось загрузить фото");}
-    finally{setPhotoBusy(null);}
+      setPhotoFiles(old=>({...old,[orderId]:[...(old[orderId]??[]),...results].slice(0,5)}));
+    }catch(error){setPhotoErrors(old=>({...old,[orderId]:error instanceof Error?error.message:"Не удалось подготовить фото"}));}
+    finally{photoLock.current=false;setPhotoBusy(null);}
   }
+
   async function transition(orderId: string, action: "en-route" | "arrived" | "start" | "complete") {
     if (!token || busyId) return;
     if (action === "complete") {
@@ -192,6 +206,7 @@ export default function CleanerJobs() {
         const body = await response.json().catch(() => null);
         throw new Error(typeof body?.message === "string" ? body.message : "Не удалось обновить заказ");
       }
+      if(action==="complete")setPhotoFiles(old=>{const next={...old};delete next[orderId];return next;});
       setMessage(({ "en-route":"Вы отметили, что направляетесь к клиенту.", arrived:"Прибытие подтверждено.", start:"Уборка начата.", complete:"Результат передан клиенту. Можно уходить: подтверждение он сделает в приложении." })[action]);
       await load();
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка соединения"); }
@@ -241,13 +256,20 @@ export default function CleanerJobs() {
               <option value="transit">Общественный транспорт</option>
             </select>
           </label>}
-          {job.status==="in_progress"&&<div className="mt-3 rounded-xl bg-teal-50 p-3">
-            <p className="text-sm font-semibold text-teal-900">Проверка: {job.inspectionMethod==="personal"?"лично":"по фотографиям"}</p>
-            {job.inspectionMethod!=="personal"&&<><p className="mt-1 text-xs text-teal-800">Клиент выбрал проверку по фото. Загрузите 3–5 фотографий результата.</p>
-              <input type="file" accept="image/*" multiple disabled={photoBusy===job.id} onChange={event=>void preparePhotos(job.id,event.target.files)} className="mt-2 block w-full text-xs"/>
-              <p className="mt-1 text-xs text-teal-800">Подготовлено: {photoFiles[job.id]?.length??0} фото</p></>}
+          {job.status==="in_progress"&&<div className="mt-4 rounded-[22px] border border-[#E1EEE8] bg-white p-3.5">
+            <p className="mb-3 text-xs font-semibold text-[#58796F]">{job.inspectionMethod==="personal"?"Личная проверка · фото необязательны":"Клиент проверит уборку по фотографиям"}</p>
+            <PhotoReport photos={photoFiles[job.id]??[]} required={job.inspectionMethod!=="personal"}
+              busy={photoBusy===job.id} disabled={busyId!==null||photoBusy!==null}
+              onAdd={files=>void preparePhotos(job.id,files)}
+              onRemove={index=>{
+                if(photoLock.current||busyId)return;
+                setPhotoFiles(old=>({...old,[job.id]:(old[job.id]??[]).filter((_,i)=>i!==index)}));
+                setPhotoErrors(old=>({...old,[job.id]:""}));
+              }}/>
+            {photoErrors[job.id]&&<p className="mt-2 text-xs text-red-700" role="alert">{photoErrors[job.id]}</p>}
+            <p className="mt-3 text-[11px] leading-4 text-[#81968D]">Снимайте результат уборки, не включайте в кадр людей и личные документы.</p>
           </div>}
-          <button type="button" disabled={busyId !== null || photoBusy===job.id}
+          <button type="button" disabled={busyId !== null || photoBusy!==null || (job.status==="in_progress" && job.inspectionMethod!=="personal" && (photoFiles[job.id]?.length??0)<3)}
             onClick={() => void transition(job.id, job.status === "accepted" ? "en-route" : job.status === "en_route" ? "arrived" : job.status === "arrived" ? "start" : "complete")}
             className="mt-4 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
             {({accepted:"Я выехал к клиенту",en_route:"Я прибыл",arrived:"Начать уборку",in_progress:"Завершить уборку"} as Record<string,string>)[job.status] ?? "Обновить статус"}
