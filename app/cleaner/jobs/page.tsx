@@ -42,6 +42,7 @@ export default function CleanerJobs() {
   const [motionKey,setMotionKey]=useState(0);
   const loadVersion=useRef(0);
   const refreshLock=useRef(false);
+  const pollLock=useRef(false);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -88,12 +89,13 @@ export default function CleanerJobs() {
   },[sharingOrderId,sendTripLocation]);
 
   const load = useCallback(async (manual=false) => {
-    if(!manual&&refreshLock.current)return;
+    if(!manual&&(refreshLock.current||pollLock.current))return;
     const version=++loadVersion.current;
     if (!token || user?.role !== "cleaner" || !user.phoneVerifiedAt) {
       setLoading(false);
       return;
     }
+    pollLock.current=true;
     try {
       const response = await fetch(`${API_URL}/orders/offers/mine`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -116,7 +118,7 @@ export default function CleanerJobs() {
     } catch (err) {
       if(version===loadVersion.current)setError(err instanceof Error ? err.message : "Ошибка загрузки");
     } finally {
-      if(version===loadVersion.current)setLoading(false);
+      if(version===loadVersion.current){pollLock.current=false;setLoading(false);}
     }
   }, [token, user?.role, user?.phoneVerifiedAt]);
 
@@ -134,7 +136,7 @@ export default function CleanerJobs() {
     document.addEventListener("visibilitychange", refreshOnReturn);
     window.addEventListener("focus", refreshOnReturn);
     window.addEventListener("pageshow", refreshOnReturn);
-    return () => { loadVersion.current++;clearInterval(timer); document.removeEventListener("visibilitychange", refreshOnReturn); window.removeEventListener("focus", refreshOnReturn); window.removeEventListener("pageshow", refreshOnReturn); };
+    return () => { loadVersion.current++;pollLock.current=false;clearInterval(timer); document.removeEventListener("visibilitychange", refreshOnReturn); window.removeEventListener("focus", refreshOnReturn); window.removeEventListener("pageshow", refreshOnReturn); };
   }, [load, token, user?.role]);
 
   async function respond(orderId: string, action: "accept" | "decline") {
@@ -154,7 +156,7 @@ export default function CleanerJobs() {
       }
       if(action==="accept")setTab("jobs");
       setMessage(action === "accept" ? "Заказ принят. Проверьте детали в личном кабинете." : "Предложение отклонено.");
-      await load();
+      await load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка соединения");
     } finally {
@@ -230,7 +232,7 @@ export default function CleanerJobs() {
       }
       if(action==="complete"){setPhotoFiles(old=>{const next={...old};delete next[orderId];return next;});setSelectedJobId(null);setTab("history");}
       setMessage(({ "en-route":"Вы отметили, что направляетесь к клиенту.", arrived:"Прибытие подтверждено.", start:"Уборка начата.", complete:"Результат передан клиенту. Можно уходить: подтверждение он сделает в приложении." })[action]);
-      await load();
+      await load(true);
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка соединения"); }
     finally { setBusyId(null); }
   }
