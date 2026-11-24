@@ -33,8 +33,8 @@ function PhotoViewer({photos, startIndex, onClose}: {photos: readonly string[]; 
     <dialog ref={dialog} onCancel={event=>{event.preventDefault();onClose();}}
       onKeyDown={event=>{if(event.key==="ArrowLeft")move(-1);if(event.key==="ArrowRight")move(1);}}
       aria-label="Просмотр фотографий уборки"
-      className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-hidden bg-[#101D20] p-0 text-white backdrop:bg-[#101D20]">
-      <div className="flex h-full min-h-0 flex-col px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-[max(12px,env(safe-area-inset-top))]">
+      className="cleango-photo-viewer fixed inset-0 m-0 overflow-hidden bg-[#101D20] p-0 text-white backdrop:bg-[#101D20]">
+      <div className="cleango-photo-viewer-content flex h-full min-h-0 flex-col">
         <header className="flex shrink-0 items-center justify-between gap-3 py-2">
           <div><p className="text-sm font-bold">Фотоотчёт</p><p className="mt-1 text-xs text-white/60">{current+1} из {photos.length}</p></div>
           <button type="button" autoFocus onClick={onClose} aria-label="Закрыть просмотр" className="grid h-11 w-11 place-items-center rounded-full bg-white/10"><X size={22}/></button>
@@ -42,11 +42,11 @@ function PhotoViewer({photos, startIndex, onClose}: {photos: readonly string[]; 
         <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden"
           onTouchStart={event=>{const t=event.touches[0];start.current=event.touches.length===1?{x:t.clientX,y:t.clientY}:null;}}
           onTouchEnd={event=>{const from=start.current;start.current=null;const t=event.changedTouches[0];if(!from||!t)return;const dx=t.clientX-from.x,dy=t.clientY-from.y;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.4)move(dx<0?1:-1);}}>
-          {current>=0&&<img src={photos[current]} alt={`Фото результата ${current+1}`} draggable={false} className="max-h-full max-w-full select-none object-contain"/>}
+          {current>=0&&<img src={photos[current]} alt={`Фото результата ${current+1}`} draggable={false} className="h-full w-full select-none object-contain"/>}
           {current>0&&<button type="button" onClick={()=>move(-1)} aria-label="Предыдущее фото" className="absolute left-0 grid h-11 w-11 place-items-center rounded-full bg-black/55"><ChevronLeft size={24}/></button>}
           {current<photos.length-1&&<button type="button" onClick={()=>move(1)} aria-label="Следующее фото" className="absolute right-0 grid h-11 w-11 place-items-center rounded-full bg-black/55"><ChevronRight size={24}/></button>}
         </div>
-        <div className="mt-3 flex shrink-0 justify-center gap-2 overflow-x-auto py-2">
+        <div className="cleango-photo-viewer-thumbnails mt-3 flex shrink-0 justify-center gap-2 overflow-x-auto py-2">
           {photos.map((src,i)=><button type="button" key={i} onClick={()=>setIndex(i)} aria-label={`Открыть фото ${i+1}`} aria-current={i===current?"true":undefined} className={`h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 ${i===current?"border-[#81D4CD]":"border-transparent opacity-60"}`}><img src={src} alt="" className="h-full w-full object-cover"/></button>)}
         </div>
       </div>
