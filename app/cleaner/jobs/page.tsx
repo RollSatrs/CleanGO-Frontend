@@ -5,6 +5,7 @@ import { requestCleanGoLocation } from "@/lib/geo-location";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 import PhotoReport from "@/components/PhotoReport";
+import { ImageIcon, MapPin, Phone, UserRound, ChevronRight, CalendarDays, ArrowLeft, RefreshCw, Camera } from "lucide-react";
 
 type AssignedJob = { id: string; status: string; cleaningType: string; area: number; price: number | null; address: string; latitude: string | number | null; longitude: string | number | null; createdAt: string; clientFirstName: string | null; clientLastName: string | null; clientPhone: string | null; inspectionMethod?:"personal"|"photos" };
 
@@ -30,6 +31,8 @@ export default function CleanerJobs() {
   const { user, token, status } = useAuth();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [jobs, setJobs] = useState<AssignedJob[]>([]);
+  const [selectedJobId,setSelectedJobId]=useState<string|null>(null);
+  const [tab,setTab]=useState<"offers"|"jobs">("offers");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -131,6 +134,7 @@ export default function CleanerJobs() {
           ? "Предложение уже недоступно. Обновите список."
           : (body?.message ?? "Не удалось обработать предложение"));
       }
+      if(action==="accept")setTab("jobs");
       setMessage(action === "accept" ? "Заказ принят. Проверьте детали в личном кабинете." : "Предложение отклонено.");
       await load();
     } catch (err) {
@@ -206,16 +210,16 @@ export default function CleanerJobs() {
         const body = await response.json().catch(() => null);
         throw new Error(typeof body?.message === "string" ? body.message : "Не удалось обновить заказ");
       }
-      if(action==="complete")setPhotoFiles(old=>{const next={...old};delete next[orderId];return next;});
+      if(action==="complete"){setPhotoFiles(old=>{const next={...old};delete next[orderId];return next;});setSelectedJobId(null);setTab("jobs");}
       setMessage(({ "en-route":"Вы отметили, что направляетесь к клиенту.", arrived:"Прибытие подтверждено.", start:"Уборка начата.", complete:"Результат передан клиенту. Можно уходить: подтверждение он сделает в приложении." })[action]);
       await load();
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка соединения"); }
     finally { setBusyId(null); }
   }
 
+  const selectedJob=jobs.find(job=>job.id===selectedJobId);
   return (
-    <AppPageShell role="cleaner" eyebrow="Для исполнителя" title="Мои предложения"
-      description="Только персональные предложения. Точный адрес доступен после назначения заказа.">
+    <AppPageShell role="cleaner" eyebrow="Для исполнителя" title={selectedJob?"Детали заказа":"Заказы"}>
       {status === "authenticated" && user?.role !== "cleaner" && (
         <AppCard><p className="text-sm">Этот раздел доступен только клинерам.</p></AppCard>
       )}
@@ -225,28 +229,38 @@ export default function CleanerJobs() {
       {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {message && <p role="status" className="mb-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p>}
       {loading && <p className="text-sm text-slate-500">Загружаем предложения…</p>}
-      {!loading && user?.role === "cleaner" && user.phoneVerifiedAt && offers.length === 0 && jobs.length === 0 && !error && (
+      {!selectedJob&&<div className="flex gap-2" role="group" aria-label="Раздел заявок">
+        <button type="button" aria-pressed={tab==="offers"} onClick={()=>setTab("offers")} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${tab==="offers"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>Доступные · {offers.length}</button>
+        <button type="button" aria-pressed={tab==="jobs"} onClick={()=>setTab("jobs")} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${tab==="jobs"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>Мои заказы · {jobs.length}</button>
+      </div>}
+      {selectedJob&&<button type="button" onClick={()=>{setSelectedJobId(null);setTab("jobs");}} className="inline-flex items-center gap-2 py-1 text-xs font-semibold text-[#137D79]"><ArrowLeft size={16}/> К заказам</button>}
+      {!loading && !selectedJob && user?.role === "cleaner" && user.phoneVerifiedAt && (tab==="offers"?offers.length===0:jobs.length===0) && !error && (
         <AppCard className="py-8 text-center">
-          <h2 className="text-lg font-bold">Пока нет предложений</h2>
-          <p className="mt-2 text-sm text-slate-500">Новые предложения появятся здесь автоматически. Обновление каждые 5 секунд, пока приложение открыто.</p>
+          <h2 className="text-lg font-bold">{tab==="offers"?"Пока нет предложений":"Нет текущих заказов"}</h2>
+          <p className="mt-2 text-sm text-slate-500">{tab==="offers"?"Новые предложения появятся автоматически.":"Принятые заказы появятся здесь."}</p>
         </AppCard>
       )}
-      {jobs.length > 0 && <section className="mb-6 space-y-3">
-        <h2 className="text-lg font-bold">Мои текущие уборки</h2>
-        {jobs.map(job => <AppCard key={job.id}>
-          <p className="text-sm font-semibold">{typeLabels[job.cleaningType] ?? job.cleaningType}</p>
-          <p className="mt-2 text-sm text-slate-600">{job.area} м² · {job.address}</p>
-          <div className="mt-3 rounded-2xl border border-teal-100 bg-teal-50 p-3">
-            <p className="text-sm font-semibold text-teal-900">Адрес уборки на карте</p>
-            <p className="mt-1 text-xs text-teal-800">Маршрут откроется в навигаторе от вашего текущего местоположения.</p>
-            <a href={job.latitude != null && job.longitude != null && Number.isFinite(Number(job.latitude)) && Number.isFinite(Number(job.longitude)) ? `https://www.google.com/maps/dir/?api=1&destination=${Number(job.latitude)},${Number(job.longitude)}&travelmode=driving` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`} target="_blank" rel="noopener noreferrer" className="mt-3 flex min-h-11 items-center justify-center rounded-xl bg-teal-600 px-4 text-sm font-bold text-white">Открыть маршрут на карте</a>
-          </div>
-          <div className="mt-3 rounded-xl bg-emerald-50 p-3">
-            <p className="text-xs font-semibold text-emerald-800">Клиент после принятия заказа</p>
-            <p className="mt-1 text-sm font-semibold">{[job.clientFirstName,job.clientLastName].filter(Boolean).join(" ") || "Клиент CleanGo"}</p>
-            {job.clientPhone&&<a href={`tel:${job.clientPhone}`} className="mt-1 inline-block text-sm font-medium text-teal-700">Позвонить клиенту</a>}
-          </div>
-          <p className="mt-2 text-sm font-medium text-teal-700">{({accepted:"Заказ принят",en_route:"Направляетесь к клиенту",arrived:"Вы прибыли",in_progress:"Уборка выполняется"} as Record<string,string>)[job.status] ?? job.status}</p>
+      {!selectedJob&&tab==="jobs"&&jobs.length>0&&<section className="space-y-2.5">
+        {jobs.map(job=><button key={job.id} type="button" onClick={()=>setSelectedJobId(job.id)} className="cg-card flex w-full items-center gap-3 p-2.5 text-left">
+          <div className="cg-placeholder grid h-[100px] w-[28%] shrink-0 place-items-center rounded-[10px]"><ImageIcon size={23} strokeWidth={1.3}/></div>
+          <div className="min-w-0 flex-1"><span className="cg-soft rounded-full px-2 py-1 text-[10px] font-semibold">{({accepted:"Принят",en_route:"В пути",arrived:"Прибыл",in_progress:"В работе"} as Record<string,string>)[job.status]??job.status}</span><p className="mt-2 text-lg font-bold">{job.price==null?"Цена уточняется":`${Number(job.price).toLocaleString("ru-RU")} ₸`}</p><p className="text-xs font-medium">{typeLabels[job.cleaningType]??job.cleaningType} · {job.area} м²</p><p className="mt-1 flex items-start gap-1 text-[11px] cg-muted"><MapPin size={13} className="shrink-0"/><span className="line-clamp-2">{job.address}</span></p></div><ChevronRight size={16} className="shrink-0 text-[#929A96]"/>
+        </button>)}
+      </section>}
+      {selectedJob&&<section className="space-y-3">
+        {[selectedJob].map(job => <div key={job.id} className="space-y-3">
+          <AppCard className="!p-2.5">
+            <div className="cg-placeholder relative grid aspect-[2.55/1] place-items-center rounded-[12px]"><ImageIcon size={30} strokeWidth={1.3}/><span className="cg-soft absolute left-2 top-2 rounded-full px-2.5 py-1 text-[11px] font-semibold">{({accepted:"Заказ принят",en_route:"В пути",arrived:"Прибыл",in_progress:"В работе"} as Record<string,string>)[job.status]??job.status}</span></div>
+            <div className="px-1 pb-1 pt-3"><p className="text-[23px] font-bold tracking-tight">{job.price==null?"Цена уточняется":`${Number(job.price).toLocaleString("ru-RU")} ₸`}</p><p className="mt-1 text-sm font-medium">{typeLabels[job.cleaningType]??job.cleaningType} · {job.area} м²</p><p className="mt-1 flex items-start gap-1.5 text-xs cg-muted"><MapPin size={14} className="shrink-0"/>{job.address}</p></div>
+          </AppCard>
+          <AppCard className="flex items-center gap-3">
+            <div className="cg-placeholder grid h-10 w-10 shrink-0 place-items-center rounded-full"><UserRound size={20}/></div>
+            <div className="min-w-0 flex-1"><p className="text-[11px] cg-muted">Клиент</p><p className="mt-0.5 truncate text-sm font-bold">{[job.clientFirstName,job.clientLastName].filter(Boolean).join(" ")||"Клиент CleanGo"}</p></div>
+            {job.clientPhone&&<a href={`tel:${job.clientPhone}`} aria-label="Позвонить клиенту" className="cg-soft grid h-11 w-11 place-items-center rounded-full"><Phone size={19}/></a>}
+          </AppCard>
+          <AppCard className="flex items-center gap-3">
+            <div className="min-w-0 flex-1"><h3 className="text-sm font-bold">Маршрут</h3><p className="mt-1 text-xs leading-5 cg-muted">{job.address}</p><a href={job.latitude!=null&&job.longitude!=null&&Number.isFinite(Number(job.latitude))&&Number.isFinite(Number(job.longitude))?`https://www.google.com/maps/dir/?api=1&destination=${Number(job.latitude)},${Number(job.longitude)}&travelmode=driving`:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#137D79]">Открыть на карте <ChevronRight size={14}/></a></div>
+            <div className="cg-placeholder grid h-[65px] w-[88px] shrink-0 place-items-center rounded-xl"><MapPin size={23} strokeWidth={1.5}/></div>
+          </AppCard>
           {job.status==="en_route"&&<button type="button" onClick={()=>{setError("");setSharingOrderId(current=>current===job.id?null:job.id);}} className="mt-3 w-full rounded-xl border border-teal-600 px-4 py-3 text-sm font-semibold text-teal-800">{sharingOrderId===job.id?"Остановить передачу геопозиции":"Поделиться геопозицией с клиентом"}</button>}
           {sharingOrderId===job.id&&<p className="mt-2 text-xs text-teal-700">Геопозиция передаётся только во время поездки, пока этот экран открыт. Можно отключить в любой момент.</p>}
           {job.status==="accepted"&&<label className="mt-3 block text-xs font-semibold text-slate-600">Как доберётесь до клиента?
@@ -256,8 +270,7 @@ export default function CleanerJobs() {
               <option value="transit">Общественный транспорт</option>
             </select>
           </label>}
-          {job.status==="in_progress"&&<div className="mt-4 rounded-[22px] border border-[#E1EEE8] bg-white p-3.5">
-            <p className="mb-3 text-xs font-semibold text-[#58796F]">{job.inspectionMethod==="personal"?"Личная проверка · фото необязательны":"Клиент проверит уборку по фотографиям"}</p>
+          {job.status==="in_progress"&&<><AppCard className="flex items-center gap-3"><div className="cg-soft grid h-10 w-10 shrink-0 place-items-center rounded-full"><Camera size={19}/></div><div><p className="text-sm font-semibold">{job.inspectionMethod==="personal"?"Личная проверка":"Проверка по фотографиям"}</p><p className="mt-1 text-xs cg-muted">{job.inspectionMethod==="personal"?"Фотографии по желанию":"Сделайте 3–5 снимков результата"}</p></div></AppCard><AppCard>
             <PhotoReport photos={photoFiles[job.id]??[]} required={job.inspectionMethod!=="personal"}
               busy={photoBusy===job.id} disabled={busyId!==null||photoBusy!==null}
               onAdd={files=>void preparePhotos(job.id,files)}
@@ -268,36 +281,32 @@ export default function CleanerJobs() {
               }}/>
             {photoErrors[job.id]&&<p className="mt-2 text-xs text-red-700" role="alert">{photoErrors[job.id]}</p>}
             <p className="mt-3 text-[11px] leading-4 text-[#81968D]">Снимайте результат уборки, не включайте в кадр людей и личные документы.</p>
-          </div>}
+          </AppCard></>}
           <button type="button" disabled={busyId !== null || photoBusy!==null || (job.status==="in_progress" && job.inspectionMethod!=="personal" && (photoFiles[job.id]?.length??0)<3)}
             onClick={() => void transition(job.id, job.status === "accepted" ? "en-route" : job.status === "en_route" ? "arrived" : job.status === "arrived" ? "start" : "complete")}
-            className="mt-4 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">
+            className="cg-primary w-full rounded-[13px] px-4 py-3.5 text-sm font-semibold disabled:opacity-50">
             {({accepted:"Я выехал к клиенту",en_route:"Я прибыл",arrived:"Начать уборку",in_progress:"Завершить уборку"} as Record<string,string>)[job.status] ?? "Обновить статус"}
           </button>
-        </AppCard>)}
+        </div>)}
       </section>}
-      <div className="space-y-3">
+      {!selectedJob&&tab==="offers"&&<div className="space-y-3">
         {offers.map(offer => {
           const expired = new Date(offer.expiresAt).getTime() <= Date.now();
           return (
-            <AppCard key={offer.offerId}>
-              <h2 className="text-base font-bold">{typeLabels[offer.cleaningType] ?? offer.cleaningType}</h2>
-              <p className="mt-2 text-sm text-slate-600">Площадь: {offer.area} м²</p>
-              <p className="mt-1 text-sm text-slate-600">Район: {offer.approximateArea || "Уточняется"}</p>
-              <p className="mt-2 text-lg font-bold text-teal-700">{Number(offer.price).toLocaleString("ru-RU")} ₸</p>
-              <p className="mt-1 text-xs text-slate-500">Действует до: {new Date(offer.expiresAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</p>
+            <AppCard key={offer.offerId} className="!p-2.5">
+              <div className="flex gap-3"><div className="cg-placeholder grid min-h-[106px] w-[30%] shrink-0 place-items-center rounded-[11px]"><ImageIcon size={24} strokeWidth={1.3}/></div><div className="min-w-0 flex-1 py-1"><span className="cg-soft rounded-full px-2 py-1 text-[10px] font-semibold">{expired?"Истекло":"Новый заказ"}</span><p className="mt-2 text-[19px] font-bold">{Number(offer.price).toLocaleString("ru-RU")} ₸</p><h2 className="mt-1 text-xs font-semibold">{typeLabels[offer.cleaningType]??offer.cleaningType} · {offer.area} м²</h2><p className="mt-1.5 flex items-start gap-1 text-[11px] cg-muted"><MapPin size={13} className="shrink-0"/>{offer.approximateArea||"Район уточняется"}</p><p className="mt-1 flex items-center gap-1 text-[11px] cg-muted"><CalendarDays size={13}/> До {new Date(offer.expiresAt).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}</p></div></div>
               <div className="mt-4 flex gap-2">
                 <button type="button" disabled={expired || busyId !== null} onClick={() => void respond(offer.orderId, "accept")}
-                  className="flex-1 rounded-xl bg-teal-600 px-3 py-3 text-sm font-semibold text-white disabled:opacity-50">Принять</button>
+                  className="cg-primary flex-1 rounded-[10px] px-3 py-2.5 text-xs font-semibold disabled:opacity-50">Принять</button>
                 <button type="button" disabled={expired || busyId !== null} onClick={() => void respond(offer.orderId, "decline")}
                   className="flex-1 rounded-xl border border-slate-200 px-3 py-3 text-sm font-semibold text-slate-700 disabled:opacity-50">Отказаться</button>
               </div>
             </AppCard>
           );
         })}
-      </div>
-      {user?.role === "cleaner" && user.phoneVerifiedAt && (
-        <button type="button" onClick={() => void load()} className="mt-4 w-full rounded-xl border border-teal-200 px-4 py-3 text-sm font-semibold text-teal-700">Обновить предложения</button>
+      </div>}
+      {!selectedJob&&user?.role === "cleaner" && user.phoneVerifiedAt && (
+        <button type="button" onClick={() => void load()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#E6E7E4] bg-white px-4 py-2.5 text-xs font-semibold text-[#137D79]"><RefreshCw size={14}/> Обновить предложения</button>
       )}
     </AppPageShell>
   );
