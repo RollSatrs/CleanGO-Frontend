@@ -44,6 +44,10 @@ const noticeLabels: Record<string, string> = {
   completion_issue_reported: "⚠️ Заявлена проблема с уборкой",
   matching_timeout: "⌛ Клинер не найден",
   order_cancelled: "❌ Заказ отменён",
+  cleaner_released:"Исполнитель отказался — выберите замену или отмену",
+  replacement_started:"Начат повторный поиск клинера",
+  order_issue_reported:"Обращение зарегистрировано",
+  client_wait_started:"Клинер ожидает клиента по адресу",
 };
 
 export function NotificationBell() {
