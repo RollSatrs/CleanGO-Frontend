@@ -187,3 +187,9 @@ html.telegram-mini-app.cleango-fullscreen body:has(.cleango-page-frame) { overfl
 .cg-photo-strip .cg-add-photo { aspect-ratio: 1; }
 .cg-field { background: #F4F5F2; border: 1px solid var(--cg-line); border-radius: 12px; }
 .cg-field:focus-within { border-color: var(--cg-accent); }
+
+/* Keep the draggable tracking panel below Telegram's fixed controls and order header. */
+.cg-tracking-panel {
+  max-height: max(100px, calc(var(--cleango-viewport) - var(--cleango-safe-top) - 72px));
+}
+.cg-tracking-panel .cg-card { margin-top: 0; }
