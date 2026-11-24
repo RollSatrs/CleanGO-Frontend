@@ -249,11 +249,11 @@ export default function TelegramProvider({
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={pathname}
-          initial={{ opacity: reduceMotion ? 1 : 0, x: reduceMotion ? 0 : 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: reduceMotion ? 1 : 0, x: reduceMotion ? 0 : -10 }}
+          initial={{ opacity: reduceMotion ? 1 : 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: reduceMotion ? 1 : 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
-          className="min-h-dvh w-full"
+          className="w-full"
         >
           {children}
         </motion.div>
