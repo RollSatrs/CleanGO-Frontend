@@ -114,9 +114,9 @@ export default function VerifyPhonePage() {
   const isSuccess = stage === "success";
 
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[#F8FCFB] text-[#152535]">
-      <div aria-hidden="true" className="pointer-events-none absolute -left-28 top-20 h-72 w-72 rounded-full bg-[#E3F9F5] blur-[72px]" />
-      <div aria-hidden="true" className="pointer-events-none absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-[#D8F5F3] blur-[88px]" />
+    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[#F7F7F5] text-[#15191D]">
+
+
 
       <div className="relative mx-auto flex w-full max-w-[440px] flex-1 flex-col cleango-onboarding-content">
         <header className="flex items-center justify-between">
@@ -136,11 +136,11 @@ export default function VerifyPhonePage() {
           <div className="absolute h-36 w-52 rotate-[-17deg] rounded-[55%] bg-[#E0F8F4]" />
           <div className="absolute h-32 w-44 rotate-[22deg] rounded-[55%] border border-[#B4EBE5]" />
           {isSuccess ? (
-            <div className="relative flex h-28 w-28 items-center justify-center rounded-[32px] bg-gradient-to-br from-[#80E4D6] to-[#19B6A5] text-white shadow-[0_18px_34px_rgba(23,169,151,0.2)] motion-safe:animate-[bounce_2.5s_ease-in-out_infinite]">
+            <div className="relative flex h-28 w-28 items-center justify-center rounded-[32px] bg-[#137D79] text-white ">
               <Check className="h-14 w-14" strokeWidth={3} />
             </div>
           ) : (
-            <div className={`relative flex h-28 w-28 rotate-[-8deg] items-center justify-center rounded-[32px] border border-white bg-gradient-to-br from-white via-[#F4FFFF] to-[#BCEFE8] shadow-[10px_17px_30px_rgba(34,148,139,0.16)] ${isWaiting ? "motion-safe:animate-pulse" : "motion-safe:animate-[bounce_4s_ease-in-out_infinite]"}`}>
+            <div className={`relative flex h-28 w-28 rotate-[-8deg] items-center justify-center rounded-[32px] border border-white bg-[#D9EFED] ${isWaiting ? "motion-safe:animate-pulse" : ""}`}>
               <Send className="h-14 w-14 translate-x-0.5 -rotate-3 fill-[#23A9E6] text-[#23A9E6]" strokeWidth={1.4} />
             </div>
           )}
@@ -163,7 +163,7 @@ export default function VerifyPhonePage() {
           </p>
         </div>
 
-        <section key={`status-${stage}`} className="mt-8 motion-safe:animate-[cleanGoEnter_850ms_cubic-bezier(0.22,1,0.36,1)_both] rounded-[22px] border border-[#E5F3F0] bg-[#F0FAF8] px-5 py-2">
+        <section key={`status-${stage}`} className="mt-8 motion-safe:animate-[cleanGoEnter_850ms_cubic-bezier(0.22,1,0.36,1)_both] rounded-[16px] border border-[#E6E7E4] bg-white px-5 py-2">
           {isSuccess ? (
             <>
               <StatusLine icon={<Check className="h-[17px] w-[17px]" />} text="Аккаунт подключён" />
@@ -188,7 +188,7 @@ export default function VerifyPhonePage() {
 
         <div key={`actions-${stage}`} className="mt-auto pt-8 motion-safe:animate-[cleanGoEnter_820ms_cubic-bezier(0.22,1,0.36,1)_both]">
           {isSuccess ? (
-            <button type="button" onClick={() => goToApp(user?.role)} className="flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-[#26B8A8] px-5 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgba(28,169,153,0.15)] transition active:scale-[0.99]">
+            <button type="button" onClick={() => goToApp(user?.role)} className="flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-[#137D79] px-5 text-[14px] font-semibold text-white  transition active:scale-[0.99]">
               Продолжить <ArrowRight className="h-4 w-4" />
             </button>
           ) : isWaiting ? (
@@ -209,7 +209,7 @@ export default function VerifyPhonePage() {
               )}
             </>
           ) : (
-            <button type="button" onClick={requestContact} disabled={requesting} className="flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-gradient-to-r from-[#53CDBF] to-[#20AE9F] px-4 text-[14px] font-semibold text-white shadow-[0_8px_20px_rgba(28,169,153,0.15)] transition active:scale-[0.99] disabled:opacity-60">
+            <button type="button" onClick={requestContact} disabled={requesting} className="flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-[#137D79] px-4 text-[14px] font-semibold text-white  transition active:scale-[0.99] disabled:opacity-60">
               <Send className="h-[17px] w-[17px] fill-white" strokeWidth={1.5} />
               {requesting ? "Ожидаем Telegram..." : "Подключить через Telegram"}
               {!requesting && <ArrowRight className="ml-auto h-4 w-4" />}
