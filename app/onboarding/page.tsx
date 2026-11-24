@@ -83,12 +83,12 @@ export default function OnboardingPage() {
 
   return (
     <main className="min-h-[100dvh] bg-[#F1FBFC] font-sans">
-      <section className="cleango-screen mx-auto flex w-full max-w-[520px] flex-col overflow-hidden bg-gradient-to-b from-white via-[#F9FCFD] to-[#F1FBFC] px-5 text-[#101B2C]">
+      <section className="cleango-screen mx-auto flex w-full max-w-[520px] flex-col bg-gradient-to-b from-white via-[#F9FCFD] to-[#F1FBFC] px-5 text-[#101B2C]">
 
         {/* Верхняя навигация */}
         <motion.header
           {...appear(0)}
-          className="flex shrink-0 items-center justify-between pt-[max(20px,env(safe-area-inset-top))]"
+          className="flex shrink-0 items-center justify-between cleango-onboarding-header"
         >
           <button
             type="button"
@@ -109,7 +109,7 @@ export default function OnboardingPage() {
         </motion.header>
 
         {/* Центральная часть */}
-        <div className="flex min-h-0 flex-1 flex-col justify-center">
+        <div className="flex flex-1 flex-col justify-center">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={step}
