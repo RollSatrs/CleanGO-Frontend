@@ -100,7 +100,7 @@ export default function TelegramProvider({
   // Telegram fullscreen uses a different content area than compact/fullsize.
   // Read its actual insets instead of applying a fixed top margin.
   useEffect(() => {
-    type Insets = { top?: number; bottom?: number };
+    type Insets = { top?: number; bottom?: number; left?: number; right?: number };
     type TelegramWebApp = {
       isFullscreen?: boolean;
       safeAreaInset?: Insets;
@@ -113,12 +113,14 @@ export default function TelegramProvider({
     const update = () => {
       const app = getApp();
       const fullscreen = app?.isFullscreen === true;
-      const contentTop = Number(app?.contentSafeAreaInset?.top ?? 0);
-      const safeTop = Number(app?.safeAreaInset?.top ?? 0);
-      const safeBottom = Number(app?.safeAreaInset?.bottom ?? 0);
-      const contentBottom = Number(app?.contentSafeAreaInset?.bottom ?? 0);
-      root.style.setProperty("--cleango-telegram-top", `${fullscreen ? Math.max(0, contentTop, safeTop) : 0}px`);
-      root.style.setProperty("--cleango-telegram-bottom", `${fullscreen ? Math.max(0, contentBottom, safeBottom) : 0}px`);
+      // Device safe area and Telegram's content controls are separate layers.
+      for (const side of ["top", "bottom", "left", "right"] as const) {
+        const read = (value: number | undefined) => typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 0;
+        const device = read(app?.safeAreaInset?.[side]);
+        const content = read(app?.contentSafeAreaInset?.[side]);
+        root.style.setProperty(`--cleango-native-${side}`, `${fullscreen ? device : 0}px`);
+        root.style.setProperty(`--cleango-content-${side}`, `${fullscreen ? content : 0}px`);
+      }
       root.classList.toggle("cleango-fullscreen", fullscreen);
     };
     const app = getApp();
@@ -132,8 +134,10 @@ export default function TelegramProvider({
       window.removeEventListener("resize", update);
       window.removeEventListener("cleango:telegram-viewport-ready", update);
       root.classList.remove("cleango-fullscreen");
-      root.style.removeProperty("--cleango-telegram-top");
-      root.style.removeProperty("--cleango-telegram-bottom");
+      for (const side of ["top", "bottom", "left", "right"]) {
+        root.style.removeProperty(`--cleango-native-${side}`);
+        root.style.removeProperty(`--cleango-content-${side}`);
+      }
     };
   }, []);
 
