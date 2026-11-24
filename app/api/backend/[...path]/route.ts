@@ -6,7 +6,7 @@ function permitted(path: string, method: string): boolean {
   if (method === "GET" && (path === "" || path === "pricing/quote" || path === "orders/offers/mine" || path === "orders/cleaner/profile" || path === "orders/cleaner/jobs" || path === "orders" || path === "orders/history" || path === "orders/notifications")) return true;
   if (method === "GET" && (path === "orders/cleaner/history" || /^orders\/cleaner\/history\/[0-9a-f-]{36}$/i.test(path))) return true;
   if (method === "GET" && /^orders\/[0-9a-f-]{36}(?:\/(?:progress|cleaner-reputation|counterpart-avatar))?$/i.test(path)) return true;
-  if (method === "PATCH" && path === "orders/cleaner/profile") return true;
+  if (method === "PATCH" && ["orders/cleaner/profile","orders/cleaner/preferences","orders/cleaner/location"].includes(path)) return true;
   if (method === "POST" && path === "orders") return true;
   if (method === "PATCH" && /^orders\/[0-9a-f-]{36}\/(accept|decline|en-route|arrived|trip-location|start|complete|cancel|inspection|confirm-completion|completion-issue)$/i.test(path)) return true;
   if (method === "POST" && /^orders\/[0-9a-f-]{36}\/review$/i.test(path)) return true;
