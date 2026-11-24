@@ -3,51 +3,39 @@ import ServiceImage from "@/components/ServiceImage";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import {useCleanerShift,shiftState} from "@/components/providers/CleanerShiftProvider";
 import BottomNav from "@/components/navigation/BottomNav";
 import { ArrowRight, ClipboardList, ShieldCheck, Wallet, MapPin, ChevronRight } from "lucide-react";
 import { AppHeader, AppCard } from "@/components/ui/clean-go";
 
 export default function CleanerPage() {
   const { user, token } = useAuth();
-  const [profile, setProfile] = useState<{ isAvailable: boolean; effectiveAvailable: boolean; locationNeedsRefresh: boolean; availableUntil: string | null } | null>(null);
-  const [profileError, setProfileError] = useState(false);
+  const {profile,now,error:profileError}=useCleanerShift();
   const [offers,setOffers]=useState<{offerId:string;cleaningType:string;area:number;price:number;approximateArea:string|null;expiresAt:string}[]>([]);
   const [offerState,setOfferState]=useState<"loading"|"ready"|"error">("loading");
-  const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     if (!token || user?.role !== "cleaner") return;
     let active = true;
-    const refresh = async () => {
-      try {
-        const response = await fetch("/api/backend/orders/cleaner/profile", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
-        if (!response.ok) throw new Error("profile unavailable");
-        const data = await response.json();
-        if (active) { setProfile(data); setProfileError(false); }
-      } catch { if (active) setProfileError(true); }
-    };
-    setNow(Date.now());
     const refreshOffers=async()=>{
       try{const response=await fetch("/api/backend/orders/offers/mine",{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});if(!response.ok)throw Error("unavailable");const data=await response.json();if(!Array.isArray(data))throw Error("invalid");if(active){setOffers(data);setOfferState("ready");}}catch{if(active)setOfferState("error");}
     };
-    void refresh();void refreshOffers();
+    void refreshOffers();
     const timer = window.setInterval(() => { setNow(Date.now()); if (document.visibilityState === "visible"){void refresh();void refreshOffers();} }, 10000);
     const onFocus = () => {void refresh();void refreshOffers();};
     window.addEventListener("focus", onFocus);
     return () => { active = false; clearInterval(timer); window.removeEventListener("focus", onFocus); };
   }, [token, user?.role]);
-  const remaining = profile?.availableUntil && now !== null ? Math.max(0, Math.ceil((new Date(profile.availableUntil).getTime() - now) / 60000)) : 0;
-  const activeShift = Boolean(profile?.isAvailable && remaining > 0);
-  const receivingOffers = Boolean(activeShift && profile?.effectiveAvailable && !profile?.locationNeedsRefresh);
+  const {remaining,active:activeShift,receiving:receivingOffers}=shiftState(profile,now);
   return <main className="cleango-page-frame">
     <div className="cleango-page-scroll w-full">
       <AppHeader role="cleaner" className="cleango-client-header px-4 pb-3" />
       <div className="px-4">
       <div className="mt-3"><p className="text-sm cg-muted">Здравствуйте{user?.firstName ? `, ${user.firstName}` : ""}!</p><h1 className="mt-1 text-[26px] font-bold leading-tight tracking-[-0.04em]">Ваш рабочий день</h1></div>
       <Link href="/cleaner/settings" className="cg-card mt-4 flex items-center gap-3 px-3 py-3">
-        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${receivingOffers ? "bg-emerald-500" : activeShift ? "bg-amber-400" : "bg-slate-300"}`} aria-hidden="true" />
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${receivingOffers ? "bg-emerald-500" : activeShift||profile?.hasActiveOrder ? "bg-amber-400" : "bg-slate-300"}`} aria-hidden="true" />
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">{profileError ? "Статус недоступен" : receivingOffers ? "На линии" : activeShift ? "Заявки приостановлены" : "Не на линии"}</span>
-          <span className="block text-xs text-[#748B8A]">{profileError ? "Проверьте подключение" : receivingOffers ? `Смена: ещё ${remaining} мин` : activeShift ? `Осталось ${remaining} мин · обновите геопозицию` : "Включить смену"}</span>
+          <span className="block text-sm font-semibold">{profileError?"Статус недоступен":!profile?"Проверяем статус…":profile.hasActiveOrder?"На заказе":receivingOffers?"На линии":activeShift?"Заявки приостановлены":"Не на линии"}</span>
+          <span className="block text-xs text-[#748B8A]">{profileError?"Проверьте подключение":!profile?"Загружаем рабочие настройки":profile.hasActiveOrder?"Новые предложения приостановлены":receivingOffers?`Смена: ещё ${remaining} мин`:activeShift?`Осталось ${remaining} мин · обновите геопозицию`:"Включить смену"}</span>
         </span>
         <ArrowRight className="h-4 w-4 shrink-0 text-[#8CA7A0]" />
       </Link>
@@ -65,7 +53,7 @@ export default function CleanerPage() {
         <Link href="/cleaner/jobs"><AppCard><ClipboardList size={22} className="text-[#137D79]"/><p className="mt-3 text-sm font-semibold">Мои заказы</p><p className="mt-1 text-xs cg-muted">Текущие уборки</p></AppCard></Link>
         <Link href="/cleaner/earnings"><AppCard><Wallet size={22} className="text-[#137D79]"/><p className="mt-3 text-sm font-semibold">Доходы</p><p className="mt-1 text-xs cg-muted">История заработка</p></AppCard></Link>
       </div>
-      <div className="mt-4 flex items-center gap-2.5 rounded-xl bg-[#EDEFEA] p-3"><ShieldCheck size={19} className="shrink-0 text-[#137D79]"/><p className="text-xs leading-5 cg-muted">Для получения заказов включите смену и обновите геопозицию.</p></div>
+      <div className="mt-4 flex items-center gap-2.5 rounded-xl bg-[#EDEFEA] p-3"><ShieldCheck size={19} className="shrink-0 text-[#137D79]"/><p className="text-xs leading-5 cg-muted">Во время открытой смены геопозиция обновляется автоматически при наличии разрешения. Если приложение закрыто, обновления могут приостановиться.</p></div>
       </div>
     </div>
     <BottomNav role="cleaner"/>
