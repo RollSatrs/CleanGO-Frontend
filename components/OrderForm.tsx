@@ -253,7 +253,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
           <h2 className="mt-3 text-[28px] font-extrabold leading-tight tracking-tight">Подтверждение</h2>
           <p className="mt-2 text-sm text-[#6B857E]">Проверьте детали перед поиском клинера.</p>
         </div>
-        <div className="px-5 pb-[max(24px,env(safe-area-inset-bottom))]">
+        <div className="px-5 pb-[max(24px,var(--cleango-safe-bottom-inset))]">
           <div className="divide-y divide-[#E9F0ED] bg-white">
             {([
               ["Услуга", cleaningTypeNames[cleaningType]],
@@ -273,7 +273,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
             <p className="mt-1 text-[32px] font-extrabold tracking-tight text-[#087E72]">{hasCurrentQuote ? `${priceQuote!.totalPrice.toLocaleString("ru-RU")} ₸` : "Уточняется"}</p>
           </div>
           {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-          <form onSubmit={handleSubmit} className="mt-5 space-y-3 pb-[max(20px,env(safe-area-inset-bottom))]">
+          <form onSubmit={handleSubmit} className="mt-5 space-y-3 pb-[max(20px,var(--cleango-safe-bottom-inset))]">
             <button type="submit" disabled={loading || priceLoading || !hasCurrentQuote || !address.trim() || !coordinates} className="min-h-14 w-full rounded-[19px] bg-[#079B8D] px-3 text-sm font-bold text-white disabled:opacity-50">{loading ? <span className="inline-flex items-center justify-center gap-2"><LoaderCircle className="h-5 w-5 animate-spin"/>Создаём заказ...</span> : "Подтвердить и найти клинера"}</button>
             <button type="button" onClick={()=>{setConfirming(false);setError("");}} className="h-12 w-full rounded-[19px] border border-[#D8EAE4] text-sm font-semibold text-[#168675]">Изменить данные</button>
           </form>
