@@ -82,8 +82,8 @@ export default function OnboardingPage() {
   });
 
   return (
-    <main className="min-h-[100dvh] bg-[#F1FBFC] font-sans">
-      <section className="cleango-screen mx-auto flex w-full max-w-[520px] flex-col bg-gradient-to-b from-white via-[#F9FCFD] to-[#F1FBFC] px-5 text-[#101B2C]">
+    <main className="min-h-[100dvh] bg-[#F7F7F5] font-sans">
+      <section className="cleango-screen mx-auto flex w-full max-w-[520px] flex-col bg-[#F7F7F5] px-5 text-[#15191D]">
 
         {/* Верхняя навигация */}
         <motion.header
@@ -200,7 +200,7 @@ export default function OnboardingPage() {
                 ? undefined
                 : { scale: 0.98 }
             }
-            className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#B9F2EA] px-6 text-[16px] font-semibold text-[#087F77] shadow-[0_8px_24px_rgba(18,182,166,0.12)] transition-colors duration-200 hover:bg-[#A5EAE1]"
+            className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl cg-primary px-6 text-sm font-semibold transition-colors"
           >
             Продолжить
             <ArrowRight className="h-5 w-5" />
