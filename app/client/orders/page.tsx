@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { OrderSkeleton, OrderPagination, RefreshButton } from "@/components/ui/order-loading";
 import ServiceImage from "@/components/ServiceImage";
 import Link from "next/link";
-import { MapPin, CalendarDays, ChevronRight, RefreshCw, Star, RotateCcw } from "lucide-react";
+import { MapPin, CalendarDays, ChevronRight, Star, RotateCcw } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 
@@ -46,44 +47,44 @@ export default function ClientOrders() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const requestVersion=useRef(0);
+  const [refreshing,setRefreshing]=useState(false);
+  const [attempt,setAttempt]=useState(0);
+  const [direction,setDirection]=useState<-1|1|null>(null);
+  const [motionKey,setMotionKey]=useState(0);
+  const listRef=useRef<HTMLDivElement>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const version=++requestVersion.current;
-    if (!token || user?.role !== "client" || !user.phoneVerifiedAt) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const response = await fetch(`/api/backend/orders/history?section=${section}&page=${page}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      });
-      if (!response.ok) throw new Error(response.status === 401
-        ? "Сессия истекла. Откройте приложение заново."
-        : `Не удалось загрузить заказы (HTTP ${response.status})`);
-      const data: unknown = await response.json();
-      if (!data || typeof data !== "object" || !("items" in data) || !Array.isArray(data.items)) throw new Error("Некорректный ответ сервера");
-      const result = data as { items: Order[]; total: number };
-      if(version!==requestVersion.current)return;
-      setOrders(result.items);
-      if(page>1&&result.items.length===0)setPage(Math.max(1,Math.ceil(result.total/5)));
-      setTotal(result.total);
-      setError("");
-    } catch (err) {
-      if(version===requestVersion.current)setError(err instanceof Error ? err.message : "Ошибка загрузки заказов");
-    } finally {
-      if(version===requestVersion.current)setLoading(false);
-    }
-  }, [token, user?.role, user?.phoneVerifiedAt, section, page]);
-
-  useEffect(() => {
-    void load();
-    if (!token || user?.role !== "client") return;
-    const interval = setInterval(() => void load(), 15000);
-    return () => {requestVersion.current++;clearInterval(interval);};
-  }, [load, token, user?.role]);
+  function refresh(){
+    setRefreshing(true);setError("");setAttempt(v=>v+1);
+  }
+  function changePage(next:number){
+    if(loading||refreshing||cancellingId||next===page)return;
+    setDirection(next>page?1:-1);setLoading(true);setError("");setOrders([]);setPage(next);
+    listRef.current?.scrollIntoView({block:"start",behavior:"instant"});
+  }
+  useEffect(()=>{
+    if(!token||user?.role!=="client"||!user.phoneVerifiedAt){setLoading(false);setRefreshing(false);return;}
+    const controller=new AbortController();
+    let inFlight=false;
+    const load=async(initial=false)=>{
+      if(inFlight||controller.signal.aborted)return;
+      inFlight=true;
+      try{
+        const response=await fetch(`/api/backend/orders/history?section=${section}&page=${page}`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store",signal:controller.signal});
+        if(!response.ok)throw new Error(response.status===401?"Сессия истекла. Откройте приложение заново.":"Не удалось загрузить заказы");
+        const data=await response.json() as {items:Order[];total:number};
+        if(!Array.isArray(data.items)||!Number.isFinite(data.total))throw new Error("Некорректный ответ сервера");
+        if(controller.signal.aborted)return;
+        setOrders(data.items);setTotal(data.total);setError("");
+        if(page>1&&!data.items.length){setLoading(true);setPage(Math.max(1,Math.ceil(data.total/5)));return;}
+        if(initial)setMotionKey(v=>v+1);
+      }catch(e){if(!controller.signal.aborted)setError(e instanceof Error?e.message:"Ошибка загрузки заказов");}
+      finally{inFlight=false;if(!controller.signal.aborted){setLoading(false);setRefreshing(false);}}
+    };
+    void load(true);
+    const timer=window.setInterval(()=>{if(document.visibilityState==="visible")void load();},15000);
+    return()=>{controller.abort();window.clearInterval(timer);};
+  },[token,user?.role,user?.phoneVerifiedAt,section,page,attempt]);
 
   const cancelOrder = async (order: Order) => {
     if (!token || cancellingId || order.status !== "pending") return;
@@ -101,7 +102,7 @@ export default function ClientOrders() {
           ? "Заказ уже принят или недоступен для отмены. Обновите список."
           : result?.message || `Не удалось отменить заказ (HTTP ${response.status})`);
       }
-      await load();
+      refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Ошибка отмены заказа");
     } finally {
@@ -117,9 +118,10 @@ export default function ClientOrders() {
       {user?.role === "client" && !user.phoneVerifiedAt && (
         <AppCard><p className="text-sm">Подтвердите телефон, чтобы увидеть заказы.</p></AppCard>
       )}
-      <div className="flex gap-2" role="group" aria-label="Раздел заказов">{(["active", "completed", "cancelled"] as const).map(value => <button key={value} type="button" aria-pressed={section === value} onClick={() => { if(section===value)return; requestVersion.current++;setSection(value);setPage(1);setOrders([]);setTotal(0);setError("");setLoading(true); }} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${section === value ? "cg-primary" : "bg-[#EDEEEB] text-[#51595A]"}`}>{value === "active" ? "Активные" : value==="completed"?"Завершённые":"Отменённые"}</button>)}</div>
+      <div className="flex gap-2" role="group" aria-label="Раздел заказов">{(["active", "completed", "cancelled"] as const).map(value => <button key={value} type="button" aria-pressed={section === value} onClick={() => { if(section===value||cancellingId)return; setSection(value);setPage(1);setOrders([]);setTotal(0);setError("");setDirection(null);setLoading(true); }} className={`cg-press flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${section === value ? "cg-primary" : "bg-[#EDEEEB] text-[#51595A]"}`}>{value === "active" ? "Активные" : value==="completed"?"Завершённые":"Отменённые"}</button>)}</div>
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-      {loading && <p className="text-sm text-slate-500">Загружаем заказы…</p>}
+      <div ref={listRef} className="scroll-mt-3"/>
+      {loading&&user?.role==="client"&&user.phoneVerifiedAt&&<OrderSkeleton label={direction?"Загружаем страницу…":"Загружаем заказы…"}/>}
       {!loading && !error && user?.role === "client" && user.phoneVerifiedAt && orders.length === 0 && (
         <AppCard>
           <h2 className="text-lg font-bold">{section==="active"?"Активных заказов нет":section==="completed"?"Нет завершённых заказов":"Нет отменённых заказов"}</h2>
@@ -127,9 +129,9 @@ export default function ClientOrders() {
           <Link href="/" className="mt-4 inline-block font-semibold text-teal-700">Выбрать уборку</Link>
         </AppCard>
       )}
-      <div className="space-y-3">
-        {user?.role==="client"&&user.phoneVerifiedAt&&orders.map(order => (
-          <AppCard key={order.id} className="!p-2.5">
+      <div key={motionKey} aria-busy={loading||refreshing} className={`cg-order-enter space-y-3 ${direction===1?"cg-enter-forward":direction===-1?"cg-enter-back":""}`}>
+        {!loading&&user?.role==="client"&&user.phoneVerifiedAt&&orders.map(order => (
+          <AppCard key={order.id} className="cg-order-card !p-2.5">
             <Link href={`/client/orders/${encodeURIComponent(order.id)}`} className="flex items-stretch gap-3">
               <ServiceImage type={order.cleaningType} className="min-h-[108px] w-[29%] shrink-0 rounded-[11px]" sizes="(max-width: 520px) 29vw, 145px" illustrative/>
               <div className="min-w-0 flex-1 py-1">
@@ -147,19 +149,10 @@ export default function ClientOrders() {
           </AppCard>
         ))}
       </div>
-      {user?.role === "client" && user.phoneVerifiedAt && total > 5 && (
-        <div className="flex items-center justify-between gap-3 py-3">
-          <button type="button" disabled={page === 1} onClick={() => { requestVersion.current++;setPage(p => p - 1);setOrders([]);setLoading(true); }} className="rounded-xl border px-3 py-2 disabled:opacity-40">Назад</button>
-          <span className="text-sm text-slate-500">Страница {page} из {Math.ceil(total / 5)}</span>
-          <button type="button" disabled={page * 5 >= total} onClick={() => { requestVersion.current++;setPage(p => p + 1);setOrders([]);setLoading(true); }} className="rounded-xl border px-3 py-2 disabled:opacity-40">Далее</button>
-        </div>
-      )}
-      {user?.role === "client" && user.phoneVerifiedAt && (
-        <button type="button" onClick={() => void load()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#E6E7E4] bg-white px-4 py-2.5 text-xs font-semibold text-[#137D79]">
-          <RefreshCw size={14}/> Обновить заказы
-        </button>
-      )}
+      {user?.role==="client"&&user.phoneVerifiedAt&&<>
+        <OrderPagination page={page} total={total} busy={loading||refreshing||!!cancellingId} direction={direction} onChange={changePage}/>
+        <RefreshButton busy={refreshing} disabled={loading||!!cancellingId} label="Обновить заказы" onClick={refresh}/>
+      </>}
     </AppPageShell>
   );
 }
