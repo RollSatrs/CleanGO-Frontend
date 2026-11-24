@@ -111,3 +111,58 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .cleango-photo-viewer-thumbnails { margin-top: 4px; padding-block: 4px; }
   .cleango-photo-viewer-thumbnails button { width: 40px; height: 40px; }
 }
+
+/* CleanGo v2 — warm neutral surfaces, restrained turquoise, native scroll region. */
+:root {
+  --cg-bg: #F7F7F5;
+  --cg-card: #FFFFFF;
+  --cg-text: #15191D;
+  --cg-muted: #697174;
+  --cg-line: #E6E7E4;
+  --cg-accent: #259E9B;
+  --cg-accent-strong: #137D79;
+  --cg-soft: #D9EFED;
+}
+body { background: var(--cg-bg); color: var(--cg-text); }
+.cleango-page-frame {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: var(--cleango-viewport);
+  min-height: 0;
+  max-width: 520px;
+  margin-inline: auto;
+  overflow: hidden;
+  padding-top: var(--cleango-safe-top);
+  padding-left: var(--cleango-safe-left);
+  padding-right: var(--cleango-safe-right);
+  background: var(--cg-bg);
+  color: var(--cg-text);
+}
+.cleango-page-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  padding-bottom: 18px;
+}
+.cleango-page-scroll::-webkit-scrollbar { display:none; }
+.cleango-page-frame .cleango-client-header { padding-top: 12px; }
+.cleango-page-frame .cleango-bottom-nav {
+  position: static;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: none;
+  padding: 5px 10px max(8px, var(--cleango-safe-bottom-inset));
+  background: #fff;
+  border-top: 1px solid var(--cg-line);
+}
+.cg-card { border: 1px solid var(--cg-line); border-radius: 16px; background: var(--cg-card); }
+.cg-primary { background: var(--cg-accent-strong); color: white; }
+.cg-primary:active { background: #106A67; }
+.cg-placeholder { background: #EDEDE9; color: #999F9B; }
+.cg-soft { background: var(--cg-soft); color: #176E6B; }
+.cg-muted { color: var(--cg-muted); }
+html.telegram-mini-app.cleango-fullscreen body:has(.cleango-page-frame) { overflow: hidden; }
