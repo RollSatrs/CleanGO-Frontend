@@ -112,7 +112,7 @@ export default function CleanerDiagnostics() {
         <p className="mt-1 text-sm">Телефон: {user?.phoneVerifiedAt ? "подтверждён" : "не подтверждён"}</p>
       </AppCard>
       <button type="button" disabled={running} onClick={() => void run()}
-        className="w-full rounded-xl bg-teal-600 px-4 py-4 font-bold text-white disabled:opacity-50">
+        className="w-full rounded-xl bg-[#137D79] px-4 py-4 font-bold text-white disabled:opacity-50">
         {running ? "Проверяем соединение…" : "Проверить соединение"}
       </button>
       {results.length > 0 && (
@@ -131,10 +131,10 @@ export default function CleanerDiagnostics() {
       )}
       <button type="button" disabled={results.length === 0 || running}
         onClick={() => { void navigator.clipboard.writeText(report).catch(() => window.prompt("Скопируйте отчёт", report)); }}
-        className="w-full rounded-xl border border-teal-200 px-4 py-3 font-semibold text-teal-700 disabled:opacity-50">
+        className="w-full rounded-xl border border-[#C9D6D3] px-4 py-3 font-semibold text-[#137D79] disabled:opacity-50">
         Скопировать безопасный отчёт
       </button>
-      <Link href="/cleaner/profile" className="block py-3 text-center text-sm text-teal-700">Вернуться в профиль</Link>
+      <Link href="/cleaner/profile" className="block py-3 text-center text-sm text-[#137D79]">Вернуться в профиль</Link>
     </AppPageShell>
   );
 }
