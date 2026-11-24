@@ -206,23 +206,17 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-[100dvh] bg-[#EAF4F9] text-[#132236]">
-      <section className="relative mx-auto flex min-h-[100dvh] w-full max-w-[520px] flex-col overflow-hidden bg-[radial-gradient(ellipse_at_50%_10%,#FFFFFF_0%,#F4FAFE_43%,#E5F3FB_100%)] cleango-onboarding-content shadow-[0_0_55px_rgba(23,79,110,0.12)]">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-16 -right-12 h-48 w-48 rounded-full bg-[#89E7F3]/60 blur-2xl"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-24 left-10 h-40 w-40 rounded-full bg-white/90 blur-xl"
-        />
+    <main className="min-h-[100dvh] bg-[#F7F7F5] text-[#15191D]">
+      <section className="relative mx-auto flex min-h-[100dvh] w-full max-w-[520px] flex-col overflow-hidden bg-[#F7F7F5] cleango-onboarding-content">
+        
+        
 
         <div className="relative z-10 mx-auto flex w-full max-w-[370px] flex-1 flex-col">
           <div className="mt-8 flex justify-center">
             <div className="relative flex h-[58px] w-[58px] items-center justify-center">
-              <div className="absolute left-2 top-3 h-5 w-5 rotate-45 rounded-[3px] bg-[#20C7DC]" />
-              <div className="absolute right-2 top-2 h-5 w-5 rotate-45 rounded-[3px] bg-[#059EE9]" />
-              <div className="absolute bottom-2 left-[20px] h-5 w-5 rotate-45 rounded-[3px] bg-[#11BDD5]" />
+              <div className="absolute left-2 top-3 h-5 w-5 rotate-45 rounded-[3px] bg-[#259E9B]" />
+              <div className="absolute right-2 top-2 h-5 w-5 rotate-45 rounded-[3px] bg-[#137D79]" />
+              <div className="absolute bottom-2 left-[20px] h-5 w-5 rotate-45 rounded-[3px] bg-[#81D4CD]" />
               <Sparkles className="relative z-10 h-4 w-4 text-white" />
             </div>
           </div>
@@ -233,7 +227,7 @@ export default function LoginPage() {
             в CleanGo
           </h1>
 
-          <div className="mt-8 flex rounded-full bg-[#E3EFF7] p-1 shadow-[inset_0_2px_6px_rgba(76,125,155,0.05)]">
+          <div className="mt-8 flex rounded-full bg-[#EDEEEB] p-1 shadow-[inset_0_2px_6px_rgba(76,125,155,0.05)]">
             {(["login", "register"] as const).map(
               (item) => (
                 <button
@@ -269,7 +263,7 @@ export default function LoginPage() {
               </button>
             )}
 
-            <label className="flex h-[54px] items-center gap-3 rounded-[19px] bg-white/85 px-4 shadow-[0_7px_20px_rgba(61,110,144,0.07)]">
+            <label className="flex h-[54px] items-center gap-3 rounded-[13px] border border-[#E6E7E4] bg-white px-4">
               <Phone className="h-[19px] w-[19px] shrink-0 text-[#7898AD]" />
               <input
                 type="tel"
@@ -285,7 +279,7 @@ export default function LoginPage() {
             </label>
 
             {step === "code" && (
-              <label className="flex h-[54px] items-center gap-3 rounded-[19px] bg-white/85 px-4 shadow-[0_7px_20px_rgba(61,110,144,0.07)]">
+              <label className="flex h-[54px] items-center gap-3 rounded-[13px] border border-[#E6E7E4] bg-white px-4">
                 <LockKeyhole className="h-[19px] w-[19px] text-[#7898AD]" />
                 <input
                   type="text"
@@ -342,7 +336,7 @@ export default function LoginPage() {
                 ? requestCode
                 : verifyCode
             }
-            className="mt-7 flex h-[56px] w-full items-center justify-center rounded-full bg-gradient-to-r from-[#05B5E8] to-[#079BE2] text-[17px] font-bold text-white shadow-[0_10px_25px_rgba(0,160,218,0.18)] transition-transform active:scale-[0.98] disabled:opacity-60"
+            className="mt-7 flex h-[56px] w-full items-center justify-center rounded-[14px] cg-primary text-sm font-semibold transition-transform active:scale-[0.98] disabled:opacity-60"
           >
             {loading
               ? "Подождите..."
