@@ -128,8 +128,8 @@ export default function CleanerSettings() {
                 className="h-5 w-5 accent-teal-600" />
             </label>
             <p className="mt-2 text-xs text-slate-500">Включите смену на выбранное время. Геопозиция должна оставаться актуальной (до 30 минут).</p>
-            <div className="mt-4 flex gap-2">{([1, 2, 4] as const).map(value => <button key={value} type="button" onClick={() => setHours(value)} aria-pressed={hours === value} className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${hours === value ? "bg-teal-600 text-white" : "bg-teal-50 text-teal-800"}`}>{value} ч</button>)}</div>
-            {availableUntil && available && <p className="mt-3 text-sm font-semibold text-teal-800" aria-live="off">{Math.max(0, Math.ceil((new Date(availableUntil).getTime() - clock) / 60000)) > 0 ? `Осталось ${Math.max(0, Math.ceil((new Date(availableUntil).getTime() - clock) / 60000))} мин` : "Смена закончилась — включите доступность снова"}</p>}
+            <div className="mt-4 flex gap-2">{([1, 2, 4] as const).map(value => <button key={value} type="button" onClick={() => setHours(value)} aria-pressed={hours === value} className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${hours === value ? "bg-[#137D79] text-white" : "bg-[#D9EFED] text-[#176E6B]"}`}>{value} ч</button>)}</div>
+            {availableUntil && available && <p className="mt-3 text-sm font-semibold text-[#176E6B]" aria-live="off">{Math.max(0, Math.ceil((new Date(availableUntil).getTime() - clock) / 60000)) > 0 ? `Осталось ${Math.max(0, Math.ceil((new Date(availableUntil).getTime() - clock) / 60000))} мин` : "Смена закончилась — включите доступность снова"}</p>}
             {available && !effectiveAvailable && <p role="status" className="mt-2 rounded-xl bg-amber-50 p-3 text-xs font-semibold text-amber-800">Смена включена, но вы сейчас не участвуете в подборе. Проверьте срок смены и обновите геопозицию.</p>}
             {locationNeedsRefresh && <p className="mt-2 text-xs font-medium text-amber-700">Для новых предложений обновите геопозицию.</p>}
           </AppCard>
@@ -153,12 +153,12 @@ export default function CleanerSettings() {
               onChange={event => setRadius(Number(event.target.value))}
               className="mt-4 w-full accent-teal-600" />
             <button type="button" onClick={() => void requestLocation()} disabled={locationPending}
-              className="mt-5 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-semibold text-white">
+              className="mt-5 w-full rounded-xl bg-[#137D79] px-4 py-3 text-sm font-semibold text-white">
               {locationPending ? "Определяем геопозицию…" : "Обновить геопозицию"}
             </button>
             {telegramLocationSettingsAvailable && error && (
               <button type="button" onClick={openTelegramLocationSettings}
-                className="mt-3 w-full rounded-xl border border-teal-300 px-4 py-3 text-sm font-semibold text-teal-800">
+                className="mt-3 w-full rounded-xl border border-[#C9D6D3] px-4 py-3 text-sm font-semibold text-[#176E6B]">
                 Настройки геолокации CleanGo в Telegram
               </button>
             )}
@@ -169,10 +169,10 @@ export default function CleanerSettings() {
           {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           {notice && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
           <button type="button" disabled={busy} onClick={() => void save()}
-            className="w-full rounded-xl bg-teal-600 px-4 py-4 font-bold text-white disabled:opacity-50">
+            className="w-full rounded-xl bg-[#137D79] px-4 py-4 font-bold text-white disabled:opacity-50">
             {busy ? "Сохраняем…" : "Сохранить настройки"}
           </button>
-          <Link href="/cleaner/jobs" className="block py-3 text-center text-sm font-semibold text-teal-700">
+          <Link href="/cleaner/jobs" className="block py-3 text-center text-sm font-semibold text-[#137D79]">
             Перейти к предложениям
           </Link>
         </div>
