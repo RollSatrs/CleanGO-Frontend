@@ -265,7 +265,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const title=isPending?"Ищем клинера":order.status==="en_route"?"Клинер направляется к вам":order.status==="arrived"?"Клинер прибыл":order.status==="in_progress"?"Уборка выполняется":order.status==="pending_confirmation"?"Подтвердите уборку":order.status==="disputed"?"Обращение в поддержку":order.status==="completed"?"Уборка завершена":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
   const searchStage=isPending?(progress===null?"Подбираем исполнителей":progress.awaiting>0?"Ожидаем подтверждения клинера":progress.sent>0?"Продолжаем поиск исполнителя":"Подбираем исполнителей"):"";
   const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="accepted"?"Исполнитель подтвердил заказ. Ожидаем начала поездки.":order.status==="en_route"?"Исполнитель сообщил, что направляется по адресу. Точное местоположение не передаётся.":order.status==="arrived"?"Исполнитель отметил прибытие по адресу.":order.status==="in_progress"?"Исполнитель начал уборку.":order.status==="pending_confirmation"?"Клинер завершил работу. Подтвердите результат или сообщите о проблеме.":order.status==="disputed"?"Заказ ожидает рассмотрения поддержкой.":order.status==="completed"?"Вы подтвердили выполнение уборки.":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
-  return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F5FAF8] text-[#152535] cleango-map-viewport">
+  return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F7F7F5] text-[#15191D] cleango-map-viewport">
     <div ref={setMapNode} className="absolute inset-0 min-h-full w-full" style={{minHeight:"100%"}} aria-label="Карта адреса уборки" />
     {!mapReady&&<div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-[#6D8880]">{mapError || "Загружаем карту района…"}</div>}
     <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-white/95 via-white/70 to-transparent px-4 pb-8 cleango-tracking-header">
@@ -274,19 +274,19 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         <span className="rounded-full bg-white px-4 py-2 text-xs font-bold tracking-wide text-[#087F71] shadow-sm">CleanGo · Заказ</span>
       </div>
     </div>
-    <div className={`absolute inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_-12px_50px_rgba(20,65,57,0.12)] transition-[height] duration-300 ease-out cleango-tracking-sheet ${collapsed?"h-[154px]":expanded?"h-[min(90dvh,850px)]":"h-[min(66dvh,530px)]"}`}>
+    <div className={`absolute inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-[22px] bg-white shadow-[0_-12px_50px_rgba(20,65,57,0.12)] transition-[height] duration-300 ease-out cleango-tracking-sheet ${collapsed?"h-[154px]":expanded?"h-[min(90dvh,850px)]":"h-[min(66dvh,530px)]"}`}>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5">
       <button type="button" onPointerDown={handleSheetStart} onPointerUp={handleSheetEnd} onPointerCancel={()=>{gestureStart.current=null;}} onClick={()=>{if(skipHandleClick.current){skipHandleClick.current=false;return;}setSheetPosition(value=>value==="expanded"?"normal":"expanded");}} aria-label="Потяните вверх или вниз, чтобы изменить размер панели" aria-expanded={expanded} className="flex w-full cursor-grab touch-none select-none justify-center py-4 active:cursor-grabbing"><span className="h-1.5 w-12 rounded-full bg-[#D9E8E4]"/></button>
       <div className="flex items-center gap-3">
-        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#E3F8F2] text-[#079B8D]">{isAccepted?<CheckCircle2 size={25}/>:<Sparkles size={25} className={isPending?"animate-pulse":""}/>}</div>
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#D9EFED] text-[#079B8D]">{isAccepted?<CheckCircle2 size={25}/>:<Sparkles size={25} className={isPending?"animate-pulse":""}/>}</div>
         <div className="min-w-0 flex-1"><h1 className="text-xl font-extrabold tracking-tight">{title}</h1><p className="mt-1 text-xs leading-5 text-[#738C84]">{subtitle}</p></div>
         {isPending&&<span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0A9C8D] opacity-40"/><span className="relative inline-flex h-3 w-3 rounded-full bg-[#0A9C8D]"/></span>}
       </div>
-      {!collapsed&&isPending&&<div className="mt-5 flex items-center gap-2 text-xs text-[#66877E]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#079B8D]"/>Поиск выполняется — время ответа зависит от клинеров</div>}
-      {!collapsed&&isPending&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4" aria-live="polite">
+      {!collapsed&&isPending&&<div className="mt-5 flex items-center gap-2 text-xs text-[#66877E]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#137D79]"/>Поиск выполняется — время ответа зависит от клинеров</div>}
+      {!collapsed&&isPending&&<div className="mt-4 rounded-2xl bg-[#F4F5F2] p-4" aria-live="polite">
         <div className="flex items-center gap-2 text-sm font-semibold text-[#174E45]"><CheckCircle2 size={17} className="text-[#079B8D]"/>Заказ оформлен</div>
         <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#174E45]">{progress&&progress.sent>0?<CheckCircle2 size={17} className="text-[#079B8D]"/>:<Clock3 size={17} className="text-[#079B8D]"/>}Предложения клинерам {progress&&progress.sent>0?"отправлены":"подбираются"}</div>
-        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#174E45]"><span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-[#079B8D]"/>{searchStage}</div>
+        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#174E45]"><span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-[#137D79]"/>{searchStage}</div>
       </div>}
       {!collapsed&&isPending&&<div className="mt-3 rounded-2xl border border-[#E2EEE9]">
         <button type="button" onClick={()=>setStatsExpanded(value=>!value)} aria-expanded={statsExpanded} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[#174E45]">
@@ -299,14 +299,14 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         </div>}
       </div>}
       {!collapsed&&isAccepted&&progressError&&!progress?.cleaner&&<p role="status" className="mt-3 text-xs text-amber-700">Не удалось загрузить данные исполнителя. Повторяем запрос автоматически.</p>}
-      {!collapsed&&isAccepted&&progress?.cleaner&&<div className="mt-4 overflow-hidden rounded-[24px] border border-[#E4EFEA] bg-white shadow-[0_8px_30px_rgba(20,65,57,0.055)]">
+      {!collapsed&&isAccepted&&progress?.cleaner&&<div className="mt-4 overflow-hidden rounded-[16px] border border-[#E6E7E4] bg-white">
         <div className="px-4 pb-3 pt-4">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7C918B]">Ваш исполнитель</p>
-            <span className="rounded-full bg-[#E8F7F2] px-3 py-1 text-[11px] font-semibold text-[#148878]">Назначен на заказ</span>
+            <span className="rounded-full bg-[#D9EFED] px-3 py-1 text-[11px] font-semibold text-[#148878]">Назначен на заказ</span>
           </div>
           <div className="mt-3 flex items-center gap-3">
-            <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-[18px] bg-[#DDF5ED] text-xl font-extrabold text-[#168B7D]" aria-hidden="true">
+            <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-[18px] bg-[#D9EFED] text-xl font-extrabold text-[#168B7D]" aria-hidden="true">
               {progress.cleaner.name.trim().split(/\s+/).slice(0,2).map(part=>part[0]?.toUpperCase()).join("")||<UserRound size={24}/>}
               <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-[#159D88] text-white"><CheckCircle2 size={12}/></span>
             </div>
@@ -318,7 +318,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
               </div>
             </div>
           </div>
-          <div className="mt-4 rounded-2xl bg-[#F3F9F7] px-3.5 py-3">
+          <div className="mt-4 rounded-2xl bg-[#F4F5F2] px-3.5 py-3">
             <div className="flex items-start gap-2"><span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-[#27B39D]"/><p className="text-xs leading-5 text-[#52756B]">{order.status==="accepted"?"Исполнитель принял заказ и готовится выехать":order.status==="en_route"?(progress.tripLocation?"Исполнитель направляется к вам · местоположение видно на карте":"Исполнитель в пути · геопозиция сейчас недоступна"):order.status==="arrived"?"Исполнитель прибыл по адресу":order.status==="in_progress"?"Сейчас выполняет уборку":order.status==="pending_confirmation"?"Уборка выполнена · ожидаем вашего подтверждения":order.status==="completed"?"Уборка подтверждена":"Статус заказа обновляется"}</p></div>
             {order.status==="en_route"&&<div className="mt-3 border-t border-[#DBEAE4] pt-3">
               <p className="text-[11px] font-medium text-[#728A82]">Ориентировочное прибытие</p>
@@ -333,14 +333,14 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
             <button type="button" onClick={()=>setReputationOpen(open=>!open)} aria-expanded={reputationOpen} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[#DFEAE6] bg-white px-3 text-xs font-bold text-[#315F54]">
               Профиль <ChevronDown size={15} className={reputationOpen?"rotate-180 transition-transform":"transition-transform"}/>
             </button>
-            {progress.cleaner.phone?<a href={`tel:${progress.cleaner.phone}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0C9889] px-3 text-xs font-bold text-white"><Phone size={15}/>Позвонить</a>:
+            {progress.cleaner.phone?<a href={`tel:${progress.cleaner.phone}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#137D79] px-3 text-xs font-bold text-white"><Phone size={15}/>Позвонить</a>:
             <div className="flex min-h-11 items-center justify-center rounded-xl bg-[#F0F5F3] px-2 text-center text-[11px] text-[#789087]">Телефон недоступен</div>}
           </div>
         </div>
         {reputationOpen&&<div className="border-t border-[#E7F0ED] bg-[#FCFEFD] px-4 py-4">
           <p className="text-sm font-bold text-[#152535]">Профиль исполнителя</p>
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl bg-[#F0F8F5] p-2"><p className="text-base font-extrabold text-[#174E45]">{reputation?.rating!=null?reputation.rating.toFixed(1):"—"}</p><p className="text-[10px] text-[#718A81]">Рейтинг</p></div>
+            <div className="rounded-xl bg-[#F4F5F2] p-2"><p className="text-base font-extrabold text-[#174E45]">{reputation?.rating!=null?reputation.rating.toFixed(1):"—"}</p><p className="text-[10px] text-[#718A81]">Рейтинг</p></div>
             <div className="rounded-xl bg-[#F0F8F5] p-2"><p className="text-base font-extrabold text-[#174E45]">{reputation?.completedOrders??"—"}</p><p className="text-[10px] text-[#718A81]">Уборок</p></div>
             <div className="rounded-xl bg-[#F0F8F5] p-2"><p className="text-base font-extrabold text-[#174E45]">{reputation?.reviewCount??"—"}</p><p className="text-[10px] text-[#718A81]">Оценок</p></div>
           </div>
@@ -349,20 +349,20 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         </div>}
       </div>}
 
-      {!collapsed&&["accepted","en_route","arrived","in_progress"].includes(order.status)&&<div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50 p-4">
+      {!collapsed&&["accepted","en_route","arrived","in_progress"].includes(order.status)&&<div className="mt-4 cg-card p-3">
         <p className="text-sm font-bold text-[#174E45]">Как проверите уборку?</p>
         <p className="mt-1 text-xs text-[#66877E]">Выбираете вы. По умолчанию — фотоотчёт.</p>
         <div className="mt-3 flex gap-2">
-          <button disabled={inspectionSaving} type="button" onClick={()=>void selectInspection("personal")} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod==="personal"?"border-teal-600 bg-teal-600 text-white":"bg-white text-teal-800"}`}>Проверю лично</button>
-          <button disabled={completionBusy} type="button" onClick={()=>void selectInspection("photos")} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod!=="personal"?"border-teal-600 bg-teal-600 text-white":"bg-white text-teal-800"}`}>По фотографиям</button>
+          <button disabled={inspectionSaving} type="button" onClick={()=>void selectInspection("personal")} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod==="personal"?"border-teal-600 bg-[#137D79] text-white":"bg-white text-teal-800"}`}>Проверю лично</button>
+          <button disabled={inspectionSaving} type="button" onClick={()=>void selectInspection("photos")} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod!=="personal"?"border-teal-600 bg-[#137D79] text-white":"bg-white text-teal-800"}`}>По фотографиям</button>
         </div>
         {inspectionSaving&&<p className="mt-2 text-[11px] text-teal-700" role="status">Сохраняем ваш выбор…</p>}
       </div>}
-      {!collapsed&&order.status==="pending_confirmation"&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
+      {!collapsed&&order.status==="pending_confirmation"&&<div className="mt-4 rounded-2xl bg-[#F4F5F2] p-4">
         <p className="text-sm font-bold text-[#174E45]">Проверьте результат уборки</p>
         {order.completionPhotos?.length ? <div className="mt-3"><PhotoReport photos={order.completionPhotos}/><p className="mt-2 text-[11px] text-[#66877E]">Нажмите на фотографию для полноэкранного просмотра.</p></div>:<p className="mt-2 text-xs text-[#66877E]">Выбрана личная проверка, фотоотчёт необязателен.</p>}
         <p className="mt-3 text-xs text-[#66877E]">Клинеру не нужно ждать на месте. Если вы забыли подтвердить, система напомнит через 15 минут.</p>
-        <button type="button" disabled={completionBusy} onClick={()=>void orderAction("confirm-completion")} className="mt-3 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">Подтвердить уборку</button>
+        <button type="button" disabled={completionBusy} onClick={()=>void orderAction("confirm-completion")} className="mt-3 w-full rounded-xl bg-[#137D79] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">Подтвердить уборку</button>
         <button type="button" disabled={completionBusy} onClick={()=>void orderAction("completion-issue")} className="mt-2 w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 disabled:opacity-50">Есть проблема</button>
       </div>}
       {!collapsed&&["completed","disputed"].includes(order.status)&&!!order.completionPhotos?.length&&<div className="mt-4 rounded-2xl border border-[#E1EEE8] bg-white p-4"><p className="mb-3 text-sm font-bold text-[#174E45]">Фотоотчёт уборки</p><PhotoReport photos={order.completionPhotos}/></div>}
@@ -382,7 +382,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         </div>
         <p className="mt-1 text-[11px] text-[#7E918A]">Нажмите на левую половину звезды, чтобы поставить 0,5.</p>
         <textarea value={reviewText} onChange={e=>setReviewText(e.target.value)} maxLength={1000} placeholder="Отзыв (необязательно)" className="mt-3 w-full rounded-xl border p-3 text-sm" rows={2}/>
-        <div className="mt-2 flex gap-2"><button type="button" disabled={!rating||completionBusy} onClick={()=>void orderAction("review",{rating,reviewText})} className="flex-1 rounded-xl bg-teal-600 p-3 text-sm font-bold text-white disabled:opacity-50">Отправить</button><button type="button" onClick={()=>setReviewDone(true)} className="rounded-xl border px-4 text-sm">Пропустить</button></div>
+        <div className="mt-2 flex gap-2"><button type="button" disabled={!rating||completionBusy} onClick={()=>void orderAction("review",{rating,reviewText})} className="flex-1 rounded-xl bg-[#137D79] p-3 text-sm font-bold text-white disabled:opacity-50">Отправить</button><button type="button" onClick={()=>setReviewDone(true)} className="rounded-xl border px-4 text-sm">Пропустить</button></div>
       </div>}
       {!collapsed&&completionError&&<p role="alert" className="mt-3 text-sm text-red-700">{completionError}</p>}
       {!collapsed&&<div className="mt-5 flex items-center gap-2 text-sm text-[#617B74]"><MapPin size={16} className="shrink-0 text-[#079B8D]"/><span className="truncate">{order.address}</span></div>}
@@ -395,7 +395,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       {!collapsed&&networkError&&<p role="status" className="mt-3 text-xs text-amber-700">Нет связи с сервером. Показываем последний подтверждённый статус.</p>}
       {!collapsed&&isPending&&<p className="mt-3 flex items-center gap-2 text-xs text-[#79918B]"><Clock3 size={14}/>Статус обновляется каждые 5 секунд</p>}
       </div>
-      {!collapsed&&<div className="shrink-0 px-4 pt-3 pb-3 sm:px-5"><Link href="/client/orders" className="flex min-h-12 items-center justify-center rounded-2xl bg-[#079B8D] px-4 font-bold text-white">Мои заказы</Link></div>}
+      {!collapsed&&<div className="shrink-0 px-4 pt-3 pb-3 sm:px-5"><Link href="/client/orders" className="flex min-h-12 items-center justify-center rounded-2xl bg-[#137D79] px-4 font-bold text-white">Мои заказы</Link></div>}
     </div>
   </section>;
 }
