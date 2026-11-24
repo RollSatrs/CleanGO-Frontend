@@ -118,7 +118,7 @@ export default function VerifyPhonePage() {
       <div aria-hidden="true" className="pointer-events-none absolute -left-28 top-20 h-72 w-72 rounded-full bg-[#E3F9F5] blur-[72px]" />
       <div aria-hidden="true" className="pointer-events-none absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-[#D8F5F3] blur-[88px]" />
 
-      <div className="relative mx-auto flex w-full max-w-[440px] flex-1 flex-col px-6 pb-[max(28px,env(safe-area-inset-bottom))] pt-7">
+      <div className="relative mx-auto flex w-full max-w-[440px] flex-1 flex-col cleango-onboarding-content">
         <header className="flex items-center justify-between">
           <span className="text-[19px] font-extrabold tracking-[-0.7px]">Clean<span className="text-[#22B5A6]">Go</span></span>
           <span className="rounded-full border border-[#E2EFEC] bg-white/80 px-3 py-1.5 text-[11px] font-medium text-[#6A8885]">
