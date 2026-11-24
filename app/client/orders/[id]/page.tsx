@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { OrderSkeleton } from "@/components/ui/order-loading";
 import OrderTracking from "@/components/OrderTracking";
 
 type Order = {
@@ -47,13 +48,14 @@ export default function ClientOrderTrackingPage() {
     return () => { active = false; };
   }, [id, token, user?.role, user?.phoneVerifiedAt]);
 
+  if (loading) return <main className="cleango-page-frame"><div className="cleango-page-scroll px-4 pt-4"><Link href="/client/orders" className="cg-press mb-4 inline-block text-sm font-semibold text-[#137D79]">← К заказам</Link><OrderSkeleton detail rows={1} label="Загружаем заказ…"/></div></main>;
   if (order) {
     const latitude = Number(order.latitude);
     const longitude = Number(order.longitude);
     const valid=order.latitude!=null&&order.longitude!=null&&Number.isFinite(latitude)&&Number.isFinite(longitude)&&Math.abs(latitude)<=90&&Math.abs(longitude)<=180;
     return <OrderTracking initialOrder={order} latitude={valid?latitude:NaN} longitude={valid?longitude:NaN} />;
   }
-  return <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 p-6 text-center text-slate-800">
+  return <main className="cleango-page-frame flex flex-col justify-center gap-4 px-6 text-center text-slate-800">
     <h1 className="text-xl font-bold">Просмотр заказа</h1>
     <p className="text-sm text-slate-600">{loading ? "Загружаем заказ и карту…" : error || "Для просмотра войдите как клиент и подтвердите телефон."}</p>
     <Link href="/client/orders" className="font-semibold text-teal-700">Вернуться к заказам</Link>
