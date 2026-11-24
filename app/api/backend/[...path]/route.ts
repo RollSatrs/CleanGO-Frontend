@@ -5,11 +5,11 @@ function permitted(path: string, method: string): boolean {
   if (["GET","PATCH"].includes(method) && path === "auth/profile") return true;
   if (method === "GET" && (path === "" || path === "pricing/quote" || path === "orders/offers/mine" || path === "orders/cleaner/profile" || path === "orders/cleaner/jobs" || path === "orders" || path === "orders/history" || path === "orders/notifications")) return true;
   if (method === "GET" && (path === "orders/cleaner/history" || /^orders\/cleaner\/history\/[0-9a-f-]{36}$/i.test(path))) return true;
-  if (method === "GET" && /^orders\/[0-9a-f-]{36}(?:\/(?:progress|cleaner-reputation|counterpart-avatar))?$/i.test(path)) return true;
+  if (method === "GET" && /^orders\/[0-9a-f-]{36}(?:\/(?:progress|cleaner-reputation|counterpart-avatar|exception))?$/i.test(path)) return true;
   if (method === "PATCH" && ["orders/cleaner/profile","orders/cleaner/preferences","orders/cleaner/location"].includes(path)) return true;
   if (method === "POST" && path === "orders") return true;
   if (method === "PATCH" && /^orders\/[0-9a-f-]{36}\/(accept|decline|en-route|arrived|trip-location|start|complete|cancel|inspection|confirm-completion|completion-issue)$/i.test(path)) return true;
-  if (method === "POST" && /^orders\/[0-9a-f-]{36}\/review$/i.test(path)) return true;
+  if (method === "POST" && /^orders\/[0-9a-f-]{36}\/(?:review|exception)$/i.test(path)) return true;
   return false;
 }
 
@@ -36,7 +36,7 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
       headers,
       body: ["POST", "PATCH"].includes(request.method) ? await request.text() : undefined,
       cache: "no-store",
-      signal: AbortSignal.timeout(path.endsWith("/complete") ? 45000 : 12000),
+      signal: AbortSignal.timeout((path.endsWith("/complete") || path.endsWith("/exception")) ? 45000 : 12000),
     });
     const responseHeaders = new Headers({
       "Content-Type": upstream.headers.get("content-type") ?? "application/json",
