@@ -59,7 +59,7 @@ export default function RoleSelection() {
   };
 
   return (
-    <main className="relative flex min-h-dvh flex-col overflow-hidden bg-[#F8FCFF] px-6 pb-8 pt-6 text-[#102334]">
+    <main className="relative flex cleango-screen cleango-onboarding-content flex-col overflow-hidden bg-[#F8FCFF] text-[#102334]">
       {/* Фон */}
       <div className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-teal-100/60 blur-3xl" />
 
