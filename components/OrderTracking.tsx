@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Clock3, MapPin, ShieldCheck, Sparkles, Star, ChevronDown, Phone, UserRound } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import PhotoReport from "@/components/PhotoReport";
 
 type Order = {
   id: string; status: string; address: string; area: number;
@@ -359,11 +360,12 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       </div>}
       {!collapsed&&order.status==="pending_confirmation"&&<div className="mt-4 rounded-2xl bg-[#EAF8F4] p-4">
         <p className="text-sm font-bold text-[#174E45]">Проверьте результат уборки</p>
-        {order.completionPhotos?.length ? <div className="mt-3 grid grid-cols-3 gap-2">{order.completionPhotos.map((src,index)=><a key={index} href={src} target="_blank" rel="noreferrer"><img src={src} alt={`Фото результата ${index+1}`} className="h-24 w-full rounded-lg object-cover"/></a>)}</div>:<p className="mt-2 text-xs text-[#66877E]">Выбрана личная проверка, фотоотчёт необязателен.</p>}
+        {order.completionPhotos?.length ? <div className="mt-3"><PhotoReport photos={order.completionPhotos}/><p className="mt-2 text-[11px] text-[#66877E]">Нажмите на фотографию для полноэкранного просмотра.</p></div>:<p className="mt-2 text-xs text-[#66877E]">Выбрана личная проверка, фотоотчёт необязателен.</p>}
         <p className="mt-3 text-xs text-[#66877E]">Клинеру не нужно ждать на месте. Если вы забыли подтвердить, система напомнит через 15 минут.</p>
         <button type="button" disabled={completionBusy} onClick={()=>void orderAction("confirm-completion")} className="mt-3 w-full rounded-xl bg-teal-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">Подтвердить уборку</button>
         <button type="button" disabled={completionBusy} onClick={()=>void orderAction("completion-issue")} className="mt-2 w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 disabled:opacity-50">Есть проблема</button>
       </div>}
+      {!collapsed&&["completed","disputed"].includes(order.status)&&!!order.completionPhotos?.length&&<div className="mt-4 rounded-2xl border border-[#E1EEE8] bg-white p-4"><p className="mb-3 text-sm font-bold text-[#174E45]">Фотоотчёт уборки</p><PhotoReport photos={order.completionPhotos}/></div>}
       {!collapsed&&order.status==="disputed"&&<p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Обращение зарегистрировано. Поддержка должна рассмотреть заказ; автоматической выплаты нет.</p>}
       {!collapsed&&order.status==="completed"&&order.rating==null&&!reviewDone&&<div className="mt-4 rounded-2xl border border-teal-100 p-4">
         <p className="text-sm font-bold">Оцените клинера — по желанию</p>
