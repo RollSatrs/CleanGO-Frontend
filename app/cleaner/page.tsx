@@ -20,8 +20,8 @@ export default function CleanerPage() {
       try{const response=await fetch("/api/backend/orders/offers/mine",{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});if(!response.ok)throw Error("unavailable");const data=await response.json();if(!Array.isArray(data))throw Error("invalid");if(active){setOffers(data);setOfferState("ready");}}catch{if(active)setOfferState("error");}
     };
     void refreshOffers();
-    const timer = window.setInterval(() => { setNow(Date.now()); if (document.visibilityState === "visible"){void refresh();void refreshOffers();} }, 10000);
-    const onFocus = () => {void refresh();void refreshOffers();};
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible")void refreshOffers(); }, 10000);
+    const onFocus = () => {void refreshOffers();};
     window.addEventListener("focus", onFocus);
     return () => { active = false; clearInterval(timer); window.removeEventListener("focus", onFocus); };
   }, [token, user?.role]);
