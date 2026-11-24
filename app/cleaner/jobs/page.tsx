@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { requestCleanGoLocation } from "@/lib/geo-location";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
+import { CounterpartAvatar } from "@/components/ProfileAvatar";
 import ServiceImage from "@/components/ServiceImage";
 import PhotoReport from "@/components/PhotoReport";
-import { MapPin, Phone, UserRound, ChevronRight, CalendarDays, ArrowLeft, RefreshCw, Camera } from "lucide-react";
+import { MapPin, Phone, ChevronRight, CalendarDays, ArrowLeft, RefreshCw, Camera } from "lucide-react";
 
 type AssignedJob = { id: string; status: string; cleaningType: string; area: number; price: number | null; address: string; latitude: string | number | null; longitude: string | number | null; createdAt: string; clientFirstName: string | null; clientLastName: string | null; clientPhone: string | null; inspectionMethod?:"personal"|"photos" };
 
@@ -257,7 +258,7 @@ export default function CleanerJobs() {
             <div className="px-1 pb-1 pt-2.5"><p className="text-[25px] font-bold tracking-tight">{job.price==null?"Цена уточняется":`${Number(job.price).toLocaleString("ru-RU")} ₸`}</p><p className="mt-1 text-sm font-medium">{typeLabels[job.cleaningType]??job.cleaningType} · {job.area} м²</p><p className="mt-1 flex items-start gap-1.5 text-xs cg-muted"><MapPin size={14} className="shrink-0"/>{job.address}</p></div>
           </AppCard>
           <AppCard className="flex items-center gap-3">
-            <div className="cg-soft grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-bold">{[job.clientFirstName,job.clientLastName].filter(Boolean).map(name=>name?.[0]?.toUpperCase()).join("")||<UserRound size={20}/>}</div>
+            <CounterpartAvatar orderId={job.id} name={[job.clientFirstName,job.clientLastName].filter(Boolean).join(" ")} enabled={["accepted","en_route","arrived","in_progress"].includes(job.status)} className="h-11 w-11 text-sm"/>
             <div className="min-w-0 flex-1"><p className="text-[11px] cg-muted">Клиент</p><p className="mt-0.5 truncate text-sm font-bold">{[job.clientFirstName,job.clientLastName].filter(Boolean).join(" ")||"Клиент CleanGo"}</p></div>
             {job.clientPhone&&<a href={`tel:${job.clientPhone}`} aria-label="Позвонить клиенту" className="cg-soft grid h-11 w-11 place-items-center rounded-full"><Phone size={19}/></a>}
           </AppCard>
