@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { CounterpartAvatar } from "@/components/ProfileAvatar";
 import { useSheetSwipe } from "@/lib/use-sheet-swipe";
 import ServiceImage from "@/components/ServiceImage";
+import OrderException from "@/components/OrderException";
 import PhotoReport from "@/components/PhotoReport";
 
 type Order = {
@@ -264,9 +265,9 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
     }catch(error){setCompletionError(error instanceof Error?error.message:"Ошибка соединения");}
     finally{setCompletionBusy(false);}
   }
-  const title=isPending?"Ищем клинера":order.status==="en_route"?"Клинер направляется к вам":order.status==="arrived"?"Клинер прибыл":order.status==="in_progress"?"Уборка выполняется":order.status==="pending_confirmation"?"Подтвердите уборку":order.status==="disputed"?"Обращение в поддержку":order.status==="completed"?"Уборка завершена":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
+  const title=order.status==="replacement_pending"?"Нужна замена клинера":isPending?"Ищем клинера":order.status==="en_route"?"Клинер направляется к вам":order.status==="arrived"?"Клинер прибыл":order.status==="in_progress"?"Уборка выполняется":order.status==="pending_confirmation"?"Подтвердите уборку":order.status==="disputed"?"Обращение в поддержку":order.status==="completed"?"Уборка завершена":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
   const searchStage=isPending?(progress===null?"Подбираем исполнителей":progress.awaiting>0?"Ожидаем подтверждения клинера":progress.sent>0?"Продолжаем поиск исполнителя":"Подбираем исполнителей"):"";
-  const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="accepted"?"Исполнитель подтвердил заказ. Ожидаем начала поездки.":order.status==="en_route"?(progress?.tripLocation?"Исполнитель направляется по адресу.":"Исполнитель в пути, геопозиция пока недоступна."):order.status==="arrived"?"Исполнитель отметил прибытие по адресу.":order.status==="in_progress"?"Исполнитель начал уборку.":order.status==="pending_confirmation"?"Клинер завершил работу. Подтвердите результат или сообщите о проблеме.":order.status==="disputed"?"Заказ ожидает рассмотрения поддержкой.":order.status==="completed"?"Вы подтвердили выполнение уборки.":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
+  const subtitle=order.status==="replacement_pending"?"Исполнитель отказался. Подтвердите повторный поиск или отмените заказ.":isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="accepted"?"Исполнитель подтвердил заказ. Ожидаем начала поездки.":order.status==="en_route"?(progress?.tripLocation?"Исполнитель направляется по адресу.":"Исполнитель в пути, геопозиция пока недоступна."):order.status==="arrived"?"Исполнитель отметил прибытие по адресу.":order.status==="in_progress"?"Исполнитель начал уборку.":order.status==="pending_confirmation"?"Клинер завершил работу. Подтвердите результат или сообщите о проблеме.":order.status==="disputed"?"Заказ ожидает рассмотрения поддержкой.":order.status==="completed"?"Вы подтвердили выполнение уборки.":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
   const stages=["Назначен","В пути","Уборка","Проверка","Готово"];
   const stageIndex=({accepted:0,en_route:1,arrived:2,in_progress:2,pending_confirmation:3,completed:4} as Record<string,number>)[order.status];
   const statusCard=<div className="flex items-center gap-3 py-1">
@@ -357,9 +358,10 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
     <button type="button" onClick={()=>{if(immersive)setSheetPosition(value=>value==="expanded"?"normal":"expanded");else if(hasCoordinates)setDetailMapOpen(open=>!open);}} disabled={!hasCoordinates} aria-label={immersive?"Изменить размер панели":"Показать или скрыть карту"} className="cg-icon-button disabled:opacity-30">{immersive?<ChevronsUpDown size={19}/>:<MapPin size={19}/>}</button>
   </div>;
   const errors=<>{completionError&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-xs text-red-700">{completionError}</p>}{networkError&&<p role="status" className="text-xs text-amber-700">Нет связи с сервером. Показываем последний подтверждённый статус.</p>}</>;
+  const exceptionPanel=<OrderException key={order.id+":"+order.status} orderId={order.id} status={order.status} role="client" disabled={completionBusy} onDone={async()=>{if(!token)return;const response=await fetch(`/api/backend/orders/${encodeURIComponent(order.id)}`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});if(response.ok){setProgress(null);setOrder(await response.json() as Order);}}}/>;
   const footer=order.status==="pending_confirmation"?<div className="space-y-2">
     <button type="button" disabled={completionBusy} onClick={()=>void orderAction("confirm-completion")} className="cg-primary min-h-12 w-full rounded-[13px] px-4 text-sm font-semibold disabled:opacity-50">{completionBusy?"Сохраняем…":"Подтвердить уборку"}</button>
-    <button type="button" disabled={completionBusy} onClick={()=>void orderAction("completion-issue")} className="min-h-10 w-full rounded-xl border border-[#E6E7E4] bg-white text-sm font-semibold text-red-700 disabled:opacity-50">Есть проблема</button>
+    <p className="text-center text-[11px] cg-muted">При проблеме с результатом заполните обращение выше.</p>
     {completionError&&<p role="alert" className="text-xs text-red-700">{completionError}</p>}
   </div>:<Link href="/client/orders" className="cg-primary flex min-h-12 items-center justify-center rounded-[13px] px-4 text-sm font-semibold">Мои заказы</Link>;
 
@@ -390,6 +392,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         {cleanerCard}
         {!collapsed&&inspectionCard}
         {!collapsed&&summary}
+        {!collapsed&&exceptionPanel}
         {!collapsed&&errors}
       </div>
       {!collapsed&&<div className="shrink-0 border-t border-[#E6E7E4] px-4 pt-2.5">{footer}</div>}
@@ -429,6 +432,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         {cleanerCard}
         {inspectionCard}
         {progressCard}
+        {exceptionPanel}
         {hasCoordinates&&<div ref={detailMapRef} className="cg-card overflow-hidden"><button type="button" onClick={()=>setDetailMapOpen(open=>!open)} aria-expanded={detailMapOpen} className="flex w-full items-center gap-2.5 p-3 text-left"><span className="cg-soft grid h-9 w-9 shrink-0 place-items-center rounded-full"><MapPin size={18}/></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Адрес на карте</span><span className="mt-0.5 block truncate text-xs cg-muted">{order.address}</span></span><ChevronDown size={17} className={detailMapOpen?"rotate-180":""}/></button>{detailMapOpen&&<div className="relative mx-2 mb-2 h-40 overflow-hidden rounded-xl">{mapContent}</div>}</div>}
         {errors}
       </div>
