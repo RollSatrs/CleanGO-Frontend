@@ -8,6 +8,7 @@ import { CounterpartAvatar } from "@/components/ProfileAvatar";
 import ServiceImage from "@/components/ServiceImage";
 import { OrderSkeleton, RefreshButton } from "@/components/ui/order-loading";
 import CleanerHistory from "@/components/CleanerHistory";
+import OrderException from "@/components/OrderException";
 import PhotoReport from "@/components/PhotoReport";
 import { MapPin, Phone, ChevronRight, CalendarDays, ArrowLeft, RefreshCw, Camera } from "lucide-react";
 
@@ -307,6 +308,7 @@ export default function CleanerJobs() {
             {photoErrors[job.id]&&<p className="mt-2 text-xs text-red-700" role="alert">{photoErrors[job.id]}</p>}
             <p className="mt-2 text-[11px] leading-4 cg-muted">Снимайте результат уборки, не включайте в кадр людей и личные документы.</p>
           </AppCard></>}
+          <OrderException key={job.id+":"+job.status} orderId={job.id} status={job.status} role="cleaner" disabled={!!busyId||!!photoBusy} onDone={async()=>{setSharingOrderId(null);setSelectedJobId(null);setTab("history");await load(true);}}/>
         </div>)}
       </section>}
       {!loading&&!selectedJob&&tab==="offers"&&<div key={motionKey} className="cg-order-enter space-y-3">
