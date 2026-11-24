@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { requestCleanGoLocation } from "@/lib/geo-location";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
+import ServiceImage from "@/components/ServiceImage";
 import PhotoReport from "@/components/PhotoReport";
-import { ImageIcon, MapPin, Phone, UserRound, ChevronRight, CalendarDays, ArrowLeft, RefreshCw, Camera } from "lucide-react";
+import { MapPin, Phone, UserRound, ChevronRight, CalendarDays, ArrowLeft, RefreshCw, Camera } from "lucide-react";
 
 type AssignedJob = { id: string; status: string; cleaningType: string; area: number; price: number | null; address: string; latitude: string | number | null; longitude: string | number | null; createdAt: string; clientFirstName: string | null; clientLastName: string | null; clientPhone: string | null; inspectionMethod?:"personal"|"photos" };
 
@@ -242,14 +243,14 @@ export default function CleanerJobs() {
       )}
       {!selectedJob&&tab==="jobs"&&jobs.length>0&&<section className="space-y-2.5">
         {jobs.map(job=><button key={job.id} type="button" onClick={()=>setSelectedJobId(job.id)} className="cg-card flex w-full items-center gap-3 p-2.5 text-left">
-          <div className="cg-placeholder grid h-[100px] w-[28%] shrink-0 place-items-center rounded-[10px]"><ImageIcon size={23} strokeWidth={1.3}/></div>
+          <ServiceImage type={job.cleaningType} className="h-[100px] w-[28%] shrink-0 rounded-[10px]" sizes="(max-width: 520px) 28vw, 140px" illustrative/>
           <div className="min-w-0 flex-1"><span className="cg-soft rounded-full px-2 py-1 text-[10px] font-semibold">{({accepted:"Принят",en_route:"В пути",arrived:"Прибыл",in_progress:"В работе"} as Record<string,string>)[job.status]??job.status}</span><p className="mt-2 text-lg font-bold">{job.price==null?"Цена уточняется":`${Number(job.price).toLocaleString("ru-RU")} ₸`}</p><p className="text-xs font-medium">{typeLabels[job.cleaningType]??job.cleaningType} · {job.area} м²</p><p className="mt-1 flex items-start gap-1 text-[11px] cg-muted"><MapPin size={13} className="shrink-0"/><span className="line-clamp-2">{job.address}</span></p></div><ChevronRight size={16} className="shrink-0 text-[#929A96]"/>
         </button>)}
       </section>}
       {selectedJob&&<section className="space-y-3">
         {[selectedJob].map(job => <div key={job.id} className="space-y-3">
           <AppCard className="!p-2.5">
-            <div className="cg-placeholder relative grid aspect-[2.55/1] place-items-center rounded-[12px]"><ImageIcon size={30} strokeWidth={1.3}/><span className="cg-soft absolute left-2 top-2 rounded-full px-2.5 py-1 text-[11px] font-semibold">{({accepted:"Заказ принят",en_route:"В пути",arrived:"Прибыл",in_progress:"В работе"} as Record<string,string>)[job.status]??job.status}</span></div>
+            <div className="relative aspect-[2.55/1] rounded-[12px]"><ServiceImage type={job.cleaningType} className="h-full w-full rounded-[12px]" sizes="(max-width: 520px) 90vw, 470px" illustrative/><span className="cg-soft absolute left-2 top-2 rounded-full px-2.5 py-1 text-[11px] font-semibold">{({accepted:"Заказ принят",en_route:"В пути",arrived:"Прибыл",in_progress:"В работе"} as Record<string,string>)[job.status]??job.status}</span></div>
             <div className="px-1 pb-1 pt-3"><p className="text-[23px] font-bold tracking-tight">{job.price==null?"Цена уточняется":`${Number(job.price).toLocaleString("ru-RU")} ₸`}</p><p className="mt-1 text-sm font-medium">{typeLabels[job.cleaningType]??job.cleaningType} · {job.area} м²</p><p className="mt-1 flex items-start gap-1.5 text-xs cg-muted"><MapPin size={14} className="shrink-0"/>{job.address}</p></div>
           </AppCard>
           <AppCard className="flex items-center gap-3">
@@ -294,7 +295,7 @@ export default function CleanerJobs() {
           const expired = new Date(offer.expiresAt).getTime() <= Date.now();
           return (
             <AppCard key={offer.offerId} className="!p-2.5">
-              <div className="flex gap-3"><div className="cg-placeholder grid min-h-[106px] w-[30%] shrink-0 place-items-center rounded-[11px]"><ImageIcon size={24} strokeWidth={1.3}/></div><div className="min-w-0 flex-1 py-1"><span className="cg-soft rounded-full px-2 py-1 text-[10px] font-semibold">{expired?"Истекло":"Новый заказ"}</span><p className="mt-2 text-[19px] font-bold">{Number(offer.price).toLocaleString("ru-RU")} ₸</p><h2 className="mt-1 text-xs font-semibold">{typeLabels[offer.cleaningType]??offer.cleaningType} · {offer.area} м²</h2><p className="mt-1.5 flex items-start gap-1 text-[11px] cg-muted"><MapPin size={13} className="shrink-0"/>{offer.approximateArea||"Район уточняется"}</p><p className="mt-1 flex items-center gap-1 text-[11px] cg-muted"><CalendarDays size={13}/> До {new Date(offer.expiresAt).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}</p></div></div>
+              <div className="flex gap-3"><ServiceImage type={offer.cleaningType} className="min-h-[106px] w-[30%] shrink-0 rounded-[11px]" sizes="(max-width: 520px) 30vw, 150px" illustrative/><div className="min-w-0 flex-1 py-1"><span className="cg-soft rounded-full px-2 py-1 text-[10px] font-semibold">{expired?"Истекло":"Новый заказ"}</span><p className="mt-2 text-[19px] font-bold">{Number(offer.price).toLocaleString("ru-RU")} ₸</p><h2 className="mt-1 text-xs font-semibold">{typeLabels[offer.cleaningType]??offer.cleaningType} · {offer.area} м²</h2><p className="mt-1.5 flex items-start gap-1 text-[11px] cg-muted"><MapPin size={13} className="shrink-0"/>{offer.approximateArea||"Район уточняется"}</p><p className="mt-1 flex items-center gap-1 text-[11px] cg-muted"><CalendarDays size={13}/> До {new Date(offer.expiresAt).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}</p></div></div>
               <div className="mt-4 flex gap-2">
                 <button type="button" disabled={expired || busyId !== null} onClick={() => void respond(offer.orderId, "accept")}
                   className="cg-primary flex-1 rounded-[10px] px-3 py-2.5 text-xs font-semibold disabled:opacity-50">Принять</button>
