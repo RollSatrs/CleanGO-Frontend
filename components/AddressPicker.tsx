@@ -255,7 +255,7 @@ export default function AddressPicker({ address, initialCoordinates = null, onCh
   return (
     <div className={immersive ? "relative cleango-map-viewport w-full overflow-hidden" : "space-y-3"}>
       <label htmlFor="cleango-address" className={immersive ? "sr-only" : "block text-sm font-semibold text-slate-800"}>Адрес уборки</label>
-      <div className={immersive ? (searchVisible ? "absolute left-4 right-4 cleango-map-search z-[650] rounded-[22px] bg-white shadow-[0_10px_35px_rgba(20,60,54,0.12)]" : "hidden") : "relative"}>
+      <div className={immersive ? (searchVisible ? "absolute left-4 right-4 cleango-map-search z-[650] rounded-[14px] bg-white shadow-[0_10px_35px_rgba(20,60,54,0.12)]" : "hidden") : "relative"}>
         <MapPin className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-teal-600" />
         <input id="cleango-address" value={address} autoComplete="off" required
           placeholder="Улица, дом или название места"
@@ -264,7 +264,7 @@ export default function AddressPicker({ address, initialCoordinates = null, onCh
             setSelected(false); setCoordinates(null); setResults([]);
             onChange(event.target.value, null);
           }}
-          className={immersive ? "h-14 w-full min-w-0 rounded-[22px] border-0 bg-white pl-12 pr-4 text-sm text-slate-900 outline-none" : "h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-base text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"}
+          className={immersive ? "h-14 w-full min-w-0 rounded-[14px] border-0 bg-white pl-12 pr-4 text-sm text-slate-900 outline-none" : "h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-base text-slate-900 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-100"}
         />
         {focused && (results.length > 0 || loading) && (
           <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-64 overflow-y-auto rounded-2xl border border-slate-100 bg-white p-1.5 shadow-xl">
@@ -272,7 +272,7 @@ export default function AddressPicker({ address, initialCoordinates = null, onCh
             {results.map((place, index) => (
               <button key={index} type="button"
                 onClick={() => choose(place.place_name, { latitude: place.center[1], longitude: place.center[0] })}
-                className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-800 hover:bg-teal-50">
+                className="flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-800 hover:bg-[#D9EFED]">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
                 <span className="min-w-0 break-words">{place.place_name}</span>
               </button>
@@ -282,7 +282,7 @@ export default function AddressPicker({ address, initialCoordinates = null, onCh
       </div>
       <div className={immersive ? "hidden" : "grid grid-cols-2 gap-2"}>
         <button type="button" onClick={() => { setMapError(""); setMapOpen(true); }}
-          className="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-2 py-2 text-sm font-semibold text-teal-800 disabled:opacity-50">
+          className="flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl border border-[#C9D6D3] bg-[#D9EFED] px-2 py-2 text-sm font-semibold text-[#176E6B] disabled:opacity-50">
           <MapPinned className="h-4 w-4 shrink-0" /> На карте
         </button>
         <button type="button" disabled={locationBusy} onClick={locate}
@@ -291,19 +291,19 @@ export default function AddressPicker({ address, initialCoordinates = null, onCh
         </button>
       </div>
       {!immersive && coordinates && selected && (
-        <p role="status" className="flex items-center gap-2 text-sm font-medium text-teal-700"><Check className="h-4 w-4" /> Адрес и точка выбраны</p>
+        <p role="status" className="flex items-center gap-2 text-sm font-medium text-[#137D79]"><Check className="h-4 w-4" /> Адрес и точка выбраны</p>
       )}
       {message && <p role="status" className="text-sm text-amber-700">{message}</p>}
       {!KEY && <p className="text-sm text-red-700">Не настроен NEXT_PUBLIC_MAPTILER_KEY.</p>}
       {mapOpen && (
-        <section aria-label="Выбор точки уборки на карте" className={immersive ? "absolute inset-0 overflow-hidden bg-[#F1F6F4]" : "overflow-hidden rounded-[24px] border border-[#DCEDE7] bg-white shadow-sm"}>
+        <section aria-label="Выбор точки уборки на карте" className={immersive ? "absolute inset-0 overflow-hidden bg-[#F1F6F4]" : "overflow-hidden rounded-[16px] border border-[#DCEDE7] bg-white shadow-sm"}>
           <div className={immersive ? "hidden" : "flex items-center justify-between gap-2 px-4 py-3"}>
             <div className="min-w-0">
               <p className="text-[11px] font-bold tracking-[0.12em] text-[#159F91]">CLEANGO · КАРТА</p>
               <p className="text-sm font-bold text-[#152535]">Переместите карту под маркер</p>
             </div>
             <button type="button" onClick={() => setMapExpanded(v => !v)}
-              className="flex shrink-0 items-center gap-1 rounded-xl bg-[#E8F8F4] px-3 py-2 text-xs font-semibold text-[#087F71]">
+              className="flex shrink-0 items-center gap-1 rounded-xl bg-[#D9EFED] px-3 py-2 text-xs font-semibold text-[#087F71]">
               {mapExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               {mapExpanded ? "Свернуть" : "Развернуть"}
             </button>
@@ -314,17 +314,17 @@ export default function AddressPicker({ address, initialCoordinates = null, onCh
             {mapError && !mapReady && <div role="alert" className="absolute inset-0 z-20 grid place-items-center bg-[#F1F6F4] p-5 text-center text-sm text-amber-700">{mapError}</div>}
             {mapReady && <button type="button" onClick={locateOnMap} disabled={mapLocating}
               aria-label="Моё местоположение на карте"
-              className={immersive ? "absolute bottom-[min(265px,47dvh)] right-3 z-[400] rounded-xl bg-white p-3 text-teal-700 shadow-md disabled:opacity-50" : "absolute bottom-4 right-3 z-[400] rounded-xl bg-white p-3 text-teal-700 shadow-md disabled:opacity-50"}><LocateFixed size={20}/></button>}
+              className={immersive ? "absolute bottom-[min(265px,47dvh)] right-3 z-[400] rounded-xl bg-white p-3 text-[#137D79] shadow-md disabled:opacity-50" : "absolute bottom-4 right-3 z-[400] rounded-xl bg-white p-3 text-[#137D79] shadow-md disabled:opacity-50"}><LocateFixed size={20}/></button>}
             {!immersive && <div className="pointer-events-none absolute left-1/2 top-1/2 z-[400] -translate-x-1/2 -translate-y-full">
-              <div className={`grid h-8 w-8 place-items-center rounded-full border-4 border-white bg-[#159F91] shadow-lg ${mapMoving ? "-translate-y-1" : ""}`}>
+              <div className={`grid h-8 w-8 place-items-center rounded-full border-4 border-white bg-[#259E9B] shadow-lg ${mapMoving ? "-translate-y-1" : ""}`}>
                 <span className="h-2 w-2 rounded-full bg-white"/>
               </div>
             </div>}
             {immersive && <div className="pointer-events-none absolute inset-0 z-[390]"><div className="absolute left-1/2 top-1/2 hidden" /></div>}
           </div>
-          <div className={immersive ? "hidden left-4 right-4 z-[410] rounded-[22px] bg-white/95 p-3 shadow-xl backdrop-blur-lg" : "space-y-3 p-4"}>
+          <div className={immersive ? "hidden left-4 right-4 z-[410] rounded-[14px] bg-white/95 p-3 shadow-xl backdrop-blur-lg" : "space-y-3 p-4"}>
             <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#E5F8F5] text-[#159F91]"><MapPin size={20}/></div>
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#D9EFED] text-[#159F91]"><MapPin size={20}/></div>
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-[#159F91]">Точка уборки</p>
                 <p className="break-words text-sm text-[#152535]">{mapMoving ? "Уточняем адрес..." : pickedAddress}</p>
@@ -332,7 +332,7 @@ export default function AddressPicker({ address, initialCoordinates = null, onCh
             </div>
             <button type="button" onClick={() => void confirmMap()}
               disabled={!mapReady || mapBusy || mapMoving}
-              className="h-12 w-full rounded-2xl bg-[#079B8D] font-bold text-white disabled:opacity-50">
+              className="h-12 w-full rounded-2xl bg-[#137D79] font-bold text-white disabled:opacity-50">
               {mapBusy ? "Сохраняем точку..." : "Использовать этот адрес"}
             </button>
             {!immersive && <p className="text-center text-[11px] text-[#829A94]">После выбора адреса укажите площадь и нажмите «Далее».</p>}
