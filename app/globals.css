@@ -216,11 +216,8 @@ html.telegram-mini-app.cleango-fullscreen body:has(.cleango-page-frame) { overfl
   border: 1px solid var(--cg-line);
   border-radius: 22px;
   box-shadow: 0 8px 28px rgba(21,25,29,.11);
-  transition: height 260ms cubic-bezier(.2,.8,.2,1);
 }
-.cg-booking-dragging { transition: none; }
-.cg-booking-handle { height: 28px; touch-action: none; user-select: none; cursor: grab; }
-.cg-booking-handle:active { cursor: grabbing; }
+.cg-booking-handle { height: 28px; }
 .cg-booking-body { scrollbar-width: none; }
 .cg-booking-body::-webkit-scrollbar { display: none; }
 .cg-booking .cg-booking-locate {
@@ -228,6 +225,11 @@ html.telegram-mini-app.cleango-fullscreen body:has(.cleango-page-frame) { overfl
   right: max(16px, calc(var(--cleango-safe-right) + 12px));
 }
 .cg-booking .cg-booking-search { top: calc(var(--cleango-safe-top) + 62px); }
+/* Shared motion system for all vertically draggable panels. */
+.cg-swipe-panel { transition: height 260ms cubic-bezier(.2,.8,.2,1); }
+.cg-swipe-panel.cg-swipe-dragging { transition: none; }
+.cg-swipe-handle { touch-action: none; user-select: none; cursor: grab; -webkit-user-select: none; }
+.cg-swipe-handle:active { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) {
-  .cg-booking-panel { transition: none; }
+  .cg-swipe-panel { transition: none; }
 }
