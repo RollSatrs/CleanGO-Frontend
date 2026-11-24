@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, ChevronRight, ImageIcon, MapPin, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, MapPin, ShieldCheck } from "lucide-react";
+import ServiceImage from "@/components/ServiceImage";
 import BottomNav from "@/components/navigation/BottomNav";
 import { AppHeader } from "@/components/ui/clean-go";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -57,8 +58,8 @@ export default function HomePage(){
           <div className="mt-3 grid grid-cols-3 gap-2">
             {services.map(item=><button key={item.id} type="button" aria-pressed={selectedService===item.id} onClick={()=>setSelectedService(item.id)}
               className={`min-w-0 overflow-hidden rounded-[14px] border bg-white text-left transition-colors ${selectedService===item.id?"border-[#259E9B] ring-1 ring-[#259E9B]":"border-[#E6E7E4]"}`}>
-              <div className="cg-placeholder relative flex aspect-[4/4.4] items-center justify-center rounded-t-[13px]" aria-hidden="true">
-                <ImageIcon size={24} strokeWidth={1.3}/>
+              <div className="relative aspect-[4/4.4] rounded-t-[13px]" aria-hidden="true">
+                <ServiceImage type={item.id} className="h-full w-full rounded-t-[13px]" sizes="(max-width: 520px) 32vw, 160px"/>
                 {selectedService===item.id&&<span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-[#137D79] text-white"><Check size={14}/></span>}
               </div>
               <div className="px-2 py-2.5"><h3 className="min-h-9 text-[11px] font-bold leading-[1.35] sm:text-sm">{item.title}<br/>{item.id!=="renovation"?"уборка":""}</h3><p className="mt-1 text-[11px] font-medium text-[#51595A]">от {item.price.toLocaleString("ru-RU")} ₸</p></div>
@@ -74,7 +75,7 @@ export default function HomePage(){
         <section className="mt-6">
           <div className="flex items-center justify-between"><h2 className="text-[17px] font-bold tracking-tight">Мои текущие заказы</h2><Link href="/client/orders" className="inline-flex items-center gap-1 text-xs font-semibold text-[#137D79]">Все <ChevronRight size={15}/></Link></div>
           {orders.length>0?<div className="mt-3 space-y-2">{orders.slice(0,2).map(item=><Link href={`/client/orders/${encodeURIComponent(item.id)}`} key={item.id} className="cg-card flex gap-3 p-2.5">
-            <div className="cg-placeholder grid h-[78px] w-[78px] shrink-0 place-items-center rounded-[10px]"><ImageIcon size={21} strokeWidth={1.3}/></div>
+            <ServiceImage type={item.cleaningType} className="h-[78px] w-[78px] shrink-0 rounded-[10px]" sizes="78px" illustrative/>
             <div className="min-w-0 flex-1"><span className="cg-soft inline-block rounded-full px-2 py-1 text-[10px] font-medium">{statusNames[item.status]??"Заказ"}</span><p className="mt-1 truncate text-sm font-semibold">{services.find(s=>s.id===item.cleaningType)?.fullTitle??"Уборка"}</p><p className="mt-1 flex items-center gap-1 text-xs cg-muted"><MapPin size={12} className="shrink-0"/><span className="truncate">{item.address}</span></p><p className="mt-1 text-xs cg-muted">{item.area} м²{item.price!=null?` · ${Number(item.price).toLocaleString("ru-RU")} ₸`:""}</p></div>
             <ChevronRight size={17} className="self-center text-[#8B9390]"/>
           </Link>)}</div>:<div className="cg-card mt-3 p-3 text-xs cg-muted">{ordersState==="loading"?"Загружаем заказы…":ordersState==="error"?"Не удалось загрузить заказы. Откройте раздел «Заказы».":"Пока нет активных заказов."}</div>}
