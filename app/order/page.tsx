@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
+import ServiceImage from "@/components/ServiceImage";
 import OrderForm from "@/components/OrderForm";
 import CleanGoLogo from "@/components/branding/CleanGoLogo";
 import { AppHeader } from "@/components/ui/clean-go";
@@ -95,7 +96,7 @@ function OrderContent() {
 
           <Link
             href="/"
-            className="mt-6 inline-flex rounded-xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-teal-700"
+            className="mt-6 inline-flex rounded-xl bg-[#137D79] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#106A67]"
           >
             Вернуться к услугам
           </Link>
@@ -107,9 +108,9 @@ function OrderContent() {
   const service = services[serviceId];
 
   return (
-    <main className="min-h-screen bg-[#F7FAF9] pb-12 text-[#152535]">
-      <div className="mx-auto w-full max-w-2xl">
-        <AppHeader role="client" className="cleango-client-header bg-white px-5 pb-4 pt-6" />
+    <main className="cleango-page-frame">
+      <div className="cleango-page-scroll w-full">
+        <AppHeader role="client" className="cleango-client-header px-4 pb-3" />
         <div className="px-5 pt-5 sm:px-6">
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-[#47716A]">← К услугам</Link>
           <p className="mb-2 mt-6 text-xs font-bold uppercase tracking-[0.16em] text-[#2A9183]">Оформление заказа</p>
@@ -117,11 +118,12 @@ function OrderContent() {
           <p className="mt-2 text-sm leading-6 text-[#718380]">Укажите адрес и площадь — мы рассчитаем стоимость.</p>
         </div>
         <div className="space-y-5 px-4 pt-5 sm:px-6">
-          <section className="rounded-[24px] border border-[#E6EFEC] bg-white p-5 shadow-[0_8px_32px_rgba(21,37,53,0.035)]">
+          <section className="cg-card p-3.5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#7A9290]">Ваша услуга</p>
               <span className="rounded-full bg-[#E7F8F2] px-3 py-1 text-xs font-semibold text-[#168675]">Выбрано ✓</span>
             </div>
+            <ServiceImage type={serviceId} className="mb-3 aspect-[2.5/1] w-full rounded-xl" sizes="(max-width: 520px) 90vw, 470px"/>
             <h2 className="text-xl font-bold tracking-tight">{service.title}</h2>
             <p className="mt-2 text-sm leading-6 text-[#718380]">{service.description}</p>
             <details className="group mt-4 border-t border-[#EEF3F1] pt-4">
@@ -137,7 +139,7 @@ function OrderContent() {
               </ul>
             </details>
           </section>
-          <section className="rounded-[24px] border border-[#E6EFEC] bg-white p-5 shadow-[0_8px_32px_rgba(21,37,53,0.035)] sm:p-6">
+          <section className="cg-card p-3.5 sm:p-6">
             <div className="mb-6">
               <p className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-[#7A9290]">Параметры уборки</p>
               <h2 className="text-xl font-bold tracking-tight">Куда приедет клинер?</h2>
