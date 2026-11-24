@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ServiceImage from "@/components/ServiceImage";
 import Link from "next/link";
-import { MapPin, CalendarDays, ChevronRight, RefreshCw } from "lucide-react";
+import { MapPin, CalendarDays, ChevronRight, RefreshCw, Star, RotateCcw } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 
@@ -15,6 +15,7 @@ type Order = {
   status: string;
   price: number | string | null;
   createdAt: string;
+  rating?:number|null;
 };
 const labels: Record<string, string> = {
   regular: "Поддерживающая уборка",
@@ -40,14 +41,16 @@ const statuses: Record<string, string> = {
 export default function ClientOrders() {
   const { token, user, status } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [section, setSection] = useState<"active" | "archive">("active");
+  const [section, setSection] = useState<"active" | "completed" | "cancelled">("active");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const requestVersion=useRef(0);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    const version=++requestVersion.current;
     if (!token || user?.role !== "client" || !user.phoneVerifiedAt) {
       setLoading(false);
       return;
@@ -63,13 +66,15 @@ export default function ClientOrders() {
       const data: unknown = await response.json();
       if (!data || typeof data !== "object" || !("items" in data) || !Array.isArray(data.items)) throw new Error("Некорректный ответ сервера");
       const result = data as { items: Order[]; total: number };
+      if(version!==requestVersion.current)return;
       setOrders(result.items);
+      if(page>1&&result.items.length===0)setPage(Math.max(1,Math.ceil(result.total/5)));
       setTotal(result.total);
       setError("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка загрузки заказов");
+      if(version===requestVersion.current)setError(err instanceof Error ? err.message : "Ошибка загрузки заказов");
     } finally {
-      setLoading(false);
+      if(version===requestVersion.current)setLoading(false);
     }
   }, [token, user?.role, user?.phoneVerifiedAt, section, page]);
 
@@ -77,7 +82,7 @@ export default function ClientOrders() {
     void load();
     if (!token || user?.role !== "client") return;
     const interval = setInterval(() => void load(), 15000);
-    return () => clearInterval(interval);
+    return () => {requestVersion.current++;clearInterval(interval);};
   }, [load, token, user?.role]);
 
   const cancelOrder = async (order: Order) => {
@@ -112,18 +117,18 @@ export default function ClientOrders() {
       {user?.role === "client" && !user.phoneVerifiedAt && (
         <AppCard><p className="text-sm">Подтвердите телефон, чтобы увидеть заказы.</p></AppCard>
       )}
-      <div className="flex gap-2" role="group" aria-label="Раздел заказов">{(["active", "archive"] as const).map(value => <button key={value} type="button" aria-pressed={section === value} onClick={() => { setSection(value); setPage(1); setLoading(true); }} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${section === value ? "cg-primary" : "bg-[#EDEEEB] text-[#51595A]"}`}>{value === "active" ? "Активные" : "Архив"}</button>)}</div>
+      <div className="flex gap-2" role="group" aria-label="Раздел заказов">{(["active", "completed", "cancelled"] as const).map(value => <button key={value} type="button" aria-pressed={section === value} onClick={() => { if(section===value)return; requestVersion.current++;setSection(value);setPage(1);setOrders([]);setTotal(0);setError("");setLoading(true); }} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${section === value ? "cg-primary" : "bg-[#EDEEEB] text-[#51595A]"}`}>{value === "active" ? "Активные" : value==="completed"?"Завершённые":"Отменённые"}</button>)}</div>
       {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {loading && <p className="text-sm text-slate-500">Загружаем заказы…</p>}
       {!loading && !error && user?.role === "client" && user.phoneVerifiedAt && orders.length === 0 && (
         <AppCard>
-          <h2 className="text-lg font-bold">{section === "archive" ? "Архив пока пуст" : "Активных заказов нет"}</h2>
-          <p className="mt-2 text-sm text-slate-500">{section === "archive" ? "Завершённые, отменённые и неназначенные заказы появятся здесь." : "Выберите уборку, чтобы оформить заказ."}</p>
+          <h2 className="text-lg font-bold">{section==="active"?"Активных заказов нет":section==="completed"?"Нет завершённых заказов":"Нет отменённых заказов"}</h2>
+          <p className="mt-2 text-sm text-slate-500">{section==="active"?"Выберите уборку, чтобы оформить заказ.":section==="completed"?"Подтверждённые уборки появятся здесь.":"Отменённые и неназначенные заказы появятся здесь."}</p>
           <Link href="/" className="mt-4 inline-block font-semibold text-teal-700">Выбрать уборку</Link>
         </AppCard>
       )}
       <div className="space-y-3">
-        {orders.map(order => (
+        {user?.role==="client"&&user.phoneVerifiedAt&&orders.map(order => (
           <AppCard key={order.id} className="!p-2.5">
             <Link href={`/client/orders/${encodeURIComponent(order.id)}`} className="flex items-stretch gap-3">
               <ServiceImage type={order.cleaningType} className="min-h-[108px] w-[29%] shrink-0 rounded-[11px]" sizes="(max-width: 520px) 29vw, 145px" illustrative/>
@@ -132,19 +137,21 @@ export default function ClientOrders() {
                 <p className="mt-1.5 text-[19px] font-bold tracking-tight">{order.price==null?"Цена уточняется":`${Number(order.price).toLocaleString("ru-RU")} ₸`}</p>
                 <h2 className="mt-1 text-xs font-semibold">{labels[order.cleaningType]??order.cleaningType} · {order.area} м²</h2>
                 <p className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-4 cg-muted"><MapPin size={13} className="shrink-0"/><span className="line-clamp-2">{order.address}</span></p>
+                {order.rating!=null&&<p className="mt-1 flex items-center gap-1 text-xs"><Star size={12} className="fill-[#E9B54E] text-[#E9B54E]"/>{Number(order.rating).toFixed(1)}</p>}
                 <p className="mt-1 flex items-center gap-1.5 text-[11px] cg-muted"><CalendarDays size={13} className="shrink-0"/>{new Date(order.createdAt).toLocaleString("ru-RU")}</p>
               </div>
               <ChevronRight size={16} className="shrink-0 self-center text-[#909895]"/>
             </Link>
+            {order.status==="completed"&&<Link href={`/order?service=${encodeURIComponent(order.cleaningType)}&repeat=${encodeURIComponent(order.id)}`} className="mt-2 flex w-full items-center justify-center gap-2 rounded-[10px] border border-[#E6E7E4] py-2.5 text-xs font-semibold text-[#137D79]"><RotateCcw size={14}/> Повторить заказ</Link>}
             {order.status==="pending"&&<button type="button" disabled={cancellingId!==null} onClick={()=>void cancelOrder(order)} className="mt-2 w-full rounded-[10px] border border-[#E6E7E4] px-3 py-2 text-xs font-medium text-red-700 disabled:opacity-50">{cancellingId===order.id?"Отменяем…":"Отменить заказ"}</button>}
           </AppCard>
         ))}
       </div>
       {user?.role === "client" && user.phoneVerifiedAt && total > 5 && (
         <div className="flex items-center justify-between gap-3 py-3">
-          <button type="button" disabled={page === 1} onClick={() => { setPage(p => p - 1); setLoading(true); }} className="rounded-xl border px-3 py-2 disabled:opacity-40">Назад</button>
+          <button type="button" disabled={page === 1} onClick={() => { requestVersion.current++;setPage(p => p - 1);setOrders([]);setLoading(true); }} className="rounded-xl border px-3 py-2 disabled:opacity-40">Назад</button>
           <span className="text-sm text-slate-500">Страница {page} из {Math.ceil(total / 5)}</span>
-          <button type="button" disabled={page * 5 >= total} onClick={() => { setPage(p => p + 1); setLoading(true); }} className="rounded-xl border px-3 py-2 disabled:opacity-40">Далее</button>
+          <button type="button" disabled={page * 5 >= total} onClick={() => { requestVersion.current++;setPage(p => p + 1);setOrders([]);setLoading(true); }} className="rounded-xl border px-3 py-2 disabled:opacity-40">Далее</button>
         </div>
       )}
       {user?.role === "client" && user.phoneVerifiedAt && (
