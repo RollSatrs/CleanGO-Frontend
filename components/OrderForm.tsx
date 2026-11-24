@@ -15,6 +15,7 @@ type CleaningType = "regular" | "general" | "renovation";
 
 type OrderFormProps = {
   cleaningType: CleaningType;
+  repeat?: {address:string;area:number;coordinates:{latitude:number;longitude:number}|null};
 };
 
 type CreatedOrder = {
@@ -44,16 +45,16 @@ const cleaningTypeNames: Record<CleaningType, string> = {
   renovation: "Уборка после ремонта",
 };
 
-export default function OrderForm({ cleaningType }: OrderFormProps) {
+export default function OrderForm({ cleaningType, repeat }: OrderFormProps) {
   const { token, user } = useAuth();
-  const [address, setAddress] = useState("");
-  const [area, setArea] = useState("60");
+  const [address, setAddress] = useState(repeat?.address??"");
+  const [area, setArea] = useState(String(repeat?.area??60));
   const [entrance, setEntrance] = useState("");
   const [floor, setFloor] = useState("");
   const [apartment, setApartment] = useState("");
   const [intercom, setIntercom] = useState("");
   const [addressNote, setAddressNote] = useState("");
-  const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(repeat?.coordinates??null);
 
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -322,7 +323,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
       </div>
       <div className="cg-booking-top pointer-events-none absolute inset-x-0 z-[500] flex items-center justify-between">
         <Link href="/" aria-label="Назад к услугам" className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full border border-[#E6E7E4] bg-white shadow-sm"><ArrowLeft size={20}/></Link>
-        <span className="rounded-full border border-[#E6E7E4] bg-white px-3 py-2 text-xs font-semibold shadow-sm">Новый заказ</span>
+        <span className="rounded-full border border-[#E6E7E4] bg-white px-3 py-2 text-xs font-semibold shadow-sm">{repeat?"Повтор заказа":"Новый заказ"}</span>
         <div className="h-11 w-11" aria-hidden="true"/>
       </div>
       <section ref={sheetRef} aria-label="Параметры заказа" className={`cg-booking-panel cg-swipe-panel absolute z-[600] flex flex-col overflow-hidden ${dragHeight!==null?"cg-swipe-dragging":""}`} style={{height:dragHeight??(expanded?heights.expanded:heights.compact)}}>
