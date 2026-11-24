@@ -378,7 +378,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
               </div>
             </div>
           </div>
-          <div ref={extraRef} id="booking-extra" inert={!expanded} aria-hidden={!expanded} className="space-y-3 border-t border-[#E6E7E4] pb-3 pt-3" style={expanded||dragHeight!==null?undefined:{visibility:"hidden",position:"absolute",left:14,right:14,top:0}}>
+          <div ref={extraRef} id="booking-extra" inert={!expanded} aria-hidden={!expanded} className="space-y-3 border-t border-[#E6E7E4] pb-3 pt-3" style={expanded||dragHeight!==null?undefined:{visibility:"hidden",position:"absolute",left:14,right:14,bottom:"100%"}}>
             <div className="grid grid-cols-5 gap-1.5" aria-label="Быстрый выбор площади">{[30,40,60,80,100].map(value=><button key={value} type="button" onClick={()=>setArea(String(value))} aria-pressed={parsedArea===value} className={`min-h-9 rounded-lg border text-[11px] font-semibold ${parsedArea===value?"border-[#137D79] cg-primary":"border-[#E6E7E4] bg-white"}`}>{value} м²</button>)}</div>
             <div><p className="text-xs font-semibold">Детали адреса</p><p className="mt-1 text-[11px] cg-muted">По желанию — чтобы клинер быстрее нашёл вход.</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
