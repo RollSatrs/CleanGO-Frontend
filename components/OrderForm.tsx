@@ -1,10 +1,11 @@
 
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronUp, MapPin, ArrowLeft, ArrowRight, LoaderCircle, Minus, Plus } from "lucide-react";
 
+import { useSheetSwipe } from "@/lib/use-sheet-swipe";
 import ServiceImage from "@/components/ServiceImage";
 import AddressPicker from "@/components/AddressPicker";
 import OrderTracking from "@/components/OrderTracking";
@@ -68,46 +69,15 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
   const footerRef=useRef<HTMLDivElement>(null);
   const bodyRef=useRef<HTMLDivElement>(null);
   const [heights,setHeights]=useState({compact:300,expanded:510});
-  const [dragHeight,setDragHeight]=useState<number|null>(null);
-  const drag=useRef<{pointerId:number;y:number;height:number;time:number;lastY:number;lastTime:number;velocity:number}|null>(null);
-  const ignoreClick=useRef(false);
-
   function setPanel(open:boolean){
     setExpanded(open);
     if(!open)bodyRef.current?.scrollTo({top:0,behavior:"instant"});
   }
-  function startDrag(e:PointerEvent<HTMLButtonElement>){
-    if(!e.isPrimary||(e.pointerType==="mouse"&&e.button!==0)||!sheetRef.current)return;
-    ignoreClick.current=false;
-    const now=performance.now();
-    drag.current={pointerId:e.pointerId,y:e.clientY,height:sheetRef.current.getBoundingClientRect().height,time:now,lastY:e.clientY,lastTime:now,velocity:0};
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }
-  function moveDrag(e:PointerEvent<HTMLButtonElement>){
-    const d=drag.current;
-    if(!d||d.pointerId!==e.pointerId)return;
-    const now=performance.now();
-    const delta=d.y-e.clientY;
-    if(now>d.lastTime)d.velocity=(d.lastY-e.clientY)/(now-d.lastTime);
-    d.lastY=e.clientY;d.lastTime=now;
-    if(Math.abs(delta)<5&&!ignoreClick.current)return;
-    ignoreClick.current=true;
-    const max=Math.max(heights.compact,heights.expanded);
-    setDragHeight(Math.max(heights.compact,Math.min(max,d.height+delta)));
-  }
-  function finishDrag(e:PointerEvent<HTMLButtonElement>,cancelled=false){
-    const d=drag.current;
-    if(!d||d.pointerId!==e.pointerId)return;
-    drag.current=null;
-    const delta=d.y-e.clientY;
-    const velocity=performance.now()-d.lastTime<100?d.velocity:0;
-    if(!cancelled&&ignoreClick.current){
-      if(Math.abs(delta)>32||Math.abs(velocity)>.35)setPanel(Math.abs(velocity)>.35?velocity>0:delta>0);
-      else setPanel(expanded);
-    }
-    setDragHeight(null);
-    if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);
-  }
+  const {dragHeight,handleProps}=useSheetSwipe({
+    panelRef:sheetRef,index:expanded?1:0,count:2,
+    getHeights:()=>[heights.compact,heights.expanded],
+    onSnap:index=>setPanel(index===1),
+  });
   const [error, setError] = useState("");
   const [priceError, setPriceError] = useState("");
 
@@ -355,8 +325,8 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         <span className="rounded-full border border-[#E6E7E4] bg-white px-3 py-2 text-xs font-semibold shadow-sm">Новый заказ</span>
         <div className="h-11 w-11" aria-hidden="true"/>
       </div>
-      <section ref={sheetRef} aria-label="Параметры заказа" className={`cg-booking-panel absolute z-[600] flex flex-col overflow-hidden ${dragHeight!==null?"cg-booking-dragging":""}`} style={{height:dragHeight??(expanded?heights.expanded:heights.compact)}}>
-        <button ref={handleRef} type="button" aria-label={expanded?"Свернуть параметры заказа":"Раскрыть параметры заказа"} aria-expanded={expanded} aria-controls="booking-extra" className="cg-booking-handle flex w-full shrink-0 items-center justify-center" onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={e=>finishDrag(e)} onPointerCancel={e=>finishDrag(e,true)} onLostPointerCapture={e=>finishDrag(e,true)} onClick={e=>{if(ignoreClick.current&&e.detail!==0){ignoreClick.current=false;return;}ignoreClick.current=false;setPanel(!expanded);}} onKeyDown={e=>{if(e.key==="ArrowUp"||e.key==="ArrowDown"){e.preventDefault();setPanel(e.key==="ArrowUp");}}}><span className="h-1 w-10 rounded-full bg-[#CAD6D1]"/></button>
+      <section ref={sheetRef} aria-label="Параметры заказа" className={`cg-booking-panel cg-swipe-panel absolute z-[600] flex flex-col overflow-hidden ${dragHeight!==null?"cg-swipe-dragging":""}`} style={{height:dragHeight??(expanded?heights.expanded:heights.compact)}}>
+        <button ref={handleRef} type="button" aria-label={expanded?"Свернуть параметры заказа":"Раскрыть параметры заказа"} aria-expanded={expanded} aria-controls="booking-extra" className="cg-booking-handle cg-swipe-handle flex w-full shrink-0 items-center justify-center" {...handleProps}><span className="h-1 w-10 rounded-full bg-[#CAD6D1]"/></button>
         <div ref={bodyRef} className="cg-booking-body relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5">
           <div ref={primaryRef} className="space-y-2.5 pb-2">
             <div className="flex items-center gap-2">
