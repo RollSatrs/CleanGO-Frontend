@@ -32,6 +32,7 @@ const statuses: Record<string, string> = {
   completed: "Завершён",
   pending_confirmation: "Ожидает вашего подтверждения",
   disputed: "Обращение в поддержку",
+  replacement_pending:"Требуется замена клинера",
   cancelled: "Отменён",
   unassigned: "Клинер не найден",
   expired: "Поиск завершён",
