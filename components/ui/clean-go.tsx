@@ -4,29 +4,28 @@ import { useEffect, useState, type ButtonHTMLAttributes, type HTMLAttributes, ty
 import { useAuth } from "@/components/providers/AuthProvider";
 import Link from "next/link";
 import { Bell, LoaderCircle } from "lucide-react";
-import CleanGoLogo from "@/components/branding/CleanGoLogo";
 import BottomNav from "@/components/navigation/BottomNav";
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
 const buttonStyles: Record<ButtonVariant, string> = {
-  primary: "bg-[#26B8A9] text-white hover:bg-[#1FA99B]",
-  secondary: "border border-[#DDEFEA] bg-white text-[#177E76] hover:bg-[#F0FAF8]",
+  primary: "cg-primary",
+  secondary: "border border-[#E6E7E4] bg-white text-[#176E6B] hover:bg-[#D9EFED]",
   ghost: "bg-transparent text-[#177E76] hover:bg-[#EAF8F5]",
 };
 
 export function AppButton({ variant = "primary", loading = false, className = "", disabled, children, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; loading?: boolean }) {
-  return <button {...props} disabled={disabled || loading} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold transition-colors active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${buttonStyles[variant]} ${className}`}>
+  return <button {...props} disabled={disabled || loading} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${buttonStyles[variant]} ${className}`}>
     {loading && <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />}
     {children}
   </button>;
 }
 
 export function AppLinkButton({ href, children, variant = "primary", className = "" }: { href: string; children: ReactNode; variant?: ButtonVariant; className?: string }) {
-  return <Link href={href} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-semibold transition-colors active:scale-[0.99] ${buttonStyles[variant]} ${className}`}>{children}</Link>;
+  return <Link href={href} className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors active:scale-[0.99] ${buttonStyles[variant]} ${className}`}>{children}</Link>;
 }
 
 export function AppCard({ className = "", children, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div {...props} className={`rounded-[24px] border border-[#E6F1EF] bg-white p-5 ${className}`}>{children}</div>;
+  return <div {...props} className={`cg-card p-3.5 ${className}`}>{children}</div>;
 }
 
 type Notice = { id: string; orderId: string; type: string; createdAt: string };
@@ -100,8 +99,8 @@ export function NotificationBell() {
   return <div className="relative">
     <button type="button" onClick={() => setOpen(value => !value)}
       aria-label={`Уведомления, непрочитанных: ${unread}`}
-      className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#E4F1EE] bg-white">
-      <Bell className="h-5 w-5 text-[#20B4A4]" aria-hidden="true" />
+      className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#EEEFEA]">
+      <Bell className="h-5 w-5 text-[#15191D]" aria-hidden="true" />
       {unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">{unread > 99 ? "99+" : unread}</span>}
     </button>
     {open && <div className="absolute right-0 top-12 z-50 w-[min(85vw,340px)] rounded-2xl border border-[#DDEFEA] bg-white p-3 shadow-xl">
@@ -128,7 +127,7 @@ export function NotificationBell() {
 
 export function AppHeader({ role, subtitle, className = "" }: { role: "client" | "cleaner"; subtitle?: string; className?: string }) {
   return <header className={`flex items-center justify-between gap-3 ${className}`}>
-    <CleanGoLogo size={44} showName showTagline priority />
+    <Link href={role==="cleaner"?"/cleaner":"/"} aria-label="CleanGo — главная" className="text-[25px] font-extrabold leading-none tracking-[-0.06em] text-[#15191D]">Clean<span className="text-[#259E9B]">Go</span></Link>
     <NotificationBell />
   </header>;
 }
@@ -144,16 +143,16 @@ export function LoadingState({ label = "Загружаем...", rows = 2 }: { la
 }
 
 export function AppPageShell({ role, eyebrow, title, description, children }: { role: "client" | "cleaner"; eyebrow: string; title: string; description?: string; children: ReactNode }) {
-  return <main className="cleango-screen cleango-page-with-nav bg-[#F8FCFB] text-[#152535]">
-    <div className="mx-auto w-full max-w-[520px]">
-      <AppHeader role={role} className="cleango-client-header min-h-[84px] px-5 pb-4 pt-6" />
-      <div className="px-5">
-        <div className="mt-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#23B3A5]">{eyebrow}</p>
-          <h1 className="mt-2 text-[28px] font-extrabold tracking-tight">{title}</h1>
-          {description && <p className="mt-2 text-sm leading-6 text-[#80919A]">{description}</p>}
+  return <main className="cleango-page-frame">
+    <div className="cleango-page-scroll w-full">
+      <AppHeader role={role} className="cleango-client-header px-4 pb-3" />
+      <div className="px-4">
+        <div className="mt-3">
+          <p className="sr-only">{eyebrow}</p>
+          <h1 className="text-[25px] font-bold leading-tight tracking-[-0.035em]">{title}</h1>
+          {description && <p className="mt-1.5 text-xs leading-5 text-[#697174]">{description}</p>}
         </div>
-        <div className="mt-7">{children}</div>
+        <div className="mt-4 space-y-3">{children}</div>
       </div>
     </div>
     <BottomNav role={role} />
