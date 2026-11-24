@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, ChevronLeft, ChevronRight, ImagePlus, LoaderCircle, X, ZoomIn } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImagePlus, LoaderCircle, X, ZoomIn } from "lucide-react";
 
 type Props = {
   photos: readonly string[];
@@ -60,31 +60,26 @@ export default function PhotoReport({photos,onAdd,onRemove,busy=false,disabled=f
   const editable=Boolean(onAdd);
   const remaining=5-photos.length;
   return (
-    <div className="space-y-2.5">
-      {editable&&<div className="flex items-center gap-3">
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#D9EFED] text-[#137D79]"><Camera size={22}/></div>
-        <div className="min-w-0 flex-1"><p className="text-sm font-bold text-[#152535]">Фотоотчёт</p><p className="mt-0.5 text-xs text-[#6B847C]">{required?"Добавьте 3–5 фотографий":"До 5 фотографий, по желанию"}</p></div>
-        <span className="rounded-full bg-[#EDEEEB] px-2.5 py-1 text-xs font-bold tabular-nums text-[#176E6B]">{photos.length}/5</span>
+    <div className="space-y-2">
+      {editable&&<div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-[#15191D]">Фотоотчёт</p>
+        <span className="text-xs cg-muted tabular-nums">{photos.length} из 5 фото</span>
       </div>}
-      {editable&&<div className="flex h-1.5 gap-1" aria-hidden="true">{Array.from({length:5},(_,i)=><span key={i} className={`flex-1 rounded-full ${i<photos.length?"bg-[#259E9B]":"bg-[#E6E7E4]"}`}/>)}</div>}
-      {photos.length>0&&<div className="grid grid-cols-3 gap-2">
+      {editable&&<input ref={input} type="file" accept="image/*" multiple hidden disabled={busy||disabled||remaining<=0} onChange={event=>{const files=Array.from(event.currentTarget.files??[]);event.currentTarget.value="";if(files.length)onAdd?.(files);}}/>}
+      <div className="cg-photo-strip">
         {photos.map((src,index)=><div key={index} className="relative min-w-0">
-          <button type="button" onClick={()=>setView(index)} aria-label={`Посмотреть фото ${index+1}`} className="relative block aspect-square w-full overflow-hidden rounded-xl border border-[#E6E7E4] bg-[#EDEDE9]">
+          <button type="button" onClick={()=>setView(index)} aria-label={`Посмотреть фото ${index+1}`} className="relative block aspect-square w-full overflow-hidden rounded-[11px] bg-[#EDEDE9]">
             <img src={src} alt={`Фото уборки ${index+1}`} className="h-full w-full object-cover"/>
-            <span className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/60 to-transparent px-2 pb-1 pt-4 text-[11px] font-bold text-white"><span>{index+1}</span><ZoomIn size={14}/></span>
+            <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/55 p-1 text-white"><ZoomIn size={13}/></span>
           </button>
           {editable&&onRemove&&<button type="button" disabled={busy||disabled} onClick={()=>onRemove(index)} aria-label={`Удалить фото ${index+1}`} className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-[#182B27]/85 text-white disabled:opacity-40"><X size={16}/></button>}
         </div>)}
-      </div>}
-      {editable&&<>
-        <input ref={input} type="file" accept="image/*" multiple hidden disabled={busy||disabled||remaining<=0} onChange={event=>{const files=Array.from(event.currentTarget.files??[]);event.currentTarget.value="";if(files.length)onAdd?.(files);}}/>
-        {remaining>0&&<button type="button" disabled={busy||disabled} onClick={()=>input.current?.click()} className="flex min-h-[76px] w-full items-center justify-center gap-3 rounded-xl border border-dashed border-[#C2D5D2] bg-[#F7F7F5] px-3 py-3 text-left disabled:opacity-60">
-          {busy?<LoaderCircle size={24} className="shrink-0 animate-spin text-[#137D79]"/>:<ImagePlus size={26} className="shrink-0 text-[#079B8D]"/>}
-          <span><span className="block text-sm font-bold text-[#137D79]">{busy?"Подготавливаем фото…":photos.length?"Добавить ещё фото":"Добавить фотографии"}</span><span className="mt-0.5 block text-[11px] text-[#6B847C]">{busy?"Пожалуйста, не закрывайте экран":`Камера или галерея · осталось ${remaining}`}</span></span>
+        {editable&&remaining>0&&<button type="button" disabled={busy||disabled} onClick={()=>input.current?.click()} aria-label="Добавить фотографии" className="cg-add-photo flex flex-col items-center justify-center gap-1 rounded-[11px] border border-dashed border-[#C9D6D3] bg-[#F1F2EF] text-[#137D79] disabled:opacity-60">
+          {busy?<LoaderCircle size={22} className="animate-spin"/>:<ImagePlus size={23}/>}
+          <span className="text-[10px] font-semibold">{busy?"Загрузка":"Добавить"}</span>
         </button>}
-        {required&&photos.length<3&&!busy&&<p className="text-xs text-[#6B847C]">Для завершения уборки нужно ещё {3-photos.length} фото.</p>}
-        {photos.length>0&&<p className="text-[11px] text-[#789087]">Нажмите на фото, чтобы открыть его полностью.</p>}
-      </>}
+      </div>
+      {editable&&<p className="text-[11px] leading-4 cg-muted" role="status">{busy?"Подготавливаем фотографии…":required&&photos.length<3?`Добавьте ещё ${3-photos.length} фото для завершения.`:photos.length?"Нажмите на снимок для просмотра.": "Фотографии по желанию."}</p>}
       {view!==null&&<PhotoViewer photos={photos} startIndex={view} onClose={()=>setView(null)}/>}
     </div>
   );
