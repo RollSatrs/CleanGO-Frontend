@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock3, MapPin, Sparkles, Star, ChevronDown, Phone, UserRound, CalendarDays, Camera, BrushCleaning, Navigation } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock3, MapPin, Sparkles, Star, ChevronDown, Phone, UserRound, CalendarDays, Camera, BrushCleaning, Navigation, ChevronsUpDown } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import ServiceImage from "@/components/ServiceImage";
 import PhotoReport from "@/components/PhotoReport";
@@ -92,6 +92,8 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const immersive=mapPhase&&hasCoordinates;
   const collapsed=immersive&&sheetPosition==="collapsed";
   const [detailMapOpen,setDetailMapOpen]=useState(false);
+  const detailMapRef=useRef<HTMLDivElement|null>(null);
+  useEffect(()=>{if(!immersive&&detailMapOpen)detailMapRef.current?.scrollIntoView({block:"nearest",behavior:"smooth"});},[immersive,detailMapOpen]);
   const handleSheetStart=(event:React.PointerEvent<HTMLButtonElement>)=>{
     if(event.pointerType==="mouse"&&event.button!==0)return;
     gestureStart.current={y:event.clientY,position:sheetPosition};
@@ -357,7 +359,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const detailHeader=<div className="flex items-center justify-between gap-2">
     <Link href="/client/orders" className="cg-icon-button" aria-label="К заказам"><ArrowLeft size={20}/></Link>
     <p className="truncate text-sm font-bold">Заказ №{order.id.slice(0,8).toUpperCase()}</p>
-    <button type="button" onClick={()=>{if(immersive)setSheetPosition(value=>value==="expanded"?"normal":"expanded");else if(hasCoordinates)setDetailMapOpen(open=>!open);}} disabled={!hasCoordinates} aria-label={immersive?"Изменить размер панели":"Показать или скрыть карту"} className="cg-icon-button disabled:opacity-30"><MapPin size={19}/></button>
+    <button type="button" onClick={()=>{if(immersive)setSheetPosition(value=>value==="expanded"?"normal":"expanded");else if(hasCoordinates)setDetailMapOpen(open=>!open);}} disabled={!hasCoordinates} aria-label={immersive?"Изменить размер панели":"Показать или скрыть карту"} className="cg-icon-button disabled:opacity-30">{immersive?<ChevronsUpDown size={19}/>:<MapPin size={19}/>}</button>
   </div>;
   const errors=<>{completionError&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-xs text-red-700">{completionError}</p>}{networkError&&<p role="status" className="text-xs text-amber-700">Нет связи с сервером. Показываем последний подтверждённый статус.</p>}</>;
   const footer=order.status==="pending_confirmation"?<div className="space-y-2">
@@ -392,7 +394,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
 
         {cleanerCard}
         {!collapsed&&inspectionCard}
-        {!collapsed&&expanded&&summary}
+        {!collapsed&&summary}
         {!collapsed&&errors}
       </div>
       {!collapsed&&<div className="shrink-0 border-t border-[#E6E7E4] px-4 pt-2.5">{footer}</div>}
@@ -428,9 +430,9 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
 
         {summary}
         {cleanerCard}
-        {progressCard}
         {inspectionCard}
-        {hasCoordinates&&<div className="cg-card overflow-hidden"><button type="button" onClick={()=>setDetailMapOpen(open=>!open)} aria-expanded={detailMapOpen} className="flex w-full items-center gap-2.5 p-3 text-left"><span className="cg-soft grid h-9 w-9 shrink-0 place-items-center rounded-full"><MapPin size={18}/></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Адрес на карте</span><span className="mt-0.5 block truncate text-xs cg-muted">{order.address}</span></span><ChevronDown size={17} className={detailMapOpen?"rotate-180":""}/></button>{detailMapOpen&&<div className="relative mx-2 mb-2 h-40 overflow-hidden rounded-xl">{mapContent}</div>}</div>}
+        {progressCard}
+        {hasCoordinates&&<div ref={detailMapRef} className="cg-card overflow-hidden"><button type="button" onClick={()=>setDetailMapOpen(open=>!open)} aria-expanded={detailMapOpen} className="flex w-full items-center gap-2.5 p-3 text-left"><span className="cg-soft grid h-9 w-9 shrink-0 place-items-center rounded-full"><MapPin size={18}/></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Адрес на карте</span><span className="mt-0.5 block truncate text-xs cg-muted">{order.address}</span></span><ChevronDown size={17} className={detailMapOpen?"rotate-180":""}/></button>{detailMapOpen&&<div className="relative mx-2 mb-2 h-40 overflow-hidden rounded-xl">{mapContent}</div>}</div>}
         {errors}
       </div>
     </div>
