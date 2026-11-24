@@ -32,7 +32,7 @@ export default function CleanerPage() {
   const remaining = profile?.availableUntil && now !== null ? Math.max(0, Math.ceil((new Date(profile.availableUntil).getTime() - now) / 60000)) : 0;
   const activeShift = Boolean(profile?.isAvailable && remaining > 0);
   const receivingOffers = Boolean(activeShift && profile?.effectiveAvailable && !profile?.locationNeedsRefresh);
-  return <main className="min-h-dvh bg-[#F8FCFB] pb-28 text-[#152535]">
+  return <main className="cleango-screen cleango-page-with-nav bg-[#F8FCFB] text-[#152535]">
     <div className="mx-auto max-w-[520px]">
       <AppHeader role="cleaner" className="cleango-client-header min-h-[84px] px-5 pb-4 pt-6" />
       <div className="px-5">
