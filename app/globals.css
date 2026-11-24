@@ -1,94 +1,113 @@
-
 @import "tailwindcss";
-.cleango-screen {
-  height: 100dvh;
-  min-height: 100dvh;
+
+/* Shared viewport and safe areas. Telegram fullscreen has two layers of insets:
+   the device's system bars/notches and Telegram's own floating controls. */
+:root {
+  --font-sans: var(--font-cleango-sans), Arial, sans-serif;
+  --cleango-viewport: 100dvh;
+  --cleango-safe-top: env(safe-area-inset-top, 0px);
+  --cleango-safe-bottom-inset: env(safe-area-inset-bottom, 0px);
+  --cleango-safe-left: env(safe-area-inset-left, 0px);
+  --cleango-safe-right: env(safe-area-inset-right, 0px);
+}
+html.telegram-mini-app {
+  --cleango-viewport: min(100dvh, var(--tg-viewport-height, 100dvh));
+}
+html.telegram-mini-app.cleango-fullscreen {
+  /* Reserve at least 88 CSS pixels until the first native inset event arrives. */
+  --cleango-safe-top: max(88px, calc(max(env(safe-area-inset-top, 0px), var(--cleango-native-top, 0px), var(--tg-safe-area-inset-top, 0px)) + max(var(--cleango-content-top, 0px), var(--tg-content-safe-area-inset-top, 0px))));
+  --cleango-safe-bottom-inset: calc(max(env(safe-area-inset-bottom, 0px), var(--cleango-native-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px)) + max(var(--cleango-content-bottom, 0px), var(--tg-content-safe-area-inset-bottom, 0px)));
+  --cleango-safe-left: calc(max(env(safe-area-inset-left, 0px), var(--cleango-native-left, 0px), var(--tg-safe-area-inset-left, 0px)) + max(var(--cleango-content-left, 0px), var(--tg-content-safe-area-inset-left, 0px)));
+  --cleango-safe-right: calc(max(env(safe-area-inset-right, 0px), var(--cleango-native-right, 0px), var(--tg-safe-area-inset-right, 0px)) + max(var(--cleango-content-right, 0px), var(--tg-content-safe-area-inset-right, 0px)));
+}
+@media (orientation: landscape) {
+  html.telegram-mini-app.cleango-fullscreen {
+    --cleango-safe-top: max(64px, calc(max(env(safe-area-inset-top, 0px), var(--cleango-native-top, 0px), var(--tg-safe-area-inset-top, 0px)) + max(var(--cleango-content-top, 0px), var(--tg-content-safe-area-inset-top, 0px))));
+  }
 }
 
-/* Telegram Mini App viewport */
-
-html.telegram-mini-app .cleango-screen {
-  height: var(--tg-viewport-stable-height, 100dvh);
-  min-height: var(--tg-viewport-stable-height, 100dvh);
+/* Backwards-compatible aliases for any older screen. */
+:root {
+  --cleango-telegram-top: var(--cleango-safe-top);
+  --cleango-telegram-bottom: var(--cleango-safe-bottom-inset);
+  --cleango-map-top: calc(var(--cleango-safe-top) + 12px);
+  --cleango-map-bottom: var(--cleango-safe-bottom-inset);
 }
 
-/* Bottom safe area */
-
-.cleango-safe-bottom {
-  padding-bottom: max(
-    40px,
-    env(safe-area-inset-bottom, 0px)
-  );
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  font-family: var(--font-cleango-sans), Arial, sans-serif;
 }
-
-/* Shared CleanGo typography and gentle interaction */
-:root { --font-sans: var(--font-cleango-sans), Arial, sans-serif; }
-html, body { font-family: var(--font-cleango-sans), Arial, sans-serif; }
 button, a { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
 
-/* Safe areas from Telegram's native Mini App API.
-   Fullsize and compact keep their normal spacing; fullscreen respects
-   Telegram controls and Android/iOS system insets. */
-.cleango-page-safe-top {
-  padding-top: calc(2rem + var(--cleango-telegram-top, 0px));
+/* Scrollable pages use min-height, not a globally locked body. */
+.cleango-screen {
+  min-height: var(--cleango-viewport);
 }
-.cleango-client-header {
-  padding-top: calc(1.5rem + var(--cleango-telegram-top, 0px));
-}
+.cleango-page-safe-top { padding-top: calc(2rem + var(--cleango-safe-top)); }
+.cleango-client-header { padding-top: calc(1.5rem + var(--cleango-safe-top)); }
+.cleango-safe-bottom { padding-bottom: max(40px, calc(var(--cleango-safe-bottom-inset) + 16px)); }
+.cleango-page-with-nav { padding-bottom: calc(112px + var(--cleango-safe-bottom-inset)); }
 .cleango-bottom-nav {
-  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px), var(--cleango-telegram-bottom, 0px));
+  padding-bottom: calc(10px + var(--cleango-safe-bottom-inset));
+  padding-left: max(16px, calc(var(--cleango-safe-left) + 8px));
+  padding-right: max(16px, calc(var(--cleango-safe-right) + 8px));
 }
-html, body {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: clip;
+.cleango-onboarding-header { padding-top: max(20px, calc(var(--cleango-safe-top) + 8px)); }
+.cleango-onboarding-content {
+  padding-top: calc(24px + var(--cleango-safe-top));
+  padding-bottom: calc(28px + var(--cleango-safe-bottom-inset));
+  padding-left: max(24px, calc(var(--cleango-safe-left) + 12px));
+  padding-right: max(24px, calc(var(--cleango-safe-right) + 12px));
 }
+.cleango-welcome-intro { padding-top: max(clamp(65px, 13dvh, 135px), calc(var(--cleango-safe-top) + 12px)); }
+.cleango-welcome-actions { padding-bottom: max(42px, calc(var(--cleango-safe-bottom-inset) + 28px)); }
 
-/* Additional breathing room beneath Telegram's floating fullscreen controls.
-   Scoped to fullscreen so Compact and Fullsize remain unchanged. */
-html.telegram-mini-app.cleango-fullscreen .cleango-client-header {
-  padding-top: calc(1.5rem + var(--cleango-telegram-top, 0px) + 36px);
-}
-html.telegram-mini-app.cleango-fullscreen .cleango-page-safe-top {
-  padding-top: calc(2rem + var(--cleango-telegram-top, 0px) + 36px);
-}
-
-/* One viewport contract for compact, expanded and fullscreen Telegram modes. */
-:root {
-  --cleango-map-top: calc(env(safe-area-inset-top, 0px) + 12px);
-  --cleango-map-bottom: max(env(safe-area-inset-bottom, 0px), var(--cleango-telegram-bottom, 0px));
-}
-html.telegram-mini-app.cleango-fullscreen {
-  --cleango-map-top: calc(max(env(safe-area-inset-top, 0px), var(--cleango-telegram-top, 0px)) + 56px);
-}
+/* Immersive map screens: background can fill the screen, controls cannot. */
+.cleango-map-viewport { height: var(--cleango-viewport); }
 .cleango-map-back { top: var(--cleango-map-top); }
 .cleango-map-search { top: calc(var(--cleango-map-top) + 64px); }
-.cleango-map-sheet { padding-bottom: var(--cleango-map-bottom); }
-.cleango-map-viewport { height: 100dvh; height: var(--tg-viewport-stable-height, 100dvh); }
-
-/* Confirmation is a separate screen, not the map's floating back button.
-   Telegram fullscreen overlays native controls near the top corners. */
-.cleango-confirmation-header {
-  padding-top: max(24px, env(safe-area-inset-top, 0px));
+.cleango-map-sheet {
+  padding-bottom: var(--cleango-map-bottom);
+  max-height: max(120px, calc(var(--cleango-viewport) - var(--cleango-safe-top) - 12px));
+  padding-left: var(--cleango-safe-left);
+  padding-right: var(--cleango-safe-right);
 }
-html.telegram-mini-app.cleango-fullscreen .cleango-confirmation-header {
-  padding-top: max(108px, calc(var(--cleango-telegram-top, 0px) + 12px), calc(env(safe-area-inset-top, 0px) + 12px));
-}
-
-/* Order tracking: reserve Telegram overlay clearance without wasting map space. */
+.cleango-confirmation-header { padding-top: max(24px, calc(var(--cleango-safe-top) + 12px)); }
 .cleango-tracking-header {
-  padding-top: calc(max(16px, env(safe-area-inset-top, 0px)) + 8px);
-}
-html.telegram-mini-app.cleango-fullscreen .cleango-tracking-header {
-  padding-top: calc(max(env(safe-area-inset-top, 0px), var(--cleango-telegram-top, 0px)) + 64px);
+  padding-top: max(24px, calc(var(--cleango-safe-top) + 12px));
+  padding-left: calc(16px + var(--cleango-safe-left));
+  padding-right: calc(16px + var(--cleango-safe-right));
 }
 .cleango-tracking-sheet {
-  padding-bottom: calc(max(12px, env(safe-area-inset-bottom, 0px), var(--cleango-telegram-bottom, 0px)) + 12px);
+  padding-bottom: calc(12px + var(--cleango-safe-bottom-inset));
+  padding-left: var(--cleango-safe-left);
+  padding-right: var(--cleango-safe-right);
+  max-height: max(120px, calc(var(--cleango-viewport) - var(--cleango-safe-top) - 12px));
+}
+
+/* The photo viewer is in the browser top layer; body or page padding cannot
+   protect it. Keep its backdrop edge-to-edge while insetting only controls. */
+.cleango-photo-viewer {
+  height: var(--cleango-viewport);
+  width: 100%;
+  max-width: none;
+  max-height: none;
+}
+.cleango-photo-viewer-content {
+  box-sizing: border-box;
+  padding-top: calc(var(--cleango-safe-top) + 8px);
+  padding-bottom: calc(var(--cleango-safe-bottom-inset) + 12px);
+  padding-left: calc(var(--cleango-safe-left) + 16px);
+  padding-right: calc(var(--cleango-safe-right) + 16px);
 }
 @media (max-height: 640px) {
-  .cleango-tracking-sheet { max-height: 78%; }
   .cleango-tracking-header { padding-bottom: 16px; }
+  .cleango-photo-viewer-thumbnails { margin-top: 4px; padding-block: 4px; }
+  .cleango-photo-viewer-thumbnails button { width: 40px; height: 40px; }
 }
