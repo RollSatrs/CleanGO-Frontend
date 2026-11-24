@@ -1,11 +1,12 @@
 
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import ServiceImage from "@/components/ServiceImage";
+import { useAuth } from "@/components/providers/AuthProvider";
 import OrderForm from "@/components/OrderForm";
 import CleanGoLogo from "@/components/branding/CleanGoLogo";
 import { AppHeader } from "@/components/ui/clean-go";
@@ -71,6 +72,31 @@ function isCleaningType(
   );
 }
 
+function RepeatOrder({id,service}:{id:string;service:CleaningType}){
+  const {token,user}=useAuth();
+  const [result,setResult]=useState<{address:string;area:number;coordinates:{latitude:number;longitude:number}|null}|null>(null);
+  const [error,setError]=useState("");
+  useEffect(()=>{
+    if(!token||user?.role!=="client"||!user.phoneVerifiedAt)return;
+    let active=true;
+    if(!/^[0-9a-f-]{36}$/i.test(id)){setError("Некорректный номер заказа");return;}
+    void fetch(`/api/backend/orders/${encodeURIComponent(id)}`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"}).then(async res=>{
+      if(!res.ok)throw new Error("Не удалось получить исходный заказ");
+      const order=await res.json();
+      if(order.status!=="completed"||order.cleaningType!==service||!Number.isInteger(order.area)||order.area<1||order.area>1000||typeof order.address!=="string")throw new Error("Этот заказ нельзя повторить");
+      const lat=Number(order.latitude),lon=Number(order.longitude);
+      const coordinates=order.latitude!=null&&order.longitude!=null&&Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180?{latitude:lat,longitude:lon}:null;
+      // Do not silently reuse an old door code, apartment details or comments.
+      const address=order.address.split(/, (?:подъезд|этаж|кв\.\/офис|домофон|комментарий:) /i)[0].split(/, комментарий:/i)[0].trim();
+      if(active)setResult({address,area:order.area,coordinates});
+    }).catch(e=>{if(active)setError(e instanceof Error?e.message:"Ошибка загрузки");});
+    return()=>{active=false;};
+  },[id,service,token,user?.role,user?.phoneVerifiedAt]);
+  if(user?.role!=="client"||!user.phoneVerifiedAt)return <main className="cleango-page-frame p-4"><p className="text-sm">Подтвердите аккаунт клиента.</p><Link href="/client/orders">К заказам</Link></main>;
+  if(result)return <OrderForm cleaningType={service} repeat={result}/>;
+  return <main className="cleango-page-frame p-4"><p className="text-sm">{error||"Загружаем параметры прошлого заказа…"}</p><Link href="/client/orders" className="mt-3 text-sm font-semibold text-[#137D79]">К заказам</Link></main>;
+}
+
 function OrderContent() {
   const searchParams = useSearchParams();
   const serviceId = searchParams.get("service");
@@ -105,6 +131,8 @@ function OrderContent() {
     );
   }
 
+  const repeat=searchParams.get("repeat");
+  if(repeat)return <RepeatOrder key={repeat+":"+serviceId} id={repeat} service={serviceId}/>;
   const service = services[serviceId];
 
   return (
