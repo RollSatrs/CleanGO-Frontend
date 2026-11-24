@@ -207,7 +207,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-[100dvh] bg-[#EAF4F9] text-[#132236]">
-      <section className="relative mx-auto flex min-h-[100dvh] w-full max-w-[520px] flex-col overflow-hidden bg-[radial-gradient(ellipse_at_50%_10%,#FFFFFF_0%,#F4FAFE_43%,#E5F3FB_100%)] px-5 pb-[max(38px,env(safe-area-inset-bottom))] pt-[max(46px,env(safe-area-inset-top))] shadow-[0_0_55px_rgba(23,79,110,0.12)]">
+      <section className="relative mx-auto flex min-h-[100dvh] w-full max-w-[520px] flex-col overflow-hidden bg-[radial-gradient(ellipse_at_50%_10%,#FFFFFF_0%,#F4FAFE_43%,#E5F3FB_100%)] cleango-onboarding-content shadow-[0_0_55px_rgba(23,79,110,0.12)]">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -bottom-16 -right-12 h-48 w-48 rounded-full bg-[#89E7F3]/60 blur-2xl"
