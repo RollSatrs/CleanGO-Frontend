@@ -6,6 +6,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 import { CounterpartAvatar } from "@/components/ProfileAvatar";
 import ServiceImage from "@/components/ServiceImage";
+import { OrderSkeleton, RefreshButton } from "@/components/ui/order-loading";
 import CleanerHistory from "@/components/CleanerHistory";
 import PhotoReport from "@/components/PhotoReport";
 import { MapPin, Phone, ChevronRight, CalendarDays, ArrowLeft, RefreshCw, Camera } from "lucide-react";
@@ -37,6 +38,10 @@ export default function CleanerJobs() {
   const [selectedJobId,setSelectedJobId]=useState<string|null>(null);
   const [tab,setTab]=useState<"offers"|"jobs"|"history">("offers");
   const [loading, setLoading] = useState(true);
+  const [refreshing,setRefreshing]=useState(false);
+  const [motionKey,setMotionKey]=useState(0);
+  const loadVersion=useRef(0);
+  const refreshLock=useRef(false);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -82,7 +87,9 @@ export default function CleanerJobs() {
     };
   },[sharingOrderId,sendTripLocation]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (manual=false) => {
+    if(!manual&&refreshLock.current)return;
+    const version=++loadVersion.current;
     if (!token || user?.role !== "cleaner" || !user.phoneVerifiedAt) {
       setLoading(false);
       return;
@@ -97,19 +104,27 @@ export default function CleanerJobs() {
         : "Не удалось получить предложения");
       const result: unknown = await response.json();
       if (!Array.isArray(result)) throw new Error("Неожиданный ответ сервера");
+      if(version!==loadVersion.current)return;
       setOffers(result as Offer[]);
       const jobsResponse = await fetch(`${API_URL}/orders/cleaner/jobs`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
       if (!jobsResponse.ok) throw new Error("Не удалось загрузить назначенные заказы");
       const assigned: unknown = await jobsResponse.json();
       if (!Array.isArray(assigned)) throw new Error("Некорректный список назначенных заказов");
+      if(version!==loadVersion.current)return;
       setJobs(assigned as AssignedJob[]);
       setError("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка загрузки");
+      if(version===loadVersion.current)setError(err instanceof Error ? err.message : "Ошибка загрузки");
     } finally {
-      setLoading(false);
+      if(version===loadVersion.current)setLoading(false);
     }
   }, [token, user?.role, user?.phoneVerifiedAt]);
+
+  async function refresh(){
+    if(refreshLock.current)return;
+    refreshLock.current=true;setRefreshing(true);
+    try{await load(true);setMotionKey(v=>v+1);}finally{refreshLock.current=false;setRefreshing(false);}
+  }
 
   useEffect(() => {
     void load();
@@ -119,7 +134,7 @@ export default function CleanerJobs() {
     document.addEventListener("visibilitychange", refreshOnReturn);
     window.addEventListener("focus", refreshOnReturn);
     window.addEventListener("pageshow", refreshOnReturn);
-    return () => { clearInterval(timer); document.removeEventListener("visibilitychange", refreshOnReturn); window.removeEventListener("focus", refreshOnReturn); window.removeEventListener("pageshow", refreshOnReturn); };
+    return () => { loadVersion.current++;clearInterval(timer); document.removeEventListener("visibilitychange", refreshOnReturn); window.removeEventListener("focus", refreshOnReturn); window.removeEventListener("pageshow", refreshOnReturn); };
   }, [load, token, user?.role]);
 
   async function respond(orderId: string, action: "accept" | "decline") {
@@ -222,7 +237,7 @@ export default function CleanerJobs() {
 
   const selectedJob=jobs.find(job=>job.id===selectedJobId);
   return (
-    <AppPageShell role="cleaner" eyebrow="Для исполнителя" title={selectedJob?"Детали заказа":"Заказы"} detailHeader={selectedJob?<div className="flex items-center justify-between gap-2"><button type="button" aria-label="К заказам" onClick={()=>{setSelectedJobId(null);setTab("jobs");}} className="cg-icon-button"><ArrowLeft size={20}/></button><h1 className="min-w-0 truncate text-sm font-bold">Заказ №{selectedJob.id.slice(0,8).toUpperCase()}</h1><button type="button" aria-label="Обновить заказ" onClick={()=>void load()} className="cg-icon-button"><RefreshCw size={17}/></button></div>:undefined} footer={selectedJob?<button type="button" disabled={busyId !== null || photoBusy!==null || (selectedJob.status==="in_progress" && selectedJob.inspectionMethod!=="personal" && (photoFiles[selectedJob.id]?.length??0)<3)}
+    <AppPageShell role="cleaner" eyebrow="Для исполнителя" title={selectedJob?"Детали заказа":"Заказы"} detailHeader={selectedJob?<div className="flex items-center justify-between gap-2"><button type="button" aria-label="К заказам" onClick={()=>{setSelectedJobId(null);setTab("jobs");}} className="cg-icon-button"><ArrowLeft size={20}/></button><h1 className="min-w-0 truncate text-sm font-bold">Заказ №{selectedJob.id.slice(0,8).toUpperCase()}</h1><button type="button" aria-label="Обновить заказ" aria-busy={refreshing} disabled={refreshing} onClick={()=>void refresh()} className="cg-icon-button cg-press disabled:opacity-60"><RefreshCw size={17} className={refreshing?"cg-loading-spin":""}/></button></div>:undefined} footer={selectedJob?<button type="button" disabled={busyId !== null || photoBusy!==null || (selectedJob.status==="in_progress" && selectedJob.inspectionMethod!=="personal" && (photoFiles[selectedJob.id]?.length??0)<3)}
             onClick={() => void transition(selectedJob.id, selectedJob.status === "accepted" ? "en-route" : selectedJob.status === "en_route" ? "arrived" : selectedJob.status === "arrived" ? "start" : "complete")}
             className="cg-primary min-h-12 w-full rounded-[13px] px-4 py-3.5 text-sm font-semibold disabled:opacity-50">
             {({accepted:"Я выехал к клиенту",en_route:"Я прибыл",arrived:"Начать уборку",in_progress:"Завершить уборку"} as Record<string,string>)[selectedJob.status] ?? "Обновить статус"}
@@ -235,11 +250,11 @@ export default function CleanerJobs() {
       )}
       {error && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {message && <p role="status" className="mb-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{message}</p>}
-      {loading && <p className="text-sm text-slate-500">Загружаем предложения…</p>}
+      {loading&&tab!=="history"&&user?.role==="cleaner"&&user.phoneVerifiedAt&&<OrderSkeleton label="Загружаем заказы…"/>}
       {!selectedJob&&<div className="flex gap-2" role="group" aria-label="Раздел заявок">
-        <button type="button" aria-pressed={tab==="offers"} onClick={()=>setTab("offers")} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${tab==="offers"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>Доступные · {offers.length}</button>
-        <button type="button" aria-pressed={tab==="jobs"} onClick={()=>setTab("jobs")} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${tab==="jobs"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>Мои заказы · {jobs.length}</button>
-        <button type="button" aria-pressed={tab==="history"} onClick={()=>setTab("history")} className={`flex-1 rounded-[11px] px-2 py-2.5 text-xs font-semibold ${tab==="history"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>История</button>
+        <button type="button" aria-pressed={tab==="offers"} onClick={()=>setTab("offers")} className={`cg-press flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${tab==="offers"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>Доступные · {offers.length}</button>
+        <button type="button" aria-pressed={tab==="jobs"} onClick={()=>setTab("jobs")} className={`cg-press flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${tab==="jobs"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>Мои заказы · {jobs.length}</button>
+        <button type="button" aria-pressed={tab==="history"} onClick={()=>setTab("history")} className={`cg-press flex-1 rounded-[11px] px-2 py-2.5 text-xs font-semibold ${tab==="history"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>История</button>
       </div>}
       {!selectedJob&&tab==="history"&&<CleanerHistory/>}
       {!loading && !selectedJob && user?.role === "cleaner" && user.phoneVerifiedAt && tab!=="history" && (tab==="offers"?offers.length===0:jobs.length===0) && !error && (
@@ -248,13 +263,13 @@ export default function CleanerJobs() {
           <p className="mt-2 text-sm text-slate-500">{tab==="offers"?"Новые предложения появятся автоматически.":"Принятые заказы появятся здесь."}</p>
         </AppCard>
       )}
-      {!selectedJob&&tab==="jobs"&&jobs.length>0&&<section className="space-y-2.5">
-        {jobs.map(job=><button key={job.id} type="button" onClick={()=>setSelectedJobId(job.id)} className="cg-card flex w-full items-center gap-3 p-2.5 text-left">
+      {!loading&&!selectedJob&&tab==="jobs"&&jobs.length>0&&<section key={motionKey} className="cg-order-enter space-y-2.5">
+        {jobs.map(job=><button key={job.id} type="button" onClick={()=>setSelectedJobId(job.id)} className="cg-card cg-order-card cg-press flex w-full items-center gap-3 p-2.5 text-left">
           <ServiceImage type={job.cleaningType} className="h-[100px] w-[28%] shrink-0 rounded-[10px]" sizes="(max-width: 520px) 28vw, 140px" illustrative/>
           <div className="min-w-0 flex-1"><span className="cg-soft rounded-full px-2 py-1 text-[10px] font-semibold">{({accepted:"Принят",en_route:"В пути",arrived:"Прибыл",in_progress:"В работе"} as Record<string,string>)[job.status]??job.status}</span><p className="mt-2 text-lg font-bold">{job.price==null?"Цена уточняется":`${Number(job.price).toLocaleString("ru-RU")} ₸`}</p><p className="text-xs font-medium">{typeLabels[job.cleaningType]??job.cleaningType} · {job.area} м²</p><p className="mt-1 flex items-start gap-1 text-[11px] cg-muted"><MapPin size={13} className="shrink-0"/><span className="line-clamp-2">{job.address}</span></p></div><ChevronRight size={16} className="shrink-0 text-[#929A96]"/>
         </button>)}
       </section>}
-      {selectedJob&&<section className="space-y-3">
+      {selectedJob&&<section className="cg-order-enter space-y-3">
         {[selectedJob].map(job => <div key={job.id} className="space-y-3">
           <AppCard className="!p-2.5">
             <div className="relative aspect-[2.65/1] rounded-[12px]"><ServiceImage type={job.cleaningType} className="h-full w-full rounded-[12px]" sizes="(max-width: 520px) 90vw, 470px" illustrative/><span className="cg-soft absolute left-2 top-2 rounded-full px-2.5 py-1 text-[11px] font-semibold">{({accepted:"Заказ принят",en_route:"В пути",arrived:"Прибыл",in_progress:"В работе"} as Record<string,string>)[job.status]??job.status}</span></div>
@@ -292,7 +307,7 @@ export default function CleanerJobs() {
           </AppCard></>}
         </div>)}
       </section>}
-      {!selectedJob&&tab==="offers"&&<div className="space-y-3">
+      {!loading&&!selectedJob&&tab==="offers"&&<div key={motionKey} className="cg-order-enter space-y-3">
         {offers.map(offer => {
           const expired = new Date(offer.expiresAt).getTime() <= Date.now();
           return (
@@ -309,7 +324,7 @@ export default function CleanerJobs() {
         })}
       </div>}
       {!selectedJob&&tab!=="history"&&user?.role === "cleaner" && user.phoneVerifiedAt && (
-        <button type="button" onClick={() => void load()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#E6E7E4] bg-white px-4 py-2.5 text-xs font-semibold text-[#137D79]"><RefreshCw size={14}/> Обновить предложения</button>
+        <RefreshButton busy={refreshing} disabled={loading||!!busyId} label={tab==="jobs"?"Обновить заказы":"Обновить предложения"} onClick={()=>void refresh()}/>
       )}
     </AppPageShell>
   );
