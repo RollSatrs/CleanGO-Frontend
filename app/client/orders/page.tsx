@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import ServiceImage from "@/components/ServiceImage";
 import Link from "next/link";
-import { ImageIcon, MapPin, CalendarDays, ChevronRight, RefreshCw } from "lucide-react";
+import { MapPin, CalendarDays, ChevronRight, RefreshCw } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 
@@ -125,7 +126,7 @@ export default function ClientOrders() {
         {orders.map(order => (
           <AppCard key={order.id} className="!p-2.5">
             <Link href={`/client/orders/${encodeURIComponent(order.id)}`} className="flex items-stretch gap-3">
-              <div className="cg-placeholder grid min-h-[108px] w-[29%] shrink-0 place-items-center rounded-[11px]" aria-hidden="true"><ImageIcon size={24} strokeWidth={1.4}/></div>
+              <ServiceImage type={order.cleaningType} className="min-h-[108px] w-[29%] shrink-0 rounded-[11px]" sizes="(max-width: 520px) 29vw, 145px" illustrative/>
               <div className="min-w-0 flex-1 py-1">
                 <span className="cg-soft inline-flex rounded-full px-2 py-1 text-[10px] font-semibold leading-tight">{statuses[order.status] ?? order.status}</span>
                 <p className="mt-1.5 text-[19px] font-bold tracking-tight">{order.price==null?"Цена уточняется":`${Number(order.price).toLocaleString("ru-RU")} ₸`}</p>
