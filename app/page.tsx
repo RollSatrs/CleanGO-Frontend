@@ -108,7 +108,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-[100dvh] bg-[#F8FCFB] font-sans text-[#102033]">
-      <div className="mx-auto min-h-[100dvh] w-full max-w-[520px] bg-white pb-24 shadow-[0_0_45px_rgba(20,70,100,0.05)]">
+      <div className="mx-auto cleango-screen cleango-page-with-nav w-full max-w-[520px] bg-white shadow-[0_0_45px_rgba(20,70,100,0.05)]">
 
         {/* Шапка */}
         <AppHeader role="client" className="cleango-client-header px-5 pb-4 pt-6" />
@@ -347,7 +347,7 @@ export default function HomePage() {
         </section>
 
         {/* Нижняя кнопка */}
-        <div className="sticky bottom-0 z-20 border-t border-[#EAF0F2] bg-white/95 px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-4 backdrop-blur-xl">
+        <div className="sticky bottom-0 z-20 border-t border-[#EAF0F2] bg-white/95 px-5 pb-[max(20px,calc(var(--cleango-safe-bottom-inset)+12px))] pt-4 backdrop-blur-xl">
           <button
             type="button"
             onClick={handleOrder}
