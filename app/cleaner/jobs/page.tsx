@@ -220,7 +220,11 @@ export default function CleanerJobs() {
 
   const selectedJob=jobs.find(job=>job.id===selectedJobId);
   return (
-    <AppPageShell role="cleaner" eyebrow="Для исполнителя" title={selectedJob?"Детали заказа":"Заказы"}>
+    <AppPageShell role="cleaner" eyebrow="Для исполнителя" title={selectedJob?"Детали заказа":"Заказы"} detailHeader={selectedJob?<div className="flex items-center justify-between gap-2"><button type="button" aria-label="К заказам" onClick={()=>{setSelectedJobId(null);setTab("jobs");}} className="cg-icon-button"><ArrowLeft size={20}/></button><h1 className="min-w-0 truncate text-sm font-bold">Заказ №{selectedJob.id.slice(0,8).toUpperCase()}</h1><button type="button" aria-label="Обновить заказ" onClick={()=>void load()} className="cg-icon-button"><RefreshCw size={17}/></button></div>:undefined} footer={selectedJob?<button type="button" disabled={busyId !== null || photoBusy!==null || (selectedJob.status==="in_progress" && selectedJob.inspectionMethod!=="personal" && (photoFiles[selectedJob.id]?.length??0)<3)}
+            onClick={() => void transition(selectedJob.id, selectedJob.status === "accepted" ? "en-route" : selectedJob.status === "en_route" ? "arrived" : selectedJob.status === "arrived" ? "start" : "complete")}
+            className="cg-primary min-h-12 w-full rounded-[13px] px-4 py-3.5 text-sm font-semibold disabled:opacity-50">
+            {({accepted:"Я выехал к клиенту",en_route:"Я прибыл",arrived:"Начать уборку",in_progress:"Завершить уборку"} as Record<string,string>)[selectedJob.status] ?? "Обновить статус"}
+          </button>:undefined}>
       {status === "authenticated" && user?.role !== "cleaner" && (
         <AppCard><p className="text-sm">Этот раздел доступен только клинерам.</p></AppCard>
       )}
@@ -234,7 +238,6 @@ export default function CleanerJobs() {
         <button type="button" aria-pressed={tab==="offers"} onClick={()=>setTab("offers")} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${tab==="offers"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>Доступные · {offers.length}</button>
         <button type="button" aria-pressed={tab==="jobs"} onClick={()=>setTab("jobs")} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${tab==="jobs"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>Мои заказы · {jobs.length}</button>
       </div>}
-      {selectedJob&&<button type="button" onClick={()=>{setSelectedJobId(null);setTab("jobs");}} className="inline-flex items-center gap-2 py-1 text-xs font-semibold text-[#137D79]"><ArrowLeft size={16}/> К заказам</button>}
       {!loading && !selectedJob && user?.role === "cleaner" && user.phoneVerifiedAt && (tab==="offers"?offers.length===0:jobs.length===0) && !error && (
         <AppCard className="py-8 text-center">
           <h2 className="text-lg font-bold">{tab==="offers"?"Пока нет предложений":"Нет текущих заказов"}</h2>
@@ -250,11 +253,11 @@ export default function CleanerJobs() {
       {selectedJob&&<section className="space-y-3">
         {[selectedJob].map(job => <div key={job.id} className="space-y-3">
           <AppCard className="!p-2.5">
-            <div className="relative aspect-[2.55/1] rounded-[12px]"><ServiceImage type={job.cleaningType} className="h-full w-full rounded-[12px]" sizes="(max-width: 520px) 90vw, 470px" illustrative/><span className="cg-soft absolute left-2 top-2 rounded-full px-2.5 py-1 text-[11px] font-semibold">{({accepted:"Заказ принят",en_route:"В пути",arrived:"Прибыл",in_progress:"В работе"} as Record<string,string>)[job.status]??job.status}</span></div>
-            <div className="px-1 pb-1 pt-3"><p className="text-[23px] font-bold tracking-tight">{job.price==null?"Цена уточняется":`${Number(job.price).toLocaleString("ru-RU")} ₸`}</p><p className="mt-1 text-sm font-medium">{typeLabels[job.cleaningType]??job.cleaningType} · {job.area} м²</p><p className="mt-1 flex items-start gap-1.5 text-xs cg-muted"><MapPin size={14} className="shrink-0"/>{job.address}</p></div>
+            <div className="relative aspect-[2.65/1] rounded-[12px]"><ServiceImage type={job.cleaningType} className="h-full w-full rounded-[12px]" sizes="(max-width: 520px) 90vw, 470px" illustrative/><span className="cg-soft absolute left-2 top-2 rounded-full px-2.5 py-1 text-[11px] font-semibold">{({accepted:"Заказ принят",en_route:"В пути",arrived:"Прибыл",in_progress:"В работе"} as Record<string,string>)[job.status]??job.status}</span></div>
+            <div className="px-1 pb-1 pt-2.5"><p className="text-[25px] font-bold tracking-tight">{job.price==null?"Цена уточняется":`${Number(job.price).toLocaleString("ru-RU")} ₸`}</p><p className="mt-1 text-sm font-medium">{typeLabels[job.cleaningType]??job.cleaningType} · {job.area} м²</p><p className="mt-1 flex items-start gap-1.5 text-xs cg-muted"><MapPin size={14} className="shrink-0"/>{job.address}</p></div>
           </AppCard>
           <AppCard className="flex items-center gap-3">
-            <div className="cg-placeholder grid h-10 w-10 shrink-0 place-items-center rounded-full"><UserRound size={20}/></div>
+            <div className="cg-soft grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-bold">{[job.clientFirstName,job.clientLastName].filter(Boolean).map(name=>name?.[0]?.toUpperCase()).join("")||<UserRound size={20}/>}</div>
             <div className="min-w-0 flex-1"><p className="text-[11px] cg-muted">Клиент</p><p className="mt-0.5 truncate text-sm font-bold">{[job.clientFirstName,job.clientLastName].filter(Boolean).join(" ")||"Клиент CleanGo"}</p></div>
             {job.clientPhone&&<a href={`tel:${job.clientPhone}`} aria-label="Позвонить клиенту" className="cg-soft grid h-11 w-11 place-items-center rounded-full"><Phone size={19}/></a>}
           </AppCard>
@@ -262,10 +265,10 @@ export default function CleanerJobs() {
             <div className="min-w-0 flex-1"><h3 className="text-sm font-bold">Маршрут</h3><p className="mt-1 text-xs leading-5 cg-muted">{job.address}</p><a href={job.latitude!=null&&job.longitude!=null&&Number.isFinite(Number(job.latitude))&&Number.isFinite(Number(job.longitude))?`https://www.google.com/maps/dir/?api=1&destination=${Number(job.latitude)},${Number(job.longitude)}&travelmode=driving`:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#137D79]">Открыть на карте <ChevronRight size={14}/></a></div>
             <div className="cg-placeholder grid h-[65px] w-[88px] shrink-0 place-items-center rounded-xl"><MapPin size={23} strokeWidth={1.5}/></div>
           </AppCard>
-          {job.status==="en_route"&&<button type="button" onClick={()=>{setError("");setSharingOrderId(current=>current===job.id?null:job.id);}} className="mt-3 w-full rounded-xl border border-teal-600 px-4 py-3 text-sm font-semibold text-teal-800">{sharingOrderId===job.id?"Остановить передачу геопозиции":"Поделиться геопозицией с клиентом"}</button>}
+          {job.status==="en_route"&&<button type="button" onClick={()=>{setError("");setSharingOrderId(current=>current===job.id?null:job.id);}} className="w-full rounded-xl border border-[#C8DAD7] bg-white px-4 py-3 text-xs font-semibold text-[#137D79]">{sharingOrderId===job.id?"Остановить передачу геопозиции":"Поделиться геопозицией с клиентом"}</button>}
           {sharingOrderId===job.id&&<p className="mt-2 text-xs text-teal-700">Геопозиция передаётся только во время поездки, пока этот экран открыт. Можно отключить в любой момент.</p>}
           {job.status==="accepted"&&<label className="mt-3 block text-xs font-semibold text-slate-600">Как доберётесь до клиента?
-            <select value={travelMode} onChange={event=>setTravelMode(event.target.value as "car"|"walking"|"transit")} className="mt-2 w-full rounded-xl border border-teal-200 bg-white px-3 py-3 text-sm text-slate-800">
+            <select value={travelMode} onChange={event=>setTravelMode(event.target.value as "car"|"walking"|"transit")} className="cg-field mt-2 w-full px-3 py-3 text-sm text-[#15191D]">
               <option value="car">На автомобиле</option>
               <option value="walking">Пешком</option>
               <option value="transit">Общественный транспорт</option>
@@ -281,13 +284,8 @@ export default function CleanerJobs() {
                 setPhotoErrors(old=>({...old,[job.id]:""}));
               }}/>
             {photoErrors[job.id]&&<p className="mt-2 text-xs text-red-700" role="alert">{photoErrors[job.id]}</p>}
-            <p className="mt-3 text-[11px] leading-4 text-[#81968D]">Снимайте результат уборки, не включайте в кадр людей и личные документы.</p>
+            <p className="mt-2 text-[11px] leading-4 cg-muted">Снимайте результат уборки, не включайте в кадр людей и личные документы.</p>
           </AppCard></>}
-          <button type="button" disabled={busyId !== null || photoBusy!==null || (job.status==="in_progress" && job.inspectionMethod!=="personal" && (photoFiles[job.id]?.length??0)<3)}
-            onClick={() => void transition(job.id, job.status === "accepted" ? "en-route" : job.status === "en_route" ? "arrived" : job.status === "arrived" ? "start" : "complete")}
-            className="cg-primary w-full rounded-[13px] px-4 py-3.5 text-sm font-semibold disabled:opacity-50">
-            {({accepted:"Я выехал к клиенту",en_route:"Я прибыл",arrived:"Начать уборку",in_progress:"Завершить уборку"} as Record<string,string>)[job.status] ?? "Обновить статус"}
-          </button>
         </div>)}
       </section>}
       {!selectedJob&&tab==="offers"&&<div className="space-y-3">
