@@ -152,15 +152,16 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
   // Автоматический расчёт стоимости через Backend
   useEffect(() => {
     if (!isAreaValid) {
+      setPriceLoading(false);
+      setPriceError("");
       return;
     }
+    setPriceError("");
+    setPriceLoading(true);
 
     const controller = new AbortController();
 
     const timeout = setTimeout(async () => {
-      setPriceLoading(true);
-      setPriceError("");
-
       try {
         const params = new URLSearchParams({
           cleaningType,
@@ -355,8 +356,8 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
         <div className="h-11 w-11" aria-hidden="true"/>
       </div>
       <section ref={sheetRef} aria-label="Параметры заказа" className={`cg-booking-panel absolute z-[600] flex flex-col overflow-hidden ${dragHeight!==null?"cg-booking-dragging":""}`} style={{height:dragHeight??(expanded?heights.expanded:heights.compact)}}>
-        <button ref={handleRef} type="button" aria-label={expanded?"Свернуть параметры заказа":"Раскрыть параметры заказа"} aria-expanded={expanded} aria-controls="booking-extra" className="cg-booking-handle flex w-full shrink-0 items-center justify-center" onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={e=>finishDrag(e)} onPointerCancel={e=>finishDrag(e,true)} onLostPointerCapture={e=>finishDrag(e,true)} onClick={()=>{if(ignoreClick.current){ignoreClick.current=false;return;}setPanel(!expanded);}} onKeyDown={e=>{if(e.key==="ArrowUp"||e.key==="ArrowDown"){e.preventDefault();setPanel(e.key==="ArrowUp");}}}><span className="h-1 w-10 rounded-full bg-[#CAD6D1]"/></button>
-        <div ref={bodyRef} className="cg-booking-body min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5">
+        <button ref={handleRef} type="button" aria-label={expanded?"Свернуть параметры заказа":"Раскрыть параметры заказа"} aria-expanded={expanded} aria-controls="booking-extra" className="cg-booking-handle flex w-full shrink-0 items-center justify-center" onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={e=>finishDrag(e)} onPointerCancel={e=>finishDrag(e,true)} onLostPointerCapture={e=>finishDrag(e,true)} onClick={e=>{if(ignoreClick.current&&e.detail!==0){ignoreClick.current=false;return;}ignoreClick.current=false;setPanel(!expanded);}} onKeyDown={e=>{if(e.key==="ArrowUp"||e.key==="ArrowDown"){e.preventDefault();setPanel(e.key==="ArrowUp");}}}><span className="h-1 w-10 rounded-full bg-[#CAD6D1]"/></button>
+        <div ref={bodyRef} className="cg-booking-body relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5">
           <div ref={primaryRef} className="space-y-2.5 pb-2">
             <div className="flex items-center gap-2">
               <span className="cg-soft grid h-9 w-9 shrink-0 place-items-center rounded-xl"><MapPin size={18}/></span>
@@ -377,7 +378,7 @@ export default function OrderForm({ cleaningType }: OrderFormProps) {
               </div>
             </div>
           </div>
-          <div ref={extraRef} id="booking-extra" inert={!expanded} aria-hidden={!expanded} className="space-y-3 border-t border-[#E6E7E4] pb-3 pt-3" style={{visibility:expanded||dragHeight!==null?"visible":"hidden"}}>
+          <div ref={extraRef} id="booking-extra" inert={!expanded} aria-hidden={!expanded} className="space-y-3 border-t border-[#E6E7E4] pb-3 pt-3" style={expanded||dragHeight!==null?undefined:{visibility:"hidden",position:"absolute",left:14,right:14,top:0}}>
             <div className="grid grid-cols-5 gap-1.5" aria-label="Быстрый выбор площади">{[30,40,60,80,100].map(value=><button key={value} type="button" onClick={()=>setArea(String(value))} aria-pressed={parsedArea===value} className={`min-h-9 rounded-lg border text-[11px] font-semibold ${parsedArea===value?"border-[#137D79] cg-primary":"border-[#E6E7E4] bg-white"}`}>{value} м²</button>)}</div>
             <div><p className="text-xs font-semibold">Детали адреса</p><p className="mt-1 text-[11px] cg-muted">По желанию — чтобы клинер быстрее нашёл вход.</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
