@@ -6,6 +6,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { AppCard, AppPageShell } from "@/components/ui/clean-go";
 import { CounterpartAvatar } from "@/components/ProfileAvatar";
 import ServiceImage from "@/components/ServiceImage";
+import CleanerHistory from "@/components/CleanerHistory";
 import PhotoReport from "@/components/PhotoReport";
 import { MapPin, Phone, ChevronRight, CalendarDays, ArrowLeft, RefreshCw, Camera } from "lucide-react";
 
@@ -34,7 +35,7 @@ export default function CleanerJobs() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [jobs, setJobs] = useState<AssignedJob[]>([]);
   const [selectedJobId,setSelectedJobId]=useState<string|null>(null);
-  const [tab,setTab]=useState<"offers"|"jobs">("offers");
+  const [tab,setTab]=useState<"offers"|"jobs"|"history">("offers");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -212,7 +213,7 @@ export default function CleanerJobs() {
         const body = await response.json().catch(() => null);
         throw new Error(typeof body?.message === "string" ? body.message : "Не удалось обновить заказ");
       }
-      if(action==="complete"){setPhotoFiles(old=>{const next={...old};delete next[orderId];return next;});setSelectedJobId(null);setTab("jobs");}
+      if(action==="complete"){setPhotoFiles(old=>{const next={...old};delete next[orderId];return next;});setSelectedJobId(null);setTab("history");}
       setMessage(({ "en-route":"Вы отметили, что направляетесь к клиенту.", arrived:"Прибытие подтверждено.", start:"Уборка начата.", complete:"Результат передан клиенту. Можно уходить: подтверждение он сделает в приложении." })[action]);
       await load();
     } catch (err) { setError(err instanceof Error ? err.message : "Ошибка соединения"); }
@@ -238,8 +239,10 @@ export default function CleanerJobs() {
       {!selectedJob&&<div className="flex gap-2" role="group" aria-label="Раздел заявок">
         <button type="button" aria-pressed={tab==="offers"} onClick={()=>setTab("offers")} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${tab==="offers"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>Доступные · {offers.length}</button>
         <button type="button" aria-pressed={tab==="jobs"} onClick={()=>setTab("jobs")} className={`flex-1 rounded-[11px] px-3 py-2.5 text-xs font-semibold ${tab==="jobs"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>Мои заказы · {jobs.length}</button>
+        <button type="button" aria-pressed={tab==="history"} onClick={()=>setTab("history")} className={`flex-1 rounded-[11px] px-2 py-2.5 text-xs font-semibold ${tab==="history"?"cg-primary":"bg-[#EDEEEB] text-[#51595A]"}`}>История</button>
       </div>}
-      {!loading && !selectedJob && user?.role === "cleaner" && user.phoneVerifiedAt && (tab==="offers"?offers.length===0:jobs.length===0) && !error && (
+      {!selectedJob&&tab==="history"&&<CleanerHistory/>}
+      {!loading && !selectedJob && user?.role === "cleaner" && user.phoneVerifiedAt && tab!=="history" && (tab==="offers"?offers.length===0:jobs.length===0) && !error && (
         <AppCard className="py-8 text-center">
           <h2 className="text-lg font-bold">{tab==="offers"?"Пока нет предложений":"Нет текущих заказов"}</h2>
           <p className="mt-2 text-sm text-slate-500">{tab==="offers"?"Новые предложения появятся автоматически.":"Принятые заказы появятся здесь."}</p>
@@ -305,7 +308,7 @@ export default function CleanerJobs() {
           );
         })}
       </div>}
-      {!selectedJob&&user?.role === "cleaner" && user.phoneVerifiedAt && (
+      {!selectedJob&&tab!=="history"&&user?.role === "cleaner" && user.phoneVerifiedAt && (
         <button type="button" onClick={() => void load()} className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#E6E7E4] bg-white px-4 py-2.5 text-xs font-semibold text-[#137D79]"><RefreshCw size={14}/> Обновить предложения</button>
       )}
     </AppPageShell>
