@@ -1,9 +1,10 @@
 "use client";
+import ServiceImage from "@/components/ServiceImage";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import BottomNav from "@/components/navigation/BottomNav";
-import { ArrowRight, ClipboardList, ShieldCheck, Wallet, ImageIcon, MapPin, ChevronRight } from "lucide-react";
+import { ArrowRight, ClipboardList, ShieldCheck, Wallet, MapPin, ChevronRight } from "lucide-react";
 import { AppHeader, AppCard } from "@/components/ui/clean-go";
 
 export default function CleanerPage() {
@@ -54,7 +55,7 @@ export default function CleanerPage() {
         <div className="flex items-center justify-between"><h2 className="text-[17px] font-bold">Новые заявки</h2><Link href="/cleaner/jobs" className="inline-flex items-center gap-1 text-xs font-semibold text-[#137D79]">Все <ChevronRight size={15}/></Link></div>
         <div className="mt-3 space-y-2">
           {offers.filter(item=>now===null||new Date(item.expiresAt).getTime()>now).slice(0,3).map(item=><Link href="/cleaner/jobs" key={item.offerId} className="cg-card flex gap-3 p-2.5">
-            <div className="cg-placeholder grid h-[83px] w-[83px] shrink-0 place-items-center rounded-[10px]"><ImageIcon size={22} strokeWidth={1.3}/></div><div className="min-w-0 flex-1"><span className="cg-soft rounded-full px-2 py-1 text-[10px] font-semibold">Новый заказ</span><p className="mt-1.5 text-lg font-bold">{Number(item.price).toLocaleString("ru-RU")} ₸</p><p className="text-xs font-semibold">{({regular:"Поддерживающая",general:"Генеральная",renovation:"После ремонта"} as Record<string,string>)[item.cleaningType]??"Уборка"} · {item.area} м²</p><p className="mt-1 flex items-center gap-1 text-[11px] cg-muted"><MapPin size={12}/>{item.approximateArea||"Район уточняется"}</p></div><ChevronRight size={16} className="self-center text-[#909895]"/>
+            <ServiceImage type={item.cleaningType} className="h-[83px] w-[83px] shrink-0 rounded-[10px]" sizes="83px" illustrative/><div className="min-w-0 flex-1"><span className="cg-soft rounded-full px-2 py-1 text-[10px] font-semibold">Новый заказ</span><p className="mt-1.5 text-lg font-bold">{Number(item.price).toLocaleString("ru-RU")} ₸</p><p className="text-xs font-semibold">{({regular:"Поддерживающая",general:"Генеральная",renovation:"После ремонта"} as Record<string,string>)[item.cleaningType]??"Уборка"} · {item.area} м²</p><p className="mt-1 flex items-center gap-1 text-[11px] cg-muted"><MapPin size={12}/>{item.approximateArea||"Район уточняется"}</p></div><ChevronRight size={16} className="self-center text-[#909895]"/>
           </Link>)}
           {offers.filter(item=>now===null||new Date(item.expiresAt).getTime()>now).length===0&&<AppCard><p className="text-sm font-semibold">{offerState==="loading"?"Загружаем заявки…":offerState==="error"?"Заявки недоступны":"Пока нет новых заявок"}</p><p className="mt-1 text-xs cg-muted">{offerState==="error"?"Откройте раздел «Заявки» для повторной проверки.":"Предложения появятся автоматически."}</p><Link href="/cleaner/jobs" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#137D79]">К заявкам <ArrowRight size={14}/></Link></AppCard>}
         </div>
