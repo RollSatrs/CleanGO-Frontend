@@ -39,7 +39,7 @@ export default function CleanerHistory(){
  useEffect(()=>{
    if(!token||!selected||user?.role!=="cleaner"||!user.phoneVerifiedAt)return;
    let active=true,inFlight=false;
-   const load=async()=>{if(inFlight)return;inFlight=true;try{
+   const load=async(initial=false)=>{if(inFlight)return;inFlight=true;try{
      const response=await fetch(`/api/backend/orders/cleaner/history/${encodeURIComponent(selected)}`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
      if(!response.ok)throw new Error(response.status===404?"Заказ недоступен":"Не удалось загрузить заказ");
      const item=await response.json() as Job;if(active){setDetail({key:detailKey,item});setError("");if(initial)setMotionKey(v=>v+1);}
