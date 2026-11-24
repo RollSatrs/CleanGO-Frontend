@@ -14,10 +14,10 @@ type Order = {
   cleaningType: "regular" | "general" | "renovation";
   price: number | null; latitude?: string | number | null; longitude?: string | number | null;
   inspectionMethod?: "personal"|"photos"; completionPhotos?: string[]|null;
-  completionSubmittedAt?: string|null; rating?:number|null; createdAt?:string;
+  completionSubmittedAt?: string|null; rating?:number|null; reviewText?:string|null; createdAt?:string;
 };
 const names = { regular: "Поддерживающая уборка", general: "Генеральная уборка", renovation: "После ремонта" };
-const terminal = new Set(["completed", "cancelled", "unassigned", "expired", "failed", "no_cleaner", "disputed"]);
+const terminal = new Set(["completed", "cancelled", "unassigned", "expired", "failed", "no_cleaner"]);
 const style = "https://tiles.openfreemap.org/styles/liberty";
 const cdn = "https://unpkg.com/maplibre-gl@5.9.0/dist/";
 type MapInstance = { on(event:string,cb:()=>void):void; getStyle():{layers?:{id:string;type:string}[]}; setPaintProperty(id:string,property:string,value:string):void; remove():void };
@@ -257,7 +257,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         body:JSON.stringify(body??{}),
       });
       if(!response.ok){const error=await response.json().catch(()=>null);throw new Error(typeof error?.message==="string"?error.message:"Не удалось сохранить действие");}
-      if(path==="review"){setReviewDone(true);}else{
+      if(path==="review"){setReviewDone(true);setOrder(current=>({...current,rating,reviewText:reviewText.trim()||null}));}else{
         const refreshed=await fetch(`/api/backend/orders/${encodeURIComponent(order.id)}`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
         if(refreshed.ok)setOrder(await refreshed.json() as Order);
       }
@@ -424,6 +424,8 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       {!collapsed&&order.status==="disputed"&&<p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Обращение зарегистрировано. Поддержка должна рассмотреть заказ; автоматической выплаты нет.</p>}
 
         {summary}
+        {order.status==="completed"&&<Link href={`/order?service=${encodeURIComponent(order.cleaningType)}&repeat=${encodeURIComponent(order.id)}`} className="cg-card block p-3 text-center text-sm font-semibold text-[#137D79]">Повторить заказ</Link>}
+        {order.status==="completed"&&order.rating!=null&&<div className="cg-card p-3"><h2 className="text-sm font-semibold">Ваша оценка</h2><p className="mt-2 flex items-center gap-1.5 text-sm font-semibold"><Star size={16} className="fill-[#E9B54E] text-[#E9B54E]"/>{Number(order.rating).toFixed(1)}</p>{order.reviewText&&<p className="mt-2 break-words text-xs cg-muted">{order.reviewText}</p>}</div>}
         {cleanerCard}
         {inspectionCard}
         {progressCard}
