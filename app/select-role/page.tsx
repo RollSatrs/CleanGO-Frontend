@@ -59,11 +59,10 @@ export default function RoleSelection() {
   };
 
   return (
-    <main className="relative flex cleango-screen cleango-onboarding-content flex-col overflow-hidden bg-[#F8FCFF] text-[#102334]">
+    <main className="relative flex cleango-screen cleango-onboarding-content flex-col overflow-hidden bg-[#F7F7F5] text-[#15191D]">
       {/* Фон */}
-      <div className="pointer-events-none absolute -right-28 -top-28 h-80 w-80 rounded-full bg-teal-100/60 blur-3xl" />
 
-      <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-cyan-100/60 blur-3xl" />
+
 
       {/* Стрелка назад */}
       <div className="relative z-10">
@@ -125,14 +124,14 @@ export default function RoleSelection() {
               disabled={loading}
               onClick={() => setSelectedRole(role.id)}
               aria-pressed={selected}
-              className={`flex w-full items-center gap-3 rounded-[24px] border-2 bg-white p-3 text-left shadow-sm transition-colors duration-200 ${
+              className={`flex w-full items-center gap-3 rounded-[16px] border bg-white p-3 text-left transition-colors duration-200 ${
                 selected
-                  ? "border-[#12B6A6] shadow-lg shadow-teal-100"
-                  : "border-[#E9F1F6] hover:border-teal-200"
+                  ? "border-[#259E9B] ring-1 ring-[#259E9B]"
+                  : "border-[#E6E7E4] hover:border-[#259E9B]"
               }`}
             >
               {/* 3D PNG-иконка */}
-              <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-[20px] bg-[#E9F9F6]">
+              <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-[20px] bg-[#D9EFED]">
                 <Image
                   src={role.image}
                   alt={role.alt}
@@ -181,7 +180,7 @@ export default function RoleSelection() {
           type="button"
           disabled={!selectedRole || loading}
           onClick={handleContinue}
-          className="flex h-[58px] w-full items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#12B6A6] to-[#079EAB] text-[16px] font-semibold text-white shadow-lg shadow-teal-100 transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+          className="flex h-[58px] w-full items-center justify-center gap-3 rounded-[14px] cg-primary text-sm font-semibold transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
         >
           {loading ? "Подождите..." : "Продолжить"}
 
