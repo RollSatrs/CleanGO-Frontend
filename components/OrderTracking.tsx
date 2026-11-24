@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock3, MapPin, ShieldCheck, Sparkles, Star, ChevronDown, Phone, UserRound } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock3, MapPin, Sparkles, Star, ChevronDown, Phone, UserRound, CalendarDays, Camera, BrushCleaning, Navigation } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import ServiceImage from "@/components/ServiceImage";
 import PhotoReport from "@/components/PhotoReport";
 
 type Order = {
@@ -11,7 +12,7 @@ type Order = {
   cleaningType: "regular" | "general" | "renovation";
   price: number | null; latitude?: string | number | null; longitude?: string | number | null;
   inspectionMethod?: "personal"|"photos"; completionPhotos?: string[]|null;
-  completionSubmittedAt?: string|null; rating?:number|null;
+  completionSubmittedAt?: string|null; rating?:number|null; createdAt?:string;
 };
 const names = { regular: "Поддерживающая уборка", general: "Генеральная уборка", renovation: "После ремонта" };
 const terminal = new Set(["completed", "cancelled", "unassigned", "expired", "failed", "no_cleaner", "disputed"]);
@@ -86,7 +87,11 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const skipHandleClick=useRef(false);
   const gestureStart=useRef<{y:number;position:"collapsed"|"normal"|"expanded"}|null>(null);
   const expanded=sheetPosition==="expanded";
-  const collapsed=sheetPosition==="collapsed";
+  const mapPhase=["pending","accepted","en_route"].includes(order.status);
+  const hasCoordinates=Number.isFinite(latitude)&&Number.isFinite(longitude)&&Math.abs(latitude)<=90&&Math.abs(longitude)<=180;
+  const immersive=mapPhase&&hasCoordinates;
+  const collapsed=immersive&&sheetPosition==="collapsed";
+  const [detailMapOpen,setDetailMapOpen]=useState(false);
   const handleSheetStart=(event:React.PointerEvent<HTMLButtonElement>)=>{
     if(event.pointerType==="mouse"&&event.button!==0)return;
     gestureStart.current={y:event.clientY,position:sheetPosition};
@@ -264,63 +269,52 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   }
   const title=isPending?"Ищем клинера":order.status==="en_route"?"Клинер направляется к вам":order.status==="arrived"?"Клинер прибыл":order.status==="in_progress"?"Уборка выполняется":order.status==="pending_confirmation"?"Подтвердите уборку":order.status==="disputed"?"Обращение в поддержку":order.status==="completed"?"Уборка завершена":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
   const searchStage=isPending?(progress===null?"Подбираем исполнителей":progress.awaiting>0?"Ожидаем подтверждения клинера":progress.sent>0?"Продолжаем поиск исполнителя":"Подбираем исполнителей"):"";
-  const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="accepted"?"Исполнитель подтвердил заказ. Ожидаем начала поездки.":order.status==="en_route"?"Исполнитель сообщил, что направляется по адресу. Точное местоположение не передаётся.":order.status==="arrived"?"Исполнитель отметил прибытие по адресу.":order.status==="in_progress"?"Исполнитель начал уборку.":order.status==="pending_confirmation"?"Клинер завершил работу. Подтвердите результат или сообщите о проблеме.":order.status==="disputed"?"Заказ ожидает рассмотрения поддержкой.":order.status==="completed"?"Вы подтвердили выполнение уборки.":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
-  return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F7F7F5] text-[#15191D] cleango-map-viewport">
-    <div ref={setMapNode} className="absolute inset-0 min-h-full w-full" style={{minHeight:"100%"}} aria-label="Карта адреса уборки" />
-    {!mapReady&&<div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-[#6D8880]">{mapError || "Загружаем карту района…"}</div>}
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-white/95 via-white/70 to-transparent px-4 pb-8 cleango-tracking-header">
-      <div className="flex items-center justify-between">
-        <Link href="/client/orders" className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-white shadow-md" aria-label="Мои заказы"><ArrowLeft size={20}/></Link>
-        <span className="rounded-full bg-white px-4 py-2 text-xs font-bold tracking-wide text-[#087F71] shadow-sm">CleanGo · Заказ</span>
-      </div>
+  const subtitle=isPending?"Подбираем исполнителя и ожидаем ответа":order.status==="accepted"?"Исполнитель подтвердил заказ. Ожидаем начала поездки.":order.status==="en_route"?(progress?.tripLocation?"Исполнитель направляется по адресу.":"Исполнитель в пути, геопозиция пока недоступна."):order.status==="arrived"?"Исполнитель отметил прибытие по адресу.":order.status==="in_progress"?"Исполнитель начал уборку.":order.status==="pending_confirmation"?"Клинер завершил работу. Подтвердите результат или сообщите о проблеме.":order.status==="disputed"?"Заказ ожидает рассмотрения поддержкой.":order.status==="completed"?"Вы подтвердили выполнение уборки.":order.status==="unassigned"?"Поиск завершился без подходящего исполнителя. Можно оформить новый заказ.":"Статус подтверждён сервером CleanGo";
+  const stages=["Назначен","В пути","Уборка","Проверка","Готово"];
+  const stageIndex=({accepted:0,en_route:1,arrived:2,in_progress:2,pending_confirmation:3,completed:4} as Record<string,number>)[order.status];
+  const statusCard=<div className="flex items-center gap-3 py-1">
+    <div className="cg-soft grid h-11 w-11 shrink-0 place-items-center rounded-xl">
+      {isPending?<Sparkles size={22} className="animate-pulse"/>:order.status==="en_route"?<Navigation size={22}/>:order.status==="in_progress"?<BrushCleaning size={22}/>:order.status==="pending_confirmation"?<Camera size={22}/>:order.status==="completed"||order.status==="accepted"||order.status==="arrived"?<CheckCircle2 size={22}/>:<Clock3 size={22}/>}
     </div>
-    <div className={`absolute inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-[22px] bg-white shadow-[0_-12px_50px_rgba(20,65,57,0.12)] transition-[height] duration-300 ease-out cleango-tracking-sheet ${collapsed?"h-[154px]":expanded?"h-[min(90dvh,850px)]":"h-[min(66dvh,530px)]"}`}>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-5">
-      <button type="button" onPointerDown={handleSheetStart} onPointerUp={handleSheetEnd} onPointerCancel={()=>{gestureStart.current=null;}} onClick={()=>{if(skipHandleClick.current){skipHandleClick.current=false;return;}setSheetPosition(value=>value==="expanded"?"normal":"expanded");}} aria-label="Потяните вверх или вниз, чтобы изменить размер панели" aria-expanded={expanded} className="flex w-full cursor-grab touch-none select-none justify-center py-4 active:cursor-grabbing"><span className="h-1.5 w-12 rounded-full bg-[#D9E8E4]"/></button>
-      <div className="flex items-center gap-3">
-        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#D9EFED] text-[#079B8D]">{isAccepted?<CheckCircle2 size={25}/>:<Sparkles size={25} className={isPending?"animate-pulse":""}/>}</div>
-        <div className="min-w-0 flex-1"><h1 className="text-xl font-extrabold tracking-tight">{title}</h1><p className="mt-1 text-xs leading-5 text-[#738C84]">{subtitle}</p></div>
-        {isPending&&<span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0A9C8D] opacity-40"/><span className="relative inline-flex h-3 w-3 rounded-full bg-[#0A9C8D]"/></span>}
-      </div>
-      {!collapsed&&isPending&&<div className="mt-5 flex items-center gap-2 text-xs text-[#66877E]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#137D79]"/>Поиск выполняется — время ответа зависит от клинеров</div>}
-      {!collapsed&&isPending&&<div className="mt-4 rounded-2xl bg-[#F4F5F2] p-4" aria-live="polite">
-        <div className="flex items-center gap-2 text-sm font-semibold text-[#174E45]"><CheckCircle2 size={17} className="text-[#079B8D]"/>Заказ оформлен</div>
-        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#174E45]">{progress&&progress.sent>0?<CheckCircle2 size={17} className="text-[#079B8D]"/>:<Clock3 size={17} className="text-[#079B8D]"/>}Предложения клинерам {progress&&progress.sent>0?"отправлены":"подбираются"}</div>
-        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#174E45]"><span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-[#137D79]"/>{searchStage}</div>
-      </div>}
-      {!collapsed&&isPending&&<div className="mt-3 rounded-2xl border border-[#E2EEE9]">
-        <button type="button" onClick={()=>setStatsExpanded(value=>!value)} aria-expanded={statsExpanded} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[#174E45]">
-          <span>Подробности поиска</span><span className="text-xs text-[#60827A]">{statsExpanded?"Скрыть −":"Показать +"}</span>
-        </button>
-        {statsExpanded&&<div className="grid grid-cols-3 gap-2 border-t border-[#E2EEE9] p-3 text-center">
-          {([{value:progress?.sent,label:"Отправлено"},{value:progress?.awaiting,label:"Ожидают"},{value:progress?.declined,label:"Отказались"}]).map(item=><div key={item.label} className="rounded-xl bg-[#F1F9F6] px-1 py-3"><div className="text-xl font-extrabold text-[#087F71]">{item.value??"—"}</div><div className="mt-1 text-[10px] text-[#6B8980]">{item.label}</div></div>)}
-          <p className="col-span-3 text-left text-[11px] leading-4 text-[#708981]">Отправленные предложения не означают, что клинеры их просмотрели.</p>
-          {progressError&&<p role="status" className="col-span-3 text-left text-xs text-amber-700">Не удалось обновить статистику. Показываем последние подтверждённые данные.</p>}
-        </div>}
-      </div>}
-      {!collapsed&&isAccepted&&progressError&&!progress?.cleaner&&<p role="status" className="mt-3 text-xs text-amber-700">Не удалось загрузить данные исполнителя. Повторяем запрос автоматически.</p>}
-      {!collapsed&&isAccepted&&progress?.cleaner&&<div className="mt-4 overflow-hidden rounded-[16px] border border-[#E6E7E4] bg-white">
-        <div className="px-4 pb-3 pt-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7C918B]">Ваш исполнитель</p>
-            <span className="rounded-full bg-[#D9EFED] px-3 py-1 text-[11px] font-semibold text-[#148878]">Назначен на заказ</span>
-          </div>
-          <div className="mt-3 flex items-center gap-3">
-            <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-[18px] bg-[#D9EFED] text-xl font-extrabold text-[#168B7D]" aria-hidden="true">
-              {progress.cleaner.name.trim().split(/\s+/).slice(0,2).map(part=>part[0]?.toUpperCase()).join("")||<UserRound size={24}/>}
-              <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-[#159D88] text-white"><CheckCircle2 size={12}/></span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[18px] font-extrabold tracking-tight text-[#152535]">{progress.cleaner.name}</p>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#6B847C]">
-                <span className="inline-flex items-center gap-1 font-semibold text-[#285E52]"><Star size={13} className="fill-[#F5B942] text-[#F5B942]"/>{reputation?.rating!=null?reputation.rating.toFixed(1):"Нет оценок"}</span>
-                <span>{reputation? `${reputation.completedOrders} выполнено`:"История загружается"}</span>
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 rounded-2xl bg-[#F4F5F2] px-3.5 py-3">
-            <div className="flex items-start gap-2"><span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-[#27B39D]"/><p className="text-xs leading-5 text-[#52756B]">{order.status==="accepted"?"Исполнитель принял заказ и готовится выехать":order.status==="en_route"?(progress.tripLocation?"Исполнитель направляется к вам · местоположение видно на карте":"Исполнитель в пути · геопозиция сейчас недоступна"):order.status==="arrived"?"Исполнитель прибыл по адресу":order.status==="in_progress"?"Сейчас выполняет уборку":order.status==="pending_confirmation"?"Уборка выполнена · ожидаем вашего подтверждения":order.status==="completed"?"Уборка подтверждена":"Статус заказа обновляется"}</p></div>
-            {order.status==="en_route"&&<div className="mt-3 border-t border-[#DBEAE4] pt-3">
+    <div className="min-w-0 flex-1"><h1 className="text-[19px] font-bold leading-tight tracking-[-0.035em]">{title}</h1><p className="mt-1 text-xs leading-4 cg-muted">{subtitle}</p></div>
+  </div>;
+  const mapContent=<>
+    <div ref={setMapNode} className="absolute inset-0 h-full w-full" aria-label="Карта адреса уборки"/>
+    {!mapReady&&<div className="pointer-events-none absolute inset-0 grid place-items-center bg-[#F4F5F2]/70 px-5 text-center text-xs cg-muted">{mapError||"Загружаем карту…"}</div>}
+  </>;
+  const summary=<div className="cg-card p-2.5">
+    <ServiceImage type={order.cleaningType} className="aspect-[3.1/1] w-full rounded-[11px]" sizes="(max-width: 520px) 90vw, 470px" illustrative/>
+    <div className="px-1 pb-1 pt-2.5">
+      <p className="text-[24px] font-bold leading-tight tracking-tight">{order.price==null?"Цена уточняется":`${Number(order.price).toLocaleString("ru-RU")} ₸`}</p>
+      <p className="mt-1 text-xs font-medium">{names[order.cleaningType]??"Уборка"} · {order.area} м²</p>
+      <p className="mt-2 flex items-start gap-1.5 text-xs leading-4 cg-muted"><MapPin size={14} className="shrink-0"/>{order.address}</p>
+      {order.createdAt&&<p className="mt-1.5 flex items-center gap-1.5 text-[11px] cg-muted"><CalendarDays size={13}/>Создан {new Date(order.createdAt).toLocaleString("ru-RU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</p>}
+    </div>
+  </div>;
+  const progressCard=stageIndex!==undefined&&<div className="cg-card p-3">
+    <p className="mb-3 text-sm font-semibold">Статус заказа</p>
+    <div className="flex items-start">
+      {stages.map((label,index)=><div key={label} className="relative flex min-w-0 flex-1 flex-col items-center gap-1.5">
+        {index<stages.length-1&&<span aria-hidden="true" className={`absolute left-1/2 top-[9px] h-0.5 w-full ${index<stageIndex?"bg-[#259E9B]":"bg-[#DDE2DF]"}`}/>}
+        <span className={`relative z-10 grid h-5 w-5 place-items-center rounded-full border-2 ${index<stageIndex?"border-[#259E9B] bg-[#259E9B] text-white":index===stageIndex?"border-[#259E9B] bg-white text-[#259E9B]":"border-[#CBD2CE] bg-white"}`}>{index<stageIndex?<CheckCircle2 size={12}/>:index===stageIndex?<span className="h-2 w-2 rounded-full bg-[#259E9B]"/>:null}</span>
+        <span className={`text-center text-[10px] leading-3 ${index===stageIndex?"font-bold text-[#137D79]":"cg-muted"}`}>{label}</span>
+      </div>)}
+    </div>
+  </div>;
+  const cleanerCard=<>
+    {!collapsed&&isAccepted&&progressError&&!progress?.cleaner&&<p role="status" className="text-xs text-amber-700">Не удалось загрузить данные исполнителя.</p>}
+    {!collapsed&&isAccepted&&progress?.cleaner&&<div className="cg-card overflow-hidden">
+      <div className="p-3">
+        <p className="mb-2.5 text-xs font-semibold cg-muted">Ваш исполнитель</p>
+        <div className="flex items-center gap-2.5">
+          <div className="cg-soft grid h-11 w-11 shrink-0 place-items-center rounded-[13px] text-base font-bold" aria-hidden="true">{progress.cleaner.name.trim().split(/\s+/).slice(0,2).map(part=>part[0]?.toUpperCase()).join("")||<UserRound size={21}/>}</div>
+          <button type="button" onClick={()=>setReputationOpen(open=>!open)} aria-expanded={reputationOpen} className="min-w-0 flex-1 text-left">
+            <p className="flex items-center gap-1 text-[15px] font-bold"><span className="truncate">{progress.cleaner.name}</span><ChevronDown size={14} className={reputationOpen?"shrink-0 rotate-180":"shrink-0"}/></p>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] cg-muted"><span className="inline-flex items-center gap-1"><Star size={12} className="fill-[#E9B54E] text-[#E9B54E]"/>{reputation?.rating!=null?reputation.rating.toFixed(1):"Нет оценок"}</span>{reputation&&<span>{reputation.completedOrders} уборок</span>}</p>
+          </button>
+          {progress.cleaner.phone&&<a href={`tel:${progress.cleaner.phone}`} aria-label="Позвонить исполнителю" className="cg-soft grid h-11 w-11 shrink-0 place-items-center rounded-full"><Phone size={19}/></a>}
+        </div>
+                    {order.status==="en_route"&&<div className="mt-3 rounded-xl bg-[#F4F5F2] p-3">
               <p className="text-[11px] font-medium text-[#728A82]">Ориентировочное прибытие</p>
               <p className="mt-1 text-lg font-extrabold text-[#174E45]">{progress.etaMinutes!=null&&progress.etaCalculatedAt?(()=>{
                 const minutesLeft=progress.etaMinutes-Math.max(0,Math.floor((Date.now()-new Date(progress.etaCalculatedAt).getTime())/60000));
@@ -328,16 +322,9 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
               })():"Время уточняется"}</p>
               <p className="mt-1 text-[11px] text-[#81968D]">{progress.travelMode==="walking"?"Оценка пешком":progress.travelMode==="transit"?"Приблизительно на общественном транспорте":"По автомобильному маршруту"} · без пробок</p>
             </div>}
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button type="button" onClick={()=>setReputationOpen(open=>!open)} aria-expanded={reputationOpen} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[#DFEAE6] bg-white px-3 text-xs font-bold text-[#315F54]">
-              Профиль <ChevronDown size={15} className={reputationOpen?"rotate-180 transition-transform":"transition-transform"}/>
-            </button>
-            {progress.cleaner.phone?<a href={`tel:${progress.cleaner.phone}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#137D79] px-3 text-xs font-bold text-white"><Phone size={15}/>Позвонить</a>:
-            <div className="flex min-h-11 items-center justify-center rounded-xl bg-[#F0F5F3] px-2 text-center text-[11px] text-[#789087]">Телефон недоступен</div>}
-          </div>
-        </div>
-        {reputationOpen&&<div className="border-t border-[#E7F0ED] bg-[#FCFEFD] px-4 py-4">
+
+      </div>
+              {reputationOpen&&<div className="border-t border-[#E7F0ED] bg-[#FCFEFD] px-4 py-4">
           <p className="text-sm font-bold text-[#152535]">Профиль исполнителя</p>
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
             <div className="rounded-xl bg-[#F4F5F2] p-2"><p className="text-base font-extrabold text-[#174E45]">{reputation?.rating!=null?reputation.rating.toFixed(1):"—"}</p><p className="text-[10px] text-[#718A81]">Рейтинг</p></div>
@@ -347,29 +334,80 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
           {reputation?.reviews?.length?<div className="mt-3 space-y-2">{reputation.reviews.slice(0,3).map((review,index)=><div key={index} className="rounded-xl border border-[#E5EFEB] bg-white p-3"><span className="text-xs font-bold text-[#C49024]">{review.rating} ★</span><p className="mt-1 text-xs leading-5 text-[#52756B]">{review.reviewText}</p></div>)}</div>:<p className="mt-3 text-xs text-[#789087]">Пока нет опубликованных текстовых отзывов.</p>}
           <p className="mt-3 text-[11px] leading-4 text-[#829790]">Оценки основаны на подтверждённых заказах CleanGo.</p>
         </div>}
-      </div>}
 
-      {!collapsed&&["accepted","en_route","arrived","in_progress"].includes(order.status)&&<div className="mt-4 cg-card p-3">
-        <p className="text-sm font-bold text-[#174E45]">Как проверите уборку?</p>
-        <p className="mt-1 text-xs text-[#66877E]">Выбираете вы. По умолчанию — фотоотчёт.</p>
+    </div>}
+  </>;
+  const inspectionCard=<>
+      {!collapsed&&["accepted","en_route","arrived","in_progress"].includes(order.status)&&<div className="cg-card p-3">
+        <div className="flex items-center gap-2"><span className="cg-soft grid h-9 w-9 shrink-0 place-items-center rounded-full"><Camera size={18}/></span><p className="text-sm font-semibold">Как проверите уборку?</p></div>
+        <p className="mt-1 text-xs cg-muted">Выбираете вы. По умолчанию — фотоотчёт.</p>
         <div className="mt-3 flex gap-2">
-          <button disabled={inspectionSaving} type="button" onClick={()=>void selectInspection("personal")} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod==="personal"?"border-teal-600 bg-[#137D79] text-white":"bg-white text-teal-800"}`}>Проверю лично</button>
-          <button disabled={inspectionSaving} type="button" onClick={()=>void selectInspection("photos")} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod!=="personal"?"border-teal-600 bg-[#137D79] text-white":"bg-white text-teal-800"}`}>По фотографиям</button>
+          <button disabled={inspectionSaving} type="button" onClick={()=>void selectInspection("personal")} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod==="personal"?"border-[#137D79] cg-primary":"border-[#E6E7E4] bg-white text-[#176E6B]"}`}>Проверю лично</button>
+          <button disabled={inspectionSaving} type="button" onClick={()=>void selectInspection("photos")} className={`flex-1 rounded-xl border px-2 py-3 text-xs font-semibold ${order.inspectionMethod!=="personal"?"border-[#137D79] cg-primary":"border-[#E6E7E4] bg-white text-[#176E6B]"}`}>По фотографиям</button>
         </div>
         {inspectionSaving&&<p className="mt-2 text-[11px] text-teal-700" role="status">Сохраняем ваш выбор…</p>}
       </div>}
-      {!collapsed&&order.status==="pending_confirmation"&&<div className="mt-4 rounded-2xl bg-[#F4F5F2] p-4">
-        <p className="text-sm font-bold text-[#174E45]">Проверьте результат уборки</p>
-        {order.completionPhotos?.length ? <div className="mt-3"><PhotoReport photos={order.completionPhotos}/><p className="mt-2 text-[11px] text-[#66877E]">Нажмите на фотографию для полноэкранного просмотра.</p></div>:<p className="mt-2 text-xs text-[#66877E]">Выбрана личная проверка, фотоотчёт необязателен.</p>}
-        <p className="mt-3 text-xs text-[#66877E]">Клинеру не нужно ждать на месте. Если вы забыли подтвердить, система напомнит через 15 минут.</p>
-        <button type="button" disabled={completionBusy} onClick={()=>void orderAction("confirm-completion")} className="mt-3 w-full rounded-xl bg-[#137D79] px-4 py-3 text-sm font-bold text-white disabled:opacity-50">Подтвердить уборку</button>
-        <button type="button" disabled={completionBusy} onClick={()=>void orderAction("completion-issue")} className="mt-2 w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 disabled:opacity-50">Есть проблема</button>
+
+  </>;
+  const confirmationCard=order.status==="pending_confirmation"&&<div className="cg-card p-3.5">
+    <div className="mb-2 flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">Результат уборки</h2>{!!order.completionPhotos?.length&&<span className="text-xs cg-muted">{order.completionPhotos.length} фото</span>}</div>
+    {order.completionPhotos?.length?<PhotoReport photos={order.completionPhotos}/>:<p className="text-xs leading-5 cg-muted">{order.inspectionMethod==="personal"?"Вы выбрали личную проверку. Фотографии необязательны.":"Фотографии пока недоступны."}</p>}
+    <p className="mt-2 text-xs leading-5 cg-muted">Проверьте результат. Если есть проблема, сообщите о ней вместо подтверждения.</p>
+  </div>;
+  const detailHeader=<div className="flex items-center justify-between gap-2">
+    <Link href="/client/orders" className="cg-icon-button" aria-label="К заказам"><ArrowLeft size={20}/></Link>
+    <p className="truncate text-sm font-bold">Заказ №{order.id.slice(0,8).toUpperCase()}</p>
+    <button type="button" onClick={()=>{if(immersive)setSheetPosition(value=>value==="expanded"?"normal":"expanded");else if(hasCoordinates)setDetailMapOpen(open=>!open);}} disabled={!hasCoordinates} aria-label={immersive?"Изменить размер панели":"Показать или скрыть карту"} className="cg-icon-button disabled:opacity-30"><MapPin size={19}/></button>
+  </div>;
+  const errors=<>{completionError&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-xs text-red-700">{completionError}</p>}{networkError&&<p role="status" className="text-xs text-amber-700">Нет связи с сервером. Показываем последний подтверждённый статус.</p>}</>;
+  const footer=order.status==="pending_confirmation"?<div className="space-y-2">
+    <button type="button" disabled={completionBusy} onClick={()=>void orderAction("confirm-completion")} className="cg-primary min-h-12 w-full rounded-[13px] px-4 text-sm font-semibold disabled:opacity-50">{completionBusy?"Сохраняем…":"Подтвердить уборку"}</button>
+    <button type="button" disabled={completionBusy} onClick={()=>void orderAction("completion-issue")} className="min-h-10 w-full rounded-xl border border-[#E6E7E4] bg-white text-sm font-semibold text-red-700 disabled:opacity-50">Есть проблема</button>
+    {completionError&&<p role="alert" className="text-xs text-red-700">{completionError}</p>}
+  </div>:<Link href="/client/orders" className="cg-primary flex min-h-12 items-center justify-center rounded-[13px] px-4 text-sm font-semibold">Мои заказы</Link>;
+
+  if(immersive)return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F7F7F5] text-[#15191D] cleango-map-viewport">
+    {mapContent}
+    <div className="absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-[#F7F7F5] via-[#F7F7F5]/90 to-transparent pb-5 cleango-tracking-header">{detailHeader}</div>
+    <div className={`absolute inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-[22px] bg-[#F7F7F5] shadow-[0_-8px_30px_rgba(20,65,57,0.10)] transition-[height] duration-300 cleango-tracking-sheet cg-tracking-panel ${collapsed?"h-[154px]":expanded?"h-[min(84dvh,850px)]":"h-[min(52dvh,460px)]"}`}>
+      <button type="button" onPointerDown={handleSheetStart} onPointerUp={handleSheetEnd} onPointerCancel={()=>{gestureStart.current=null;}} onClick={()=>{if(skipHandleClick.current){skipHandleClick.current=false;return;}setSheetPosition(value=>value==="expanded"?"normal":"expanded");}} aria-label="Изменить размер панели" aria-expanded={expanded} className="flex w-full shrink-0 cursor-grab touch-none select-none justify-center py-3"><span className="h-1 w-10 rounded-full bg-[#CBDDD8]"/></button>
+      <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain px-4 pb-3">
+        {statusCard}
+              {!collapsed&&isPending&&<div className="mt-3 flex items-center gap-2 text-xs text-[#66877E]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#137D79]"/>Поиск выполняется — время ответа зависит от клинеров</div>}
+      {!collapsed&&isPending&&<div className="mt-3 rounded-2xl bg-[#F4F5F2] p-4" aria-live="polite">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#174E45]"><CheckCircle2 size={17} className="text-[#079B8D]"/>Заказ оформлен</div>
+        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#174E45]">{progress&&progress.sent>0?<CheckCircle2 size={17} className="text-[#079B8D]"/>:<Clock3 size={17} className="text-[#079B8D]"/>}Предложения клинерам {progress&&progress.sent>0?"отправлены":"подбираются"}</div>
+        <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#174E45]"><span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-[#137D79]"/>{searchStage}</div>
       </div>}
-      {!collapsed&&["completed","disputed"].includes(order.status)&&!!order.completionPhotos?.length&&<div className="mt-4 rounded-2xl border border-[#E1EEE8] bg-white p-4"><p className="mb-3 text-sm font-bold text-[#174E45]">Фотоотчёт уборки</p><PhotoReport photos={order.completionPhotos}/></div>}
-      {!collapsed&&order.status==="disputed"&&<p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Обращение зарегистрировано. Поддержка должна рассмотреть заказ; автоматической выплаты нет.</p>}
-      {!collapsed&&order.status==="completed"&&order.rating==null&&!reviewDone&&<div className="mt-4 rounded-2xl border border-teal-100 p-4">
+      {!collapsed&&isPending&&<div className="mt-3 rounded-2xl border border-[#E2EEE9]">
+        <button type="button" onClick={()=>setStatsExpanded(value=>!value)} aria-expanded={statsExpanded} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[#174E45]">
+          <span>Подробности поиска</span><span className="text-xs text-[#60827A]">{statsExpanded?"Скрыть −":"Показать +"}</span>
+        </button>
+        {statsExpanded&&<div className="grid grid-cols-3 gap-2 border-t border-[#E2EEE9] p-3 text-center">
+          {([{value:progress?.sent,label:"Отправлено"},{value:progress?.awaiting,label:"Ожидают"},{value:progress?.declined,label:"Отказались"}]).map(item=><div key={item.label} className="rounded-xl bg-[#F4F5F2] px-1 py-3"><div className="text-xl font-extrabold text-[#087F71]">{item.value??"—"}</div><div className="mt-1 text-[10px] text-[#6B8980]">{item.label}</div></div>)}
+          <p className="col-span-3 text-left text-[11px] leading-4 text-[#708981]">Отправленные предложения не означают, что клинеры их просмотрели.</p>
+          {progressError&&<p role="status" className="col-span-3 text-left text-xs text-amber-700">Не удалось обновить статистику. Показываем последние подтверждённые данные.</p>}
+        </div>}
+      </div>}
+
+        {cleanerCard}
+        {!collapsed&&inspectionCard}
+        {!collapsed&&expanded&&summary}
+        {!collapsed&&errors}
+      </div>
+      {!collapsed&&<div className="shrink-0 border-t border-[#E6E7E4] px-4 pt-2.5">{footer}</div>}
+    </div>
+  </section>;
+
+  return <section className="fixed inset-0 z-[1000] bg-[#F7F7F5]"><div className="cleango-page-frame">
+    <div className="cg-detail-header">{detailHeader}</div>
+    <div className="cleango-page-scroll w-full">
+      <div className="space-y-2.5 px-4 pt-1">
+        <div className="cg-card p-3">{statusCard}</div>
+        {confirmationCard}
+              {!collapsed&&order.status==="completed"&&order.rating==null&&!reviewDone&&<div className="cg-card p-3.5">
         <p className="text-sm font-bold">Оцените клинера — по желанию</p>
-        <div className="mt-3 flex items-center gap-1" role="group" aria-label="Выберите оценку с шагом ползвезды">
+        <div className="mt-3 flex flex-wrap items-center gap-1" role="group" aria-label="Выберите оценку с шагом ползвезды">
           {[1,2,3,4,5].map(n=><div key={n} className="relative h-11 w-11 shrink-0 select-none" aria-hidden={false}>
             <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center text-[37px] leading-none text-[#D6E0DC]">★</span>
             <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden text-[#F2B544]" style={{width:rating>=n?"100%":rating===n-0.5?"50%":"0%"}}>
@@ -384,18 +422,18 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         <textarea value={reviewText} onChange={e=>setReviewText(e.target.value)} maxLength={1000} placeholder="Отзыв (необязательно)" className="mt-3 w-full rounded-xl border p-3 text-sm" rows={2}/>
         <div className="mt-2 flex gap-2"><button type="button" disabled={!rating||completionBusy} onClick={()=>void orderAction("review",{rating,reviewText})} className="flex-1 rounded-xl bg-[#137D79] p-3 text-sm font-bold text-white disabled:opacity-50">Отправить</button><button type="button" onClick={()=>setReviewDone(true)} className="rounded-xl border px-4 text-sm">Пропустить</button></div>
       </div>}
-      {!collapsed&&completionError&&<p role="alert" className="mt-3 text-sm text-red-700">{completionError}</p>}
-      {!collapsed&&<div className="mt-5 flex items-center gap-2 text-sm text-[#617B74]"><MapPin size={16} className="shrink-0 text-[#079B8D]"/><span className="truncate">{order.address}</span></div>}
-      {expanded&&<div className="mt-4 space-y-3 border-t border-[#EDF3F0] pt-4">
-        <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Уборка</span><strong className="text-right">{names[order.cleaningType]}</strong></div>
-        <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Площадь</span><strong>{order.area} м²</strong></div>
-        <div className="flex justify-between gap-3 text-sm"><span className="text-[#7A908A]">Стоимость</span><strong>{order.price==null?"Уточняется":`${Number(order.price).toLocaleString("ru-RU")} ₸`}</strong></div>
-        <p className="flex items-start gap-2 text-xs leading-5 text-[#6B8980]"><ShieldCheck size={16} className="shrink-0 text-[#079B8D]"/>Точный адрес доступен исполнителю только после принятия заказа.</p>
-      </div>}
-      {!collapsed&&networkError&&<p role="status" className="mt-3 text-xs text-amber-700">Нет связи с сервером. Показываем последний подтверждённый статус.</p>}
-      {!collapsed&&isPending&&<p className="mt-3 flex items-center gap-2 text-xs text-[#79918B]"><Clock3 size={14}/>Статус обновляется каждые 5 секунд</p>}
+
+              {!collapsed&&["completed","disputed"].includes(order.status)&&!!order.completionPhotos?.length&&<div className="cg-card p-3.5"><p className="mb-2 text-sm font-semibold">Фотоотчёт уборки</p><PhotoReport photos={order.completionPhotos}/></div>}
+      {!collapsed&&order.status==="disputed"&&<p className="mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Обращение зарегистрировано. Поддержка должна рассмотреть заказ; автоматической выплаты нет.</p>}
+
+        {summary}
+        {cleanerCard}
+        {progressCard}
+        {inspectionCard}
+        {hasCoordinates&&<div className="cg-card overflow-hidden"><button type="button" onClick={()=>setDetailMapOpen(open=>!open)} aria-expanded={detailMapOpen} className="flex w-full items-center gap-2.5 p-3 text-left"><span className="cg-soft grid h-9 w-9 shrink-0 place-items-center rounded-full"><MapPin size={18}/></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Адрес на карте</span><span className="mt-0.5 block truncate text-xs cg-muted">{order.address}</span></span><ChevronDown size={17} className={detailMapOpen?"rotate-180":""}/></button>{detailMapOpen&&<div className="relative mx-2 mb-2 h-40 overflow-hidden rounded-xl">{mapContent}</div>}</div>}
+        {errors}
       </div>
-      {!collapsed&&<div className="shrink-0 px-4 pt-3 pb-3 sm:px-5"><Link href="/client/orders" className="flex min-h-12 items-center justify-center rounded-2xl bg-[#137D79] px-4 font-bold text-white">Мои заказы</Link></div>}
     </div>
-  </section>;
+    <div className="cg-detail-footer">{footer}</div>
+  </div></section>;
 }
