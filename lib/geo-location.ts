@@ -3,6 +3,7 @@ export type Coordinates = { latitude: number; longitude: number };
 type LocationManager = {
   isInited: boolean;
   isLocationAvailable: boolean;
+  isAccessGranted?: boolean;
   init: (callback: () => void) => void;
   getLocation: (callback: (data: Coordinates | null) => void) => void;
   openSettings: () => void;
@@ -73,4 +74,21 @@ export async function requestCleanGoLocation(): Promise<Coordinates> {
       : error instanceof Error ? error.message : "Геолокация недоступна.";
     throw new Error([telegramError, browserError, "Проверьте разрешения CleanGo в Telegram и службы геолокации macOS."].filter(Boolean).join(" "));
   }
+}
+
+/** Automatic updates never initiate a permission prompt. */
+export async function requestGrantedCleanGoLocation():Promise<Coordinates>{
+  const manager=getTelegramLocationManager();
+  if(manager){
+    if(!manager.isInited)await new Promise<void>((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(new Error("Не удалось проверить разрешение Telegram")),5000);
+      try{manager.init(()=>{clearTimeout(timer);resolve();});}catch(e){clearTimeout(timer);reject(e);}
+    });
+    if(manager.isLocationAvailable&&manager.isAccessGranted)return telegramPosition(manager);
+  }
+  if(navigator.permissions&&navigator.geolocation){
+    const permission=await navigator.permissions.query({name:"geolocation"});
+    if(permission.state==="granted")return browserPosition();
+  }
+  throw new Error("Для автообновления подтвердите доступ к геопозиции вручную.");
 }
