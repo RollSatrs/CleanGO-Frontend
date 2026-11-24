@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Clock3, MapPin, Sparkles, Star, ChevronDown, Phone, CalendarDays, Camera, BrushCleaning, Navigation, ChevronsUpDown } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { CounterpartAvatar } from "@/components/ProfileAvatar";
+import { useSheetSwipe } from "@/lib/use-sheet-swipe";
 import ServiceImage from "@/components/ServiceImage";
 import PhotoReport from "@/components/PhotoReport";
 
@@ -85,32 +86,25 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const [progressError,setProgressError]=useState(false);
   const [mapReady,setMapReady]=useState(false);
   const [sheetPosition,setSheetPosition]=useState<"collapsed"|"normal"|"expanded">("normal");
-  const skipHandleClick=useRef(false);
-  const gestureStart=useRef<{y:number;position:"collapsed"|"normal"|"expanded"}|null>(null);
+  const sheetRef=useRef<HTMLDivElement>(null);
+  const positions=["collapsed","normal","expanded"] as const;
   const expanded=sheetPosition==="expanded";
   const mapPhase=["pending","accepted","en_route"].includes(order.status);
   const hasCoordinates=Number.isFinite(latitude)&&Number.isFinite(longitude)&&Math.abs(latitude)<=90&&Math.abs(longitude)<=180;
   const immersive=mapPhase&&hasCoordinates;
-  const collapsed=immersive&&sheetPosition==="collapsed";
+  const {dragHeight,handleProps}=useSheetSwipe({
+    panelRef:sheetRef,index:positions.indexOf(sheetPosition),count:positions.length,enabled:immersive,
+    getHeights:panel=>{
+      const height=panel.parentElement?.getBoundingClientRect().height??window.innerHeight;
+      return [154,Math.min(height*.52,460),Math.min(height*.84,850)];
+    },
+    onSnap:index=>setSheetPosition(positions[index]),
+    onTap:()=>setSheetPosition(value=>value==="expanded"?"normal":value==="collapsed"?"normal":"expanded"),
+  });
+  const collapsed=immersive&&sheetPosition==="collapsed"&&(dragHeight===null||dragHeight<=162);
   const [detailMapOpen,setDetailMapOpen]=useState(false);
   const detailMapRef=useRef<HTMLDivElement|null>(null);
   useEffect(()=>{if(!immersive&&detailMapOpen)detailMapRef.current?.scrollIntoView({block:"nearest",behavior:"smooth"});},[immersive,detailMapOpen]);
-  const handleSheetStart=(event:React.PointerEvent<HTMLButtonElement>)=>{
-    if(event.pointerType==="mouse"&&event.button!==0)return;
-    gestureStart.current={y:event.clientY,position:sheetPosition};
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-  const handleSheetEnd=(event:React.PointerEvent<HTMLButtonElement>)=>{
-    const start=gestureStart.current;
-    gestureStart.current=null;
-    if(!start)return;
-    const delta=event.clientY-start.y;
-    if(Math.abs(delta)<35)return;
-    skipHandleClick.current=true;
-    const positions=["collapsed","normal","expanded"] as const;
-    const index=positions.indexOf(start.position);
-    setSheetPosition(positions[Math.max(0,Math.min(2,index+(delta<0?1:-1)))]);
-  };
   const [statsExpanded,setStatsExpanded]=useState(false);
   const [mapNode,setMapNode]=useState<HTMLDivElement|null>(null);
   const mapReadyRef=useRef(false);
@@ -372,8 +366,8 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   if(immersive)return <section className="fixed inset-0 z-[1000] overflow-hidden bg-[#F7F7F5] text-[#15191D] cleango-map-viewport">
     {mapContent}
     <div className="absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-[#F7F7F5] via-[#F7F7F5]/90 to-transparent pb-5 cleango-tracking-header">{detailHeader}</div>
-    <div className={`absolute inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-[22px] bg-[#F7F7F5] shadow-[0_-8px_30px_rgba(20,65,57,0.10)] transition-[height] duration-300 cleango-tracking-sheet cg-tracking-panel ${collapsed?"h-[154px]":expanded?"h-[min(84dvh,850px)]":"h-[min(52dvh,460px)]"}`}>
-      <button type="button" onPointerDown={handleSheetStart} onPointerUp={handleSheetEnd} onPointerCancel={()=>{gestureStart.current=null;}} onClick={()=>{if(skipHandleClick.current){skipHandleClick.current=false;return;}setSheetPosition(value=>value==="expanded"?"normal":"expanded");}} aria-label="Изменить размер панели" aria-expanded={expanded} className="flex w-full shrink-0 cursor-grab touch-none select-none justify-center py-3"><span className="h-1 w-10 rounded-full bg-[#CBDDD8]"/></button>
+    <div ref={sheetRef} className={`absolute inset-x-0 bottom-0 z-20 flex flex-col overflow-hidden rounded-t-[22px] bg-[#F7F7F5] shadow-[0_-8px_30px_rgba(20,65,57,0.10)] cleango-tracking-sheet cg-tracking-panel cg-swipe-panel ${dragHeight!==null?"cg-swipe-dragging":""} ${sheetPosition==="collapsed"?"h-[154px]":expanded?"h-[min(84dvh,850px)]":"h-[min(52dvh,460px)]"}`} style={dragHeight===null?undefined:{height:dragHeight}}>
+      <button type="button" {...handleProps} aria-label="Изменить размер панели" aria-expanded={sheetPosition!=="collapsed"} className="cg-swipe-handle flex h-7 w-full shrink-0 items-center justify-center"><span className="h-1 w-10 rounded-full bg-[#CAD6D1]"/></button>
       <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain px-4 pb-3">
         {statusCard}
               {!collapsed&&isPending&&<div className="mt-3 flex items-center gap-2 text-xs text-[#66877E]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#137D79]"/>Поиск выполняется — время ответа зависит от клинеров</div>}
