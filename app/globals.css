@@ -233,3 +233,22 @@ html.telegram-mini-app.cleango-fullscreen body:has(.cleango-page-frame) { overfl
 @media (prefers-reduced-motion: reduce) {
   .cg-swipe-panel { transition: none; }
 }
+
+/* CleanGo list motion: subtle, GPU-friendly and reduced-motion aware. */
+.cg-press { transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease, transform 150ms ease; }
+.cg-press:active:not(:disabled) { transform: scale(.98); }
+.cg-skeleton { background: linear-gradient(105deg,#ECEFEC 20%,#F7F9F7 44%,#ECEFEC 68%); background-size: 220% 100%; animation: cg-shimmer 1.25s ease-in-out infinite; }
+.cg-loading-spin { animation: cg-spin .85s linear infinite; flex-shrink: 0; }
+.cg-order-enter { --cg-enter-x: 0px; animation: cg-list-enter 260ms cubic-bezier(.2,.8,.2,1) both; }
+.cg-enter-forward { --cg-enter-x: 10px; }
+.cg-enter-back { --cg-enter-x: -10px; }
+.cg-order-card { transition: border-color 180ms ease, box-shadow 180ms ease; }
+@media (hover: hover) { .cg-order-card:hover { border-color: #BFD8D3; box-shadow: 0 3px 12px #15253509; } }
+@keyframes cg-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@keyframes cg-spin { to { transform: rotate(360deg); } }
+@keyframes cg-list-enter { from { opacity: 0; transform: translate3d(var(--cg-enter-x),5px,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
+@media (prefers-reduced-motion: reduce) {
+  .cg-skeleton,.cg-loading-spin,.cg-order-enter { animation: none; }
+  .cg-press,.cg-order-card { transition: none; }
+  .cg-press:active:not(:disabled) { transform: none; }
+}
