@@ -9,7 +9,7 @@ function permitted(path: string, method: string): boolean {
   if (method === "PATCH" && ["orders/cleaner/profile","orders/cleaner/preferences","orders/cleaner/location"].includes(path)) return true;
   if (method === "POST" && path === "orders") return true;
   if (method === "PATCH" && /^orders\/[0-9a-f-]{36}\/(accept|decline|en-route|arrived|trip-location|start|complete|cancel|inspection|confirm-completion|completion-issue)$/i.test(path)) return true;
-  if (method === "POST" && /^orders\/[0-9a-f-]{36}\/(?:review|exception)$/i.test(path)) return true;
+  if (method === "POST" && /^orders\/[0-9a-f-]{36}\/(?:review|review-report|exception)$/i.test(path)) return true;
   return false;
 }
 
