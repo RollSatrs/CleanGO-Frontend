@@ -79,8 +79,11 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
   const [reviewDone,setReviewDone]=useState(false);
   const [reputation,setReputation]=useState<{completedOrders:number;reviewCount:number;rating:number|null;reviews:{rating:number|null;reviewText:string|null}[]}|null>(null);
   const [reputationOpen,setReputationOpen]=useState(false);
+  const [reputationError,setReputationError]=useState(false);
+  const [reputationAttempt,setReputationAttempt]=useState(0);
+  const reviewLock=useRef(false);
   const [networkError,setNetworkError]=useState(false);
-  const [progress,setProgress]=useState<{sent:number;awaiting:number;declined:number;cleaner:{name:string;phone:string|null}|null;tripLocation?:{latitude:number;longitude:number}|null;travelMode?:string|null;etaMinutes?:number|null;etaCalculatedAt?:string|null}|null>(null);
+  const [progress,setProgress]=useState<{sent:number;awaiting:number;declined:number;cleaner:{name:string;phone:string|null}|null;cleanerId?:string|null;tripLocation?:{latitude:number;longitude:number}|null;travelMode?:string|null;etaMinutes?:number|null;etaCalculatedAt?:string|null}|null>(null);
   const [arrivalEstimate,setArrivalEstimate]=useState<{km:number;minutes:number}|null>(null);
   const [arrivalBusy,setArrivalBusy]=useState(false);
   const [mapError,setMapError]=useState("");
@@ -237,6 +240,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
     }
   }
   useEffect(()=>{
+    setReputation(null);setReputationError(false);
     if(!token || !progress?.cleaner || !isAccepted)return;
     let active=true;
     void fetch(`/api/backend/orders/${encodeURIComponent(order.id)}/cleaner-reputation`,{
@@ -245,12 +249,12 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
       if(!response.ok)throw new Error("rating unavailable");
       const result=await response.json();
       if(active)setReputation(result);
-    }).catch(()=>{});
+    }).catch(()=>{if(active)setReputationError(true);});
     return ()=>{active=false;};
-  },[token,order.id,progress?.cleaner?.name,isAccepted]);
+  },[token,order.id,progress?.cleanerId,progress?.cleaner?.name,isAccepted,reputationAttempt]);
   async function orderAction(path:string, body?:object) {
-    if(!token||completionBusy)return;
-    setCompletionBusy(true);setCompletionError("");
+    if(!token||completionBusy||reviewLock.current)return;
+    reviewLock.current=true;setCompletionBusy(true);setCompletionError("");
     try{
       const response=await fetch(`/api/backend/orders/${encodeURIComponent(order.id)}/${path}`,{
         method:path==="review"?"POST":"PATCH",
@@ -258,12 +262,12 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
         body:JSON.stringify(body??{}),
       });
       if(!response.ok){const error=await response.json().catch(()=>null);throw new Error(typeof error?.message==="string"?error.message:"Не удалось сохранить действие");}
-      if(path==="review"){setReviewDone(true);setOrder(current=>({...current,rating,reviewText:reviewText.trim()||null}));}else{
+      if(path==="review"){const saved=await response.json() as {rating:number;reviewText:string|null};setReviewDone(true);setOrder(current=>({...current,rating:saved.rating,reviewText:saved.reviewText}));setReputationAttempt(v=>v+1);}else{
         const refreshed=await fetch(`/api/backend/orders/${encodeURIComponent(order.id)}`,{headers:{Authorization:`Bearer ${token}`},cache:"no-store"});
         if(refreshed.ok)setOrder(await refreshed.json() as Order);
       }
     }catch(error){setCompletionError(error instanceof Error?error.message:"Ошибка соединения");}
-    finally{setCompletionBusy(false);}
+    finally{reviewLock.current=false;setCompletionBusy(false);}
   }
   const title=order.status==="replacement_pending"?"Нужна замена клинера":isPending?"Ищем клинера":order.status==="en_route"?"Клинер направляется к вам":order.status==="arrived"?"Клинер прибыл":order.status==="in_progress"?"Уборка выполняется":order.status==="pending_confirmation"?"Подтвердите уборку":order.status==="disputed"?"Обращение в поддержку":order.status==="completed"?"Уборка завершена":isAccepted?"Клинер найден":order.status==="cancelled"?"Заказ отменён":order.status==="unassigned"?"Клинер не найден":"Поиск завершён";
   const searchStage=isPending?(progress===null?"Подбираем исполнителей":progress.awaiting>0?"Ожидаем подтверждения клинера":progress.sent>0?"Продолжаем поиск исполнителя":"Подбираем исполнителей"):"";
@@ -308,7 +312,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
           <CounterpartAvatar orderId={order.id} name={progress.cleaner.name} enabled={["accepted","en_route","arrived","in_progress","pending_confirmation"].includes(order.status)} className="h-11 w-11 text-base"/>
           <button type="button" onClick={()=>setReputationOpen(open=>!open)} aria-expanded={reputationOpen} className="min-w-0 flex-1 text-left">
             <p className="flex items-center gap-1 text-[15px] font-bold"><span className="truncate">{progress.cleaner.name}</span><ChevronDown size={14} className={reputationOpen?"shrink-0 rotate-180":"shrink-0"}/></p>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] cg-muted"><span className="inline-flex items-center gap-1"><Star size={12} className="fill-[#E9B54E] text-[#E9B54E]"/>{reputation?.rating!=null?reputation.rating.toFixed(1):"Нет оценок"}</span>{reputation&&<span>{reputation.completedOrders} уборок</span>}</p>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] cg-muted"><span className="inline-flex items-center gap-1"><Star size={12} className="fill-[#E9B54E] text-[#E9B54E]"/>{reputation?.rating!=null?reputation.rating.toFixed(1):reputationError?"Недоступно":reputation?"Нет оценок":"Загрузка…"}</span>{reputation&&<span>{reputation.completedOrders} уборок</span>}</p>
           </button>
           {progress.cleaner.phone&&<a href={`tel:${progress.cleaner.phone}`} aria-label="Позвонить исполнителю" className="cg-soft grid h-11 w-11 shrink-0 place-items-center rounded-full"><Phone size={19}/></a>}
         </div>
@@ -329,7 +333,7 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
             <div className="rounded-xl bg-[#F0F8F5] p-2"><p className="text-base font-extrabold text-[#174E45]">{reputation?.completedOrders??"—"}</p><p className="text-[10px] text-[#718A81]">Уборок</p></div>
             <div className="rounded-xl bg-[#F0F8F5] p-2"><p className="text-base font-extrabold text-[#174E45]">{reputation?.reviewCount??"—"}</p><p className="text-[10px] text-[#718A81]">Оценок</p></div>
           </div>
-          {reputation?.reviews?.length?<div className="mt-3 space-y-2">{reputation.reviews.slice(0,3).map((review,index)=><div key={index} className="rounded-xl border border-[#E5EFEB] bg-white p-3"><span className="text-xs font-bold text-[#C49024]">{review.rating} ★</span><p className="mt-1 text-xs leading-5 text-[#52756B]">{review.reviewText}</p></div>)}</div>:<p className="mt-3 text-xs text-[#789087]">Пока нет опубликованных текстовых отзывов.</p>}
+          {reputationError?<button type="button" onClick={()=>setReputationAttempt(v=>v+1)} className="mt-3 text-xs font-semibold text-[#137D79]">Не удалось загрузить отзывы · Повторить</button>:!reputation?<div className="cg-skeleton mt-3 h-16 rounded-xl"/>:reputation.reviews?.length?<div className="mt-3 space-y-2">{reputation.reviews.slice(0,3).map((review,index)=><div key={index} className="rounded-xl border border-[#E5EFEB] bg-white p-3"><span className="text-xs font-bold text-[#C49024]">{review.rating} ★</span><p className="mt-1 text-xs leading-5 text-[#52756B]">{review.reviewText}</p></div>)}</div>:<p className="mt-3 text-xs text-[#789087]">Пока нет опубликованных текстовых отзывов.</p>}
           <p className="mt-3 text-[11px] leading-4 text-[#829790]">Оценки основаны на подтверждённых заказах CleanGo.</p>
         </div>}
 
@@ -413,14 +417,14 @@ export default function OrderTracking({ initialOrder, latitude, longitude }: {
             <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 overflow-hidden text-[#F2B544]" style={{width:rating>=n?"100%":rating===n-0.5?"50%":"0%"}}>
               <span className="flex h-full w-11 items-center justify-center text-[37px] leading-none">★</span>
             </span>
-            <button type="button" className="absolute inset-y-0 left-0 w-1/2 rounded-l-md focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600" onClick={()=>setRating(n-0.5)} aria-label={`Оценить на ${(n-0.5).toLocaleString("ru-RU")} из 5`} aria-pressed={rating===n-0.5}/>
-            <button type="button" className="absolute inset-y-0 right-0 w-1/2 rounded-r-md focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600" onClick={()=>setRating(n)} aria-label={`Оценить на ${n} из 5`} aria-pressed={rating===n}/>
+            <button type="button" className="absolute inset-y-0 left-0 w-1/2 rounded-l-md focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600" disabled={completionBusy} onClick={()=>setRating(n-0.5)} aria-label={`Оценить на ${(n-0.5).toLocaleString("ru-RU")} из 5`} aria-pressed={rating===n-0.5}/>
+            <button type="button" className="absolute inset-y-0 right-0 w-1/2 rounded-r-md focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600" disabled={completionBusy} onClick={()=>setRating(n)} aria-label={`Оценить на ${n} из 5`} aria-pressed={rating===n}/>
           </div>)}
           <span className="ml-2 min-w-9 text-sm font-extrabold tabular-nums text-[#92691D]" aria-live="polite">{rating?rating.toLocaleString("ru-RU"):"—"}</span>
         </div>
         <p className="mt-1 text-[11px] text-[#7E918A]">Нажмите на левую половину звезды, чтобы поставить 0,5.</p>
-        <textarea value={reviewText} onChange={e=>setReviewText(e.target.value)} maxLength={1000} placeholder="Отзыв (необязательно)" className="mt-3 w-full rounded-xl border p-3 text-sm" rows={2}/>
-        <div className="mt-2 flex gap-2"><button type="button" disabled={!rating||completionBusy} onClick={()=>void orderAction("review",{rating,reviewText})} className="flex-1 rounded-xl bg-[#137D79] p-3 text-sm font-bold text-white disabled:opacity-50">Отправить</button><button type="button" onClick={()=>setReviewDone(true)} className="rounded-xl border px-4 text-sm">Пропустить</button></div>
+        <p className="mt-3 text-[11px] cg-muted">Отзыв добровольный. Не указывайте телефон, адрес или другие личные данные. После отправки изменить оценку нельзя.</p><textarea disabled={completionBusy} value={reviewText} onChange={e=>setReviewText(e.target.value)} maxLength={1000} placeholder="Отзыв (необязательно)" className="mt-3 w-full rounded-xl border p-3 text-sm" rows={2}/>
+        <div className="mt-2 flex gap-2"><button type="button" disabled={!rating||completionBusy} onClick={()=>void orderAction("review",{rating,reviewText})} className="flex-1 rounded-xl bg-[#137D79] p-3 text-sm font-bold text-white disabled:opacity-50">Отправить</button><button type="button" disabled={completionBusy} onClick={()=>setReviewDone(true)} className="rounded-xl border px-4 text-sm">Пропустить</button></div>
       </div>}
 
               {!collapsed&&["completed","disputed"].includes(order.status)&&!!order.completionPhotos?.length&&<div className="cg-card p-3.5"><p className="mb-2 text-sm font-semibold">Фотоотчёт уборки</p><PhotoReport photos={order.completionPhotos}/></div>}
