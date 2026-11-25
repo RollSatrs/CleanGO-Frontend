@@ -48,6 +48,10 @@ const noticeLabels: Record<string, string> = {
   replacement_started:"Начат повторный поиск клинера",
   order_issue_reported:"Обращение зарегистрировано",
   client_wait_started:"Клинер ожидает клиента по адресу",
+  review_submitted:"Клиент оставил оценку",
+  support_update:"Поддержка обновила обращение",
+  support_order_resumed:"Заказ возобновлён поддержкой",
+  completion_support_escalated:"Подтверждение ожидается более 24 часов",
 };
 
 export function NotificationBell() {
@@ -116,7 +120,7 @@ export function NotificationBell() {
       <div className="max-h-80 space-y-1 overflow-y-auto">
         {items.length === 0 && <p className="py-5 text-center text-sm text-slate-500">Пока нет уведомлений</p>}
         {items.map(item => <Link key={item.id}
-          href={user?.role === "cleaner" ? "/cleaner/jobs" : "/client/orders"}
+          href={item.type==="support_update"||item.type==="completion_support_escalated"?"/support":user?.role === "cleaner" ? "/cleaner/jobs" : "/client/orders"}
           onClick={() => { markRead(); setOpen(false); }}
           className={`block rounded-xl p-3 text-sm hover:bg-[#F0FAF8] ${readIds.includes(item.id) ? "bg-white" : "bg-[#EAF8F5]"}`}>
           <span className="font-semibold">{roleLabels[item.type] ?? noticeLabels[item.type] ?? "Обновление заказа"}</span>
