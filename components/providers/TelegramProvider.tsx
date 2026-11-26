@@ -89,7 +89,7 @@ function RoleRouteGuard({ children }: Props) {
   return <>{children}</>;
 }
 
-export default function TelegramProvider({
+function TelegramAppProvider({
   children,
 }: Props) {
   const [ready, setReady] = useState(false);
@@ -262,3 +262,6 @@ export default function TelegramProvider({
     </AuthProvider>
   );
 }
+
+// Browser admin has its own authentication and must not initialize Telegram SDK.
+export default function TelegramProvider({children}:Props){const pathname=usePathname();if(pathname==="/admin"||pathname.startsWith("/admin/"))return <>{children}</>;return <TelegramAppProvider>{children}</TelegramAppProvider>;}

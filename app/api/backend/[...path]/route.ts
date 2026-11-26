@@ -10,8 +10,8 @@ function permitted(path: string, method: string): boolean {
   if (method === "POST" && path === "orders") return true;
   if (method === "PATCH" && /^orders\/[0-9a-f-]{36}\/(accept|decline|en-route|arrived|trip-location|start|complete|cancel|inspection|confirm-completion|completion-issue)$/i.test(path)) return true;
   if (method === "POST" && /^orders\/[0-9a-f-]{36}\/(?:review|review-report|exception)$/i.test(path)) return true;
-  if (method === "GET" && ["support/mine","support/access","support/admin/overview","support/admin/orders","support/admin/users","support/admin/cases"].includes(path)) return true;
-  if (["GET","PATCH"].includes(method) && /^support\/admin\/cases\/[0-9a-f-]{36}$/i.test(path)) return true;
+  if (method === "GET" && path === "support/mine") return true;
+
   return false;
 }
 
